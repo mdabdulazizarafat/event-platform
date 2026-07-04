@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f9f9ff;
+  --foreground: #111c2d;
+  --primary: #3525cd;
+  --primary-container: #4f46e5;
+  --on-primary-container: #dad7ff;
+  --secondary: #006c49;
+  --secondary-container: #6cf8bb;
+  --tertiary: #684000;
+  --error: #ba1a1a;
+  --outline-variant: #c7c4d8;
+  --on-surface-variant: #464555;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f0f3ff;
+  --surface-container: #e7eeff;
+  --surface-container-high: #dee8ff;
+  --surface-container-highest: #d8e3fb;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-secondary: var(--secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-tertiary: var(--tertiary);
+  --color-error: var(--error);
+  --color-outline-variant: var(--outline-variant);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --font-sans: var(--font-inter), sans-serif;
+  --font-heading: var(--font-plus-jakarta), sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), sans-serif;
+}
+
+/* Bento & Glass Panel styles from design assets */
+.bento-card {
+  background: #ffffff;
+  border: 1px solid var(--outline-variant);
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.bento-card:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.ticket-perforation {
+  position: relative;
+  background-image: radial-gradient(circle at 0% 50%, transparent 12px, white 12px),
+                    radial-gradient(circle at 100% 50%, transparent 12px, white 12px);
+  background-size: 100% 100%;
+}
+.ticket-dashed-line {
+  background-image: linear-gradient(to right, #cbd5e1 50%, rgba(255,255,255,0) 0%);
+  background-position: bottom;
+  background-size: 12px 2px;
+  background-repeat: repeat-x;
+}
+
+@keyframes scan {
+  0%, 100% { transform: translateY(0); opacity: 0; }
+  10%, 90% { opacity: 1; }
+  50% { transform: translateY(192px); }
+}
+
+.animate-scan {
+  animation: scan 3s ease-in-out infinite;
+}
+
+.custom-ticket-modal .ant-modal-content {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.custom-ticket-modal .ant-modal-body {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.custom-ticket-modal .ant-modal-close {
+  color: #fff !important;
+  top: -12px !important;
+  right: -12px !important;
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-radius: 50% !important;
+  backdrop-filter: blur(4px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+.custom-ticket-modal .ant-modal-close:hover {
+  background: rgba(15, 23, 42, 0.8) !important;
+  color: #fff !important;
+}
