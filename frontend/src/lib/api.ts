@@ -12,6 +12,24 @@ export interface Session {
   speakerAvatar?: string;
 }
 
+export interface TicketType {
+  id: number;
+  event_id: number;
+  name: string;
+  description: string | null;
+  price: string;
+  currency: string;
+  capacity: number | null;
+  sort_order: number;
+  is_active: boolean;
+  sale_start: string | null;
+  sale_end: string | null;
+  sold_count: number;
+  remaining: number | null;
+  available: boolean;
+  isFree: boolean;
+}
+
 export interface Event {
   slug: string;
   title: string;
@@ -21,6 +39,8 @@ export interface Event {
   description: string;
   thumbnail: string;
   hostUsername: string;
+  contactEmail?: string;
+  contactPhone?: string;
   passType?: string;
   gate?: string;
   attendeesCount?: string;
@@ -63,6 +83,8 @@ const mockEvents: Event[] = [
     description: 'The Global Tech Summit is the premier gathering for software engineers, product managers, and tech executives. Join us for 3 days of inspiring keynotes, deep-dive technical sessions, and unmatched networking opportunities as we explore the future of AI, cloud architecture, and open-source ecosystems.',
     thumbnail: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&h=450&fit=crop',
     hostUsername: 'tech-hub',
+    contactEmail: 'info@globaltechsummit.com',
+    contactPhone: '+880-1711-000000',
     passType: 'VIP Access',
     gate: 'South Hall • B2',
     speakers: [
@@ -84,6 +106,8 @@ const mockEvents: Event[] = [
     description: 'Master React Server Components, Server Actions, the new React Compiler, and advanced state management techniques.',
     thumbnail: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?q=80&w=800&h=450&fit=crop',
     hostUsername: 'tech-hub',
+    contactEmail: 'workshops@techhub.io',
+    contactPhone: '+880-1711-111111',
     passType: 'General Admission',
     gate: 'Main Entrance • Gate A'
   }
@@ -104,3 +128,204 @@ export async function getEventsByHost(hostUsername: string): Promise<Event[]> {
   await new Promise((resolve) => setTimeout(resolve, 50));
   return mockEvents.filter((e) => e.hostUsername === hostUsername);
 }
+
+/**
+ * Fetch available ticket types for an event from the backend.
+ */
+export async function fetchTicketTypes(slug: string): Promise<TicketType[]> {
+  try {
+    const response = await fetch(`/api/v1/events/${slug}/ticket-types`);
+    if (!response.ok) {
+      return [];
+    }
+    return await response.json();
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Initiate payment for a paid ticket type.
+ */
+export async function initiatePayment(data: {
+  eventSlug: string;
+  ticketTypeId: number;
+  userId: string;
+  email: string;
+  customerName: string;
+  customerPhone?: string;
+}): Promise<{ gatewayUrl: string; tranId: string }> {
+  const response = await fetch('/api/v1/payments/initiate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errData = await response.json();
+    throw new Error(errData.error || 'Failed to initiate payment');
+  }
+
+  return await response.json();
+}
+
+/**
+ * Check payment status by transaction ID.
+ */
+export async function checkPaymentStatus(tranId: string) {
+  const response = await fetch(`/api/v1/payments/status/${tranId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch payment status');
+  }
+  return await response.json();
+}
+
+/**
+ * Event Activities API client functions.
+ */
+export interface EventActivity {
+  id: number;
+  event_id: number;
+  name: string;
+  scan_limit: number | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export async function fetchEventActivities(slug: string): Promise<EventActivity[]> {
+  const response = await fetch(`/api/v1/events/${slug}/activities`);
+  if (!response.ok) {
+    throw new Error('Failed to load event activities');
+  }
+  return await response.json();
+}
+
+export async function createEventActivity(slug: string, name: string, scanLimit: number | null): Promise<EventActivity> {
+  const response = await fetch(`/api/v1/events/${slug}/activities`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, scanLimit })
+  });
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.error || 'Failed to create activity');
+  }
+  return await response.json();
+}
+
+export async function updateEventActivity(slug: string, id: number, data: { name?: string; scanLimit?: number | null; isActive?: boolean }): Promise<EventActivity> {
+  const response = await fetch(`/api/v1/events/${slug}/activities/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'Failed to update activity');
+  }
+  return await response.json();
+}
+
+export async function deactivateEventActivity(slug: string, id: number): Promise<void> {
+  const response = await fetch(`/api/v1/events/${slug}/activities/${id}`, {
+    method: 'DELETE'
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'Failed to deactivate activity');
+  }
+}
+
+/**
+ * Scanning & Logging API client functions.
+ */
+export interface ScanResult {
+  success: boolean;
+  message: string;
+  registration?: {
+    id: number;
+    email: string;
+    userId: string;
+    ticketName: string;
+  };
+  scannedAt?: string;
+}
+
+export async function scanTicket(slug: string, activityId: number, qrToken: string): Promise<ScanResult> {
+  const response = await fetch(`/api/v1/events/${slug}/scan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ activityId, qrToken })
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Verification failed');
+  }
+  return data;
+}
+
+export async function fetchScanLogs(slug: string) {
+  const response = await fetch(`/api/v1/events/${slug}/scan/logs`);
+  if (!response.ok) {
+    throw new Error('Failed to load scan history logs');
+  }
+  return await response.json();
+}
+
+export async function fetchScanStats(slug: string) {
+  const response = await fetch(`/api/v1/events/${slug}/scan/stats`);
+  if (!response.ok) {
+    throw new Error('Failed to load scanning statistics');
+  }
+  return await response.json();
+}
+
+/**
+ * Event Team API client functions.
+ */
+export interface TeamMember {
+  id: number;
+  event_id: number;
+  username: string;
+  role: 'ORGANIZER' | 'MANAGER';
+  invited_by: string | null;
+  joined_at: string;
+  name: string;
+  email: string;
+  avatar: string | null;
+  bio: string | null;
+}
+
+export async function fetchEventTeam(slug: string): Promise<TeamMember[]> {
+  const response = await fetch(`/api/v1/events/${slug}/team`);
+  if (!response.ok) {
+    throw new Error('Failed to load event team members');
+  }
+  return await response.json();
+}
+
+export async function inviteTeamMember(slug: string, username: string): Promise<TeamMember> {
+  const response = await fetch(`/api/v1/events/${slug}/team`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username })
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'Failed to invite team member');
+  }
+  const data = await response.json();
+  return data.teamMember;
+}
+
+export async function removeTeamMember(slug: string, username: string): Promise<void> {
+  const response = await fetch(`/api/v1/events/${slug}/team/${username}`, {
+    method: 'DELETE'
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'Failed to remove team member');
+  }
+}
+

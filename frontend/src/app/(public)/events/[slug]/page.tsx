@@ -20,14 +20,16 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
   const { slug } = React.use(params);
 
   // Mock lookup for rendering the public event page layout details
-  const eventsData: Record<string, { title: string; date: string; location: string; passType: string; gate: string; bg: string }> = {
+  const eventsData: Record<string, { title: string; date: string; location: string; passType: string; gate: string; bg: string; contactEmail?: string; contactPhone?: string }> = {
     'global-tech-summit': {
       title: 'Global Tech Summit 2026',
       date: 'October 24-26, 2026',
       location: 'Convention Center, San Francisco, CA',
       passType: 'VIP Access',
       gate: 'South Hall • B2',
-      bg: 'radial-gradient(circle at top right, #e2dfff 0%, #f9f9ff 100%)'
+      bg: 'radial-gradient(circle at top right, #e2dfff 0%, #f9f9ff 100%)',
+      contactEmail: 'info@globaltechsummit.com',
+      contactPhone: '+880-1711-000000',
     },
     'react-advanced-workshop': {
       title: 'React 19 & Next.js 16 Masterclass',
@@ -35,7 +37,9 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
       location: 'Tech Hub Headquarters, Boston, MA',
       passType: 'General Admission',
       gate: 'Main Entrance • Gate A',
-      bg: 'radial-gradient(circle at top right, #dee8ff 0%, #f9f9ff 100%)'
+      bg: 'radial-gradient(circle at top right, #dee8ff 0%, #f9f9ff 100%)',
+      contactEmail: 'workshops@techhub.io',
+      contactPhone: '+880-1711-111111',
     }
   };
 
@@ -76,6 +80,8 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
               description: 'Professional event entry validation.',
               thumbnail: '',
               hostUsername: 'tech-hub',
+              contactEmail: event.contactEmail,
+              contactPhone: event.contactPhone,
               passType: event.passType,
               gate: event.gate
             }}
@@ -112,6 +118,8 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                     description: 'Professional event entry validation.',
                     thumbnail: '',
                     hostUsername: 'tech-hub',
+                    contactEmail: event.contactEmail,
+                    contactPhone: event.contactPhone,
                     passType: event.passType,
                     gate: event.gate
                   }}

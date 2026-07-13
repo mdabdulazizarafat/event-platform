@@ -17,7 +17,11 @@ export interface TicketEmailPayload {
   email: string;
   eventTitle: string;
   qrCodeUrl: string;
-  pdfTicketUrl: string;
+}
+
+export interface CancellationEmailPayload {
+  email: string;
+  eventTitle: string;
 }
 
 export class EmailService {
@@ -35,8 +39,6 @@ export class EmailService {
         <div style="margin: 24px 0; text-align: center;">
           <img src="${payload.qrCodeUrl}" alt="Check-in QR Code" style="width: 200px; height: 200px; border: 4px solid #3525cd; border-radius: 12px; padding: 8px; background: white;" />
         </div>
-        <p>Alternatively, you can download your official PDF ticket & receipt here:</p>
-        <a href="${payload.pdfTicketUrl}" style="display: inline-block; background-color: #3525cd; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 8px;">Download PDF Ticket</a>
         <hr style="border: 0; border-top: 1px solid #c7c4d8; margin: 24px 0;" />
         <p style="font-size: 11px; color: #464555;">Best regards,<br/>Rong Plan Event Infrastructure Team</p>
       </div>
@@ -46,7 +48,6 @@ export class EmailService {
     if (!client) {
       console.warn(`[MOCK EMAIL] To: ${payload.email} | Subject: Ticket Confirmed - ${payload.eventTitle}`);
       console.log(`[MOCK EMAIL] QR Code Link: ${payload.qrCodeUrl}`);
-      console.log(`[MOCK EMAIL] PDF Receipt Link: ${payload.pdfTicketUrl}`);
       return;
     }
 
@@ -67,4 +68,43 @@ export class EmailService {
       console.error('Resend delivery failed, falling back to log warning:', err.message);
     }
   }
+
+  /**
+   * Sends transactional cancellation email via Resend
+   */
+  static async sendTicketCancellation(payload: CancellationEmailPayload): Promise<void> {
+    const htmlContent = `
+      <div style="font-family: sans-serif; padding: 24px; color: #111c2d; max-width: 600px; margin: 0 auto; border: 1px solid #ff4d4d; border-radius: 16px;">
+        <h2 style="color: #ff4d4d; font-family: 'Plus Jakarta Sans', sans-serif;">Registration Cancelled</h2>
+        <p>This is to inform you that your registration for the event <strong>${payload.eventTitle}</strong> has been cancelled by the organizer.</p>
+        <p>As a result, your digital ticket QR code is now invalidated and cannot be used for entry.</p>
+        <hr style="border: 0; border-top: 1px solid #c7c4d8; margin: 24px 0;" />
+        <p style="font-size: 11px; color: #464555;">Best regards,<br/>Rong Plan Event Infrastructure Team</p>
+      </div>
+    `;
+
+    const client = getResendClient();
+    if (!client) {
+      console.warn(`[MOCK EMAIL] To: ${payload.email} | Subject: Registration Cancelled - ${payload.eventTitle}`);
+      return;
+    }
+
+    try {
+      const { data, error } = await client.emails.send({
+        from: this.fromEmail,
+        to: [payload.email],
+        subject: `Registration Cancelled: ${payload.eventTitle}`,
+        html: htmlContent,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      console.log(`Resend cancellation email sent successfully: ${data?.id}`);
+    } catch (err: any) {
+      console.error('Resend delivery failed, falling back to log warning:', err.message);
+    }
+  }
 }
+

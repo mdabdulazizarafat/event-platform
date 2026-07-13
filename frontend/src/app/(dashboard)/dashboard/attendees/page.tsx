@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { Typography, Card, Table, Tag, Input, Select, Button, Avatar } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Card, Table, Tag, Input, Select, Button, Avatar, Modal, message, Alert } from 'antd';
 import { 
   Search, 
   ChevronRight, 
@@ -13,21 +13,121 @@ import {
   XCircle,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  MailWarning,
+  Send
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 const { Title, Paragraph } = Typography;
 
 export default function AttendeesPage() {
+  const { user } = useAuth();
+  
+  const [events, setEvents] = useState<any[]>([]);
+  const [selectedEventSlug, setSelectedEventSlug] = useState<string>('');
+  const [registrations, setRegistrations] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('All');
+  
+  // Resend ticket modal state
+  const [isResendModalOpen, setIsResendModalOpen] = useState<boolean>(false);
+  const [editingRegistration, setEditingRegistration] = useState<any>(null);
+  const [resendEmail, setResendEmail] = useState<string>('');
+  const [resending, setResending] = useState<boolean>(false);
+
+  // Fetch events on mount
+  useEffect(() => {
+    async function fetchEvents() {
+      try {
+        const res = await fetch('/api/v1/events');
+        if (res.ok) {
+          const data = await res.json();
+          // Filter events hosted by this host
+          const hostEvents = data.filter((e: any) => e.host_username === user?.username);
+          setEvents(hostEvents);
+          if (hostEvents.length > 0) {
+            setSelectedEventSlug(hostEvents[0].slug);
+          }
+        }
+      } catch (err) {
+        message.error('Failed to load events.');
+      }
+    }
+    if (user) {
+      fetchEvents();
+    }
+  }, [user]);
+
+  // Fetch registrations when event slug changes
+  const fetchRegistrations = async (slug: string) => {
+    if (!slug) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/v1/events/${slug}/registrations`);
+      if (res.ok) {
+        const data = await res.json();
+        setRegistrations(data);
+      } else {
+        message.error('Failed to load registrations.');
+      }
+    } catch (err) {
+      message.error('Network error loading registrations.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedEventSlug) {
+      fetchRegistrations(selectedEventSlug);
+    }
+  }, [selectedEventSlug]);
+
+  const handleResendClick = (record: any) => {
+    setEditingRegistration(record);
+    setResendEmail(record.email);
+    setIsResendModalOpen(true);
+  };
+
+  const handleResendSubmit = async () => {
+    if (!resendEmail.trim()) {
+      message.error('Please enter a valid email address.');
+      return;
+    }
+    setResending(true);
+    try {
+      const res = await fetch(`/api/v1/tickets/${editingRegistration.id}/resend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resendEmail }),
+      });
+      
+      if (res.ok) {
+        message.success('Ticket queued for resending successfully!');
+        setIsResendModalOpen(false);
+        fetchRegistrations(selectedEventSlug);
+      } else {
+        const data = await res.json();
+        message.error(data.error || 'Failed to resend ticket.');
+      }
+    } catch (err) {
+      message.error('Error connecting to server.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   const columns = [
     { 
-      title: 'Attendee', 
-      dataIndex: 'name', 
-      key: 'name', 
+      title: 'Attendee ID', 
+      dataIndex: 'user_id', 
+      key: 'user_id', 
       render: (text: string, record: any) => (
         <div className="flex items-center gap-3 py-1">
-          <Avatar src={record.avatar} className="border border-outline-variant bg-surface-container flex-shrink-0">
-            {text.charAt(0)}
+          <Avatar className="border border-outline-variant bg-surface-container flex-shrink-0">
+            {text.charAt(0).toUpperCase()}
           </Avatar>
           <div>
             <p className="font-bold text-foreground text-sm m-0 leading-normal">{text}</p>
@@ -37,108 +137,109 @@ export default function AttendeesPage() {
       )
     },
     { 
-      title: 'Ticket Type', 
-      dataIndex: 'ticketType', 
-      key: 'ticketType',
-      render: (ticket: string) => {
-        let tagColor = 'blue';
-        if (ticket === 'VIP Access') tagColor = 'orange';
-        if (ticket === 'Speaker') tagColor = 'purple';
-        return (
-          <Tag className="font-bold uppercase tracking-wider text-[10px]" color={tagColor}>
-            {ticket}
-          </Tag>
-        );
-      }
-    },
-    { 
       title: 'Status', 
       dataIndex: 'status', 
       key: 'status', 
-      render: (status: string) => {
+      render: (status: string, record: any) => {
         let tagColor = 'processing';
-        if (status === 'Checked-in') tagColor = 'success';
-        if (status === 'Cancelled') tagColor = 'error';
+        let label = 'Pending';
+
+        if (status === 'CHECKED_IN') {
+          tagColor = 'success';
+          label = 'Checked-in';
+        } else if (status === 'CONFIRMED') {
+          tagColor = 'blue';
+          label = 'Confirmed';
+        } else if (status === 'DELIVERY_FAILED') {
+          tagColor = 'error';
+          label = 'Delivery Failed';
+        }
+
         return (
-          <Tag className="font-bold" color={tagColor}>
-            {status}
-          </Tag>
+          <div className="flex items-center gap-2">
+            <Tag className="font-bold" color={tagColor}>
+              {label}
+            </Tag>
+            {status === 'DELIVERY_FAILED' && (
+              <MailWarning size={14} className="text-error animate-pulse" />
+            )}
+          </div>
         );
       } 
     },
     { 
-      title: 'Registration Date', 
-      dataIndex: 'date', 
-      key: 'date', 
-      render: (text: string, record: any) => (
-        <div>
-          <p className="text-xs font-bold text-foreground m-0">{text}</p>
-          <p className="text-[10px] text-on-surface-variant m-0 mt-0.5">{record.time}</p>
-        </div>
+      title: 'QR Token (Pass)', 
+      dataIndex: 'qr_token', 
+      key: 'qr_token',
+      render: (token: string) => (
+        <span className="font-mono text-xs text-on-surface-variant font-medium">
+          {token.substring(0, 8)}...
+        </span>
       )
+    },
+    { 
+      title: 'Registration Date', 
+      dataIndex: 'registered_at', 
+      key: 'registered_at', 
+      render: (dateStr: string) => {
+        const date = new Date(dateStr);
+        return (
+          <div>
+            <p className="text-xs font-bold text-foreground m-0">{date.toLocaleDateString()}</p>
+            <p className="text-[10px] text-on-surface-variant m-0 mt-0.5">{date.toLocaleTimeString()}</p>
+          </div>
+        );
+      }
     },
     {
       title: 'Actions',
       key: 'actions',
       align: 'right' as const,
-      render: () => (
-        <div className="flex items-center justify-end gap-1">
+      render: (_: any, record: any) => (
+        <div className="flex items-center justify-end gap-2">
+          {record.status === 'DELIVERY_FAILED' && (
+            <Button 
+              size="small" 
+              type="primary"
+              danger
+              onClick={() => handleResendClick(record)}
+              className="font-bold text-[10px] uppercase flex items-center gap-1.5 px-2.5 py-1 h-7"
+            >
+              <Send size={12} />
+              <span>Fix & Resend</span>
+            </Button>
+          )}
           <Button size="small" type="text" className="text-on-surface-variant hover:text-primary flex items-center justify-center p-1" icon={<Eye size={16} />} />
           <Button size="small" type="text" className="text-on-surface-variant hover:text-primary flex items-center justify-center p-1" icon={<Edit size={16} />} />
-          <Button size="small" type="text" className="text-on-surface-variant hover:text-error flex items-center justify-center p-1" icon={<Trash2 size={16} />} />
         </div>
       )
     }
   ];
 
-  const data = [
-    { 
-      key: '1', 
-      name: 'Sarah Jenkins', 
-      email: 'sarah.j@techflow.io', 
-      ticketType: 'VIP Access', 
-      status: 'Checked-in', 
-      date: 'Oct 12, 2026', 
-      time: '14:24 PM',
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDTgAykfzHZN0jehankZP9Mh6cq5bX3VAj9z2bFsiWTWR0Y5r8izIoM2NmKgYFN9QFSFco_JPrPofumkTBu2_WST35YuP27Kz6qwG_VQlcYHF2burcpfWAFBbgdDzuXBztfMSxBGGN40HianLAzL88Rlz-3yRLp9ViFjIwum9dtKKbzW3ueslZRACRCwwa0fnIg5Rru0JkVo7HgfN-V2VydGNGcocwXrNUiaNoGl_nqbm3NnmZ_tVaZELiDPoi_xib40gWIDn85bQ'
-    },
-    { 
-      key: '2', 
-      name: 'Marcus Thorne', 
-      email: 'm.thorne@globalconf.com', 
-      ticketType: 'Speaker', 
-      status: 'Pending', 
-      date: 'Oct 14, 2026', 
-      time: '09:12 AM',
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB0t743uYq7qUQ0uTP3S97LPS0I_D9-MIwU1XuaMEr3XG-uaqRSdh8UzDOzuIAnJXpxkRru8_Wb30tGM8dlmC6kh20LOvK7yb6WmfQQ2AGPyxhHYefk9JJJH4-0LSgd-FRBs2Zd37TRzbyhGIDwiemfnhpTIXlpNrHnAuHbF-P4H-yDfaQIwhF0bL95MbJz_HxYXcYfdi_m3bauUtbGgVVv0Cs9GUgIkiYnoBiHQMSxG-khUzc-Y2xlpHoheUSOqr_ltnTOd6goEA'
-    },
-    { 
-      key: '3', 
-      name: 'Elena Rodriguez', 
-      email: 'elena.r@designers.hub', 
-      ticketType: 'General Admission', 
-      status: 'Cancelled', 
-      date: 'Oct 11, 2026', 
-      time: '18:05 PM',
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBE3_N9v_DEeAV_g_SJDbpqbqMU1iTEqtq4sArJ0awh6IjPmyzE8jeNsUyI7fHSpRhXMog-LJYiQ-FyOD1PJ9nIYFeFHpkbIbwN9R5HMTX-_LDj9EtyDdwM3iBbOGOTD6CSPxXOFMIk155s-xY2OX2OLQEg3I3_EDn2ynZMyvRELUIpReeVgysc9pVRgF3y0rMK1Fyjd1KbeFgT2d7H2Q0wJju5z0cArMd-sDu7LaSLVa6918TiYlaFS1KfrOvcpkRDRqzK7mTwpw'
-    },
-    { 
-      key: '4', 
-      name: 'David Chen', 
-      email: 'd.chen@apex-systems.com', 
-      ticketType: 'VIP Access', 
-      status: 'Checked-in', 
-      date: 'Oct 15, 2026', 
-      time: '08:30 AM',
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDrLgb2zuue7f9syk1Cw4Q0m10PG1VK1vrQMbQuD_-igK6ICFvEZ5bt_0SEi2a5V-x1Ym1ZqrzFebsCeNd0ClE2KRJmMdtgKiWybgWcJM1f3k1SGBGf1mE4gVOWoUi7SJyfDnGkd0moAUXjOhSa3ZN2quf23_qsttM38z4MHdri4IA645gJBlpdJugOqlnkSXzKaqWPmCv1hAKy_fhrJpWpNErkA2pZVGKpinWFDM6TnlBykd2-r-bgqxrYrfqAofrIggObxcH8hg'
-    },
-  ];
+  // Filtering logic
+  const filteredData = registrations.filter((reg: any) => {
+    const matchesSearch = reg.user_id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          reg.email.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'All' || 
+                          (statusFilter === 'Checked-in' && reg.status === 'CHECKED_IN') ||
+                          (statusFilter === 'Confirmed' && reg.status === 'CONFIRMED') ||
+                          (statusFilter === 'Failed' && reg.status === 'DELIVERY_FAILED');
 
-  const glassStats = [
-    { title: 'Total Registrations', value: '1,248', icon: Users, color: '#3525cd', bg: 'rgba(53, 37, 205, 0.08)' },
-    { title: 'Checked In', value: '842', icon: CheckCircle, color: '#006c49', bg: 'rgba(0, 108, 73, 0.08)' },
-    { title: 'VIP Guests', value: '156', icon: Star, color: '#684000', bg: 'rgba(104, 64, 0, 0.08)' },
-    { title: 'Cancellations', value: '24', icon: XCircle, color: '#ba1a1a', bg: 'rgba(186, 26, 26, 0.08)' },
+    return matchesSearch && matchesStatus;
+  });
+
+  // Dynamic statistics
+  const totalCount = registrations.length;
+  const checkedInCount = registrations.filter(r => r.status === 'CHECKED_IN').length;
+  const failedCount = registrations.filter(r => r.status === 'DELIVERY_FAILED').length;
+  const pendingCount = totalCount - checkedInCount - failedCount;
+
+  const bentoStats = [
+    { title: 'Total Registrations', value: totalCount, icon: Users, color: '#3525cd', bg: 'rgba(53, 37, 205, 0.08)' },
+    { title: 'Checked In', value: checkedInCount, icon: CheckCircle, color: '#006c49', bg: 'rgba(0, 108, 73, 0.08)' },
+    { title: 'Pending Check-in', value: pendingCount, icon: Star, color: '#684000', bg: 'rgba(104, 64, 0, 0.08)' },
+    { title: 'Delivery Failed', value: failedCount, icon: XCircle, color: '#ba1a1a', bg: 'rgba(186, 26, 26, 0.08)' },
   ];
 
   return (
@@ -152,7 +253,7 @@ export default function AttendeesPage() {
             <span className="text-primary font-bold">Attendees</span>
           </nav>
           <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none">Manage Attendees</h2>
-          <p className="text-sm text-on-surface-variant mt-1 mb-0">Real-time overview of all registered participants for Global Tech Summit 2026.</p>
+          <p className="text-sm text-on-surface-variant mt-1.5 mb-0">Real-time attendee list and check-in diagnostics.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -167,9 +268,9 @@ export default function AttendeesPage() {
         </div>
       </div>
 
-      {/* Glass Stats Bento Banner */}
+      {/* Bento Stats Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {glassStats.map((stat, i) => {
+        {bentoStats.map((stat, i) => {
           const Icon = stat.icon;
           return (
             <div key={i} className="glass-panel p-6 rounded-2xl flex items-center gap-4 border border-outline-variant/40 bg-surface-container-lowest/65">
@@ -190,29 +291,50 @@ export default function AttendeesPage() {
         {/* Table Filters Header */}
         <div className="p-4 bg-surface-container-low border-b border-outline-variant flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Select defaultValue="All" style={{ width: 160 }} className="rounded-lg h-9">
-              <Select.Option value="All">All Ticket Types</Select.Option>
-              <Select.Option value="VIP">VIP Access</Select.Option>
-              <Select.Option value="General">General Admission</Select.Option>
-              <Select.Option value="Speaker">Speaker</Select.Option>
+            <Select 
+              value={selectedEventSlug} 
+              style={{ width: 220 }} 
+              className="rounded-lg h-9"
+              onChange={setSelectedEventSlug}
+              loading={events.length === 0}
+            >
+              {events.map((e) => (
+                <Select.Option key={e.id} value={e.slug}>{e.title}</Select.Option>
+              ))}
             </Select>
 
-            <Select defaultValue="All" style={{ width: 140 }} className="rounded-lg h-9">
+            <Select 
+              value={statusFilter} 
+              style={{ width: 150 }} 
+              className="rounded-lg h-9"
+              onChange={setStatusFilter}
+            >
               <Select.Option value="All">Status: All</Select.Option>
+              <Select.Option value="Confirmed">Confirmed</Select.Option>
               <Select.Option value="Checked-in">Checked-in</Select.Option>
-              <Select.Option value="Pending">Pending</Select.Option>
-              <Select.Option value="Cancelled">Cancelled</Select.Option>
+              <Select.Option value="Failed">Delivery Failed</Select.Option>
             </Select>
 
-            <Button type="text" className="text-on-surface-variant hover:text-primary font-bold text-xs">
-              Clear All
-            </Button>
+            {(statusFilter !== 'All' || searchQuery) && (
+              <Button 
+                type="text" 
+                className="text-on-surface-variant hover:text-primary font-bold text-xs"
+                onClick={() => { setStatusFilter('All'); setSearchQuery(''); }}
+              >
+                Clear All
+              </Button>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
-              <Input placeholder="Search attendees..." className="pl-8 w-60 h-9 rounded-lg" />
+              <Input 
+                placeholder="Search attendees..." 
+                className="pl-8 w-60 h-9 rounded-lg" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
         </div>
@@ -220,9 +342,11 @@ export default function AttendeesPage() {
         {/* Data Table */}
         <Table 
           columns={columns} 
-          dataSource={data} 
+          dataSource={filteredData} 
+          rowKey="id"
+          loading={loading}
           pagination={{
-            total: 1248,
+            total: filteredData.length,
             pageSize: 10,
             showSizeChanger: false,
             className: "px-6 py-4 border-t border-outline-variant m-0",
@@ -230,6 +354,38 @@ export default function AttendeesPage() {
           className="custom-table"
         />
       </Card>
+
+      {/* Edit & Resend Modal */}
+      <Modal
+        title={<span className="font-heading font-extrabold text-lg text-foreground">Diagnostic Edit & Ticket Resend</span>}
+        open={isResendModalOpen}
+        onOk={handleResendSubmit}
+        onCancel={() => setIsResendModalOpen(false)}
+        okText="Queue Email Resend"
+        confirmLoading={resending}
+        okButtonProps={{ className: 'bg-[#3525cd]' }}
+        cancelButtonProps={{ className: 'font-bold' }}
+      >
+        <div className="py-4 space-y-4">
+          <Alert
+            message="Email Delivery Failure Diagnostic"
+            description="This registration's confirmation email failed permanently after 3 retries (likely due to a typo or domain reject). Correct the email address below to queue a fresh delivery."
+            type="warning"
+            showIcon
+            className="rounded-xl"
+          />
+
+          <div>
+            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Participant Email</label>
+            <Input 
+              placeholder="Correct email address..." 
+              value={resendEmail} 
+              onChange={(e) => setResendEmail(e.target.value)}
+              className="h-10 rounded-lg"
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

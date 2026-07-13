@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Typography, Avatar, Dropdown, Button } from 'antd';
+import { Typography, Avatar, Dropdown, Button, Modal, Form, Input, InputNumber, message } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   LayoutDashboard,
@@ -18,7 +18,8 @@ import {
   Bell,
   Plus,
   Tv,
-  UserPlus
+  UserPlus,
+  Scan
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -33,15 +34,62 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
+  { key: 'my-tickets', label: 'My Tickets', icon: CalendarDays, href: '/dashboard/tickets' },
   { key: 'attendees', label: 'Attendees', icon: Users, href: '/dashboard/attendees' },
+  { key: 'scanner', label: 'QR Scanner', icon: Scan, href: '/dashboard/scanner' },
   { key: 'schedule', label: 'Schedule', icon: CalendarDays, href: '/dashboard/schedule' },
   { key: 'settings', label: 'Settings', icon: Settings, href: '/dashboard/settings' },
 ];
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+
+  // Create Event Modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [form] = Form.useForm();
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const title = e.target.value;
+    form.setFieldsValue({ slug: slugify(title) });
+  };
+
+  const handleCreateEvent = async (values: any) => {
+    setCreating(true);
+    try {
+      const res = await fetch('/api/v1/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+
+      if (res.ok) {
+        message.success('Event created successfully!');
+        setIsCreateModalOpen(false);
+        form.resetFields();
+        window.location.reload();
+      } else {
+        const data = await res.json();
+        message.error(data.error || 'Failed to create event.');
+      }
+    } catch (err) {
+      message.error('Network error. Please try again.');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const profileMenuItems: MenuProps['items'] = [
     { key: 'settings', label: 'Settings', onClick: () => router.push('/dashboard/settings') },
@@ -60,38 +108,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           <div>
             <h1 className="font-heading text-lg font-bold text-primary leading-tight">Rong Plan</h1>
-            <p className="font-sans text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Event Manager</p>
+            <p className="font-sans text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Event Portal</p>
           </div>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all ${
-                  isActive
-                    ? 'bg-primary-container text-white'
-                    : 'text-on-surface-variant hover:bg-surface-container-high hover:text-foreground'
-                }`}
-              >
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+          {navItems
+            .filter((item) => {
+              if (user?.role === 'PARTICIPANT') {
+                return ['my-tickets', 'settings'].includes(item.key);
+              }
+              return ['overview', 'attendees', 'scanner', 'schedule', 'settings'].includes(item.key);
+            })
+            .map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all ${
+                    isActive
+                      ? 'bg-primary-container text-white'
+                      : 'text-on-surface-variant hover:bg-surface-container-high hover:text-foreground'
+                  }`}
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
         </nav>
 
         {/* Sidebar Footer */}
         <div className="mt-auto space-y-1 pt-4 border-t border-outline-variant">
-          <button className="w-full bg-primary text-white font-bold py-3 rounded-lg mb-4 hover:opacity-90 transition-opacity flex items-center justify-center gap-2 active:scale-95 duration-100">
-            <Plus size={18} />
-            <span>Create New Event</span>
-          </button>
+          {user?.role !== 'PARTICIPANT' && (
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="w-full bg-primary text-white font-bold py-3 rounded-lg mb-4 hover:opacity-90 transition-opacity flex items-center justify-center gap-2 active:scale-95 duration-100"
+            >
+              <Plus size={18} />
+              <span>Create New Event</span>
+            </button>
+          )}
           
           <Link href="#" className="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high hover:text-foreground rounded-lg px-4 py-2 text-sm font-bold transition-colors">
             <HelpCircle size={18} />
@@ -154,6 +214,83 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
+
+      {/* Create Event Modal */}
+      <Modal
+        title={<span className="font-heading font-extrabold text-lg text-foreground">Create New Event</span>}
+        open={isCreateModalOpen}
+        onCancel={() => { setIsCreateModalOpen(false); form.resetFields(); }}
+        footer={null}
+        destroyOnClose
+        width={520}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleCreateEvent}
+          className="pt-4"
+          requiredMark={false}
+        >
+          <Form.Item
+            label={<span className="font-bold text-on-surface-variant text-xs">Event Title</span>}
+            name="title"
+            rules={[{ required: true, message: 'Please enter an event title' }]}
+          >
+            <Input placeholder="e.g. Global Tech Summit 2026" className="h-10 rounded-lg" onChange={handleTitleChange} />
+          </Form.Item>
+
+          <Form.Item
+            label={<span className="font-bold text-on-surface-variant text-xs">URL Slug</span>}
+            name="slug"
+            rules={[{ required: true, message: 'Please enter a URL slug' }]}
+          >
+            <Input placeholder="e.g. global-tech-summit-2026" className="h-10 rounded-lg font-mono text-xs" />
+          </Form.Item>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item
+              label={<span className="font-bold text-on-surface-variant text-xs">Date</span>}
+              name="date"
+              rules={[{ required: true, message: 'Required' }]}
+            >
+              <Input type="date" className="h-10 rounded-lg" />
+            </Form.Item>
+
+            <Form.Item
+              label={<span className="font-bold text-on-surface-variant text-xs">Time</span>}
+              name="time"
+              rules={[{ required: true, message: 'Required' }]}
+            >
+              <Input type="time" className="h-10 rounded-lg" />
+            </Form.Item>
+          </div>
+
+          <Form.Item
+            label={<span className="font-bold text-on-surface-variant text-xs">Location / Venue</span>}
+            name="location"
+            rules={[{ required: true, message: 'Please enter a location' }]}
+          >
+            <Input placeholder="e.g. Convention Center North, SF" className="h-10 rounded-lg" />
+          </Form.Item>
+
+          <Form.Item
+            label={<span className="font-bold text-on-surface-variant text-xs">Capacity</span>}
+            name="capacity"
+            rules={[{ required: true, message: 'Please set a capacity' }]}
+          >
+            <InputNumber min={1} max={100000} placeholder="500" className="w-full h-10 rounded-lg" />
+          </Form.Item>
+
+          <div className="flex justify-end gap-3 pt-2 border-t border-outline-variant/30">
+            <Button onClick={() => { setIsCreateModalOpen(false); form.resetFields(); }} className="font-bold">
+              Cancel
+            </Button>
+            <Button type="primary" htmlType="submit" loading={creating} className="bg-[#3525cd] font-bold">
+              Create Event
+            </Button>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Typography, Card, Form, Input, Button, Switch, Avatar, Select, message } from 'antd';
+import { Typography, Card, Form, Input, Button, Switch, Avatar, Select, message, Tag, Modal } from 'antd';
 import { 
   User, 
   Settings as SettingsIcon, 
@@ -12,15 +12,152 @@ import {
   Trash2,
   Mail,
   Lock,
-  UserPlus
+  UserPlus,
+  Phone
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { fetchEventTeam, inviteTeamMember, removeTeamMember, TeamMember } from '@/lib/api';
 
 const { Title, Paragraph } = Typography;
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('General');
+
+  // Event & Team states
+  const [events, setEvents] = useState<any[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [loadingTeam, setLoadingTeam] = useState(false);
+  const [inviteUsername, setInviteUsername] = useState('');
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviting, setInviting] = useState(false);
+
+  // Load events on mount
+  React.useEffect(() => {
+    async function loadEvents() {
+      try {
+        const res = await fetch('/api/v1/events');
+        if (res.ok) {
+          const data = await res.json();
+          const hostEvents = data.filter((e: any) => e.host_username === user?.username);
+          setEvents(hostEvents);
+          if (hostEvents.length > 0) {
+            setSelectedEvent(hostEvents[0]);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load events', err);
+      }
+    }
+    if (user) {
+      loadEvents();
+    }
+  }, [user]);
+
+  // Load team when selected event changes
+  React.useEffect(() => {
+    async function loadTeam() {
+      if (!selectedEvent) return;
+      setLoadingTeam(true);
+      try {
+        const members = await fetchEventTeam(selectedEvent.slug);
+        setTeam(members);
+      } catch (err: any) {
+        console.warn('Failed to load team:', err.message);
+      } finally {
+        setLoadingTeam(false);
+      }
+    }
+    loadTeam();
+  }, [selectedEvent]);
+
+  const handleInvite = async () => {
+    if (!inviteUsername.trim() || !selectedEvent) return;
+    setInviting(true);
+    try {
+      const newMember = await inviteTeamMember(selectedEvent.slug, inviteUsername.trim());
+      // Avoid duplicate rendering
+      setTeam((prev) => {
+        if (prev.some(m => m.username === newMember.username)) return prev;
+        return [...prev, newMember];
+      });
+      message.success(`Successfully invited "${inviteUsername}" to the team.`);
+      setIsInviteModalOpen(false);
+      setInviteUsername('');
+    } catch (err: any) {
+      message.error(err.message || 'Invitation failed.');
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleRemoveMember = async (username: string) => {
+    if (!selectedEvent) return;
+    try {
+      await removeTeamMember(selectedEvent.slug, username);
+      setTeam((prev) => prev.filter((m) => m.username !== username));
+      message.success(`Removed "${username}" from the team.`);
+    } catch (err: any) {
+      message.error(err.message || 'Failed to remove member.');
+    }
+  };
+
+  const [savingEvent, setSavingEvent] = useState(false);
+  const [eventFormValues, setEventFormValues] = useState<any>({
+    title: '',
+    date: '',
+    time: '',
+    contactEmail: '',
+    contactPhone: '',
+    location: ''
+  });
+
+  // Bind event details when selectedEvent changes
+  React.useEffect(() => {
+    if (selectedEvent) {
+      setEventFormValues({
+        title: selectedEvent.title,
+        date: selectedEvent.date,
+        time: selectedEvent.time,
+        contactEmail: selectedEvent.contact_email || '',
+        contactPhone: selectedEvent.contact_phone || '',
+        location: selectedEvent.location
+      });
+    }
+  }, [selectedEvent]);
+
+  const handleSaveEvent = async () => {
+    if (!selectedEvent) return;
+    setSavingEvent(true);
+    try {
+      const res = await fetch(`/api/v1/events/${selectedEvent.slug}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: eventFormValues.title,
+          date: eventFormValues.date,
+          time: eventFormValues.time,
+          contactEmail: eventFormValues.contactEmail,
+          contactPhone: eventFormValues.contactPhone,
+          location: eventFormValues.location
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEvents(prev => prev.map(e => e.slug === selectedEvent.slug ? data.event : e));
+        setSelectedEvent(data.event);
+        message.success('Event configurations updated successfully.');
+      } else {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update event details.');
+      }
+    } catch (err: any) {
+      message.error(err.message);
+    } finally {
+      setSavingEvent(false);
+    }
+  };
 
   const onFinish = (values: any) => {
     message.success('Settings saved successfully.');
@@ -92,32 +229,87 @@ export default function SettingsPage() {
                 <SettingsIcon className="text-primary" size={20} />
                 <span>Event Configuration</span>
               </h4>
-              <span className="px-3 py-1 bg-secondary-container/20 text-secondary border border-secondary-container rounded-full text-[10px] font-bold uppercase">Active Event</span>
+              <Button type="primary" size="small" onClick={handleSaveEvent} loading={savingEvent} disabled={!selectedEvent} className="font-bold text-xs bg-primary">
+                Save
+              </Button>
             </div>
+
+            {events.length > 1 && (
+              <div className="mb-4">
+                <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Select Event Workspace</label>
+                <Select
+                  value={selectedEvent?.slug}
+                  onChange={(slug) => setSelectedEvent(events.find(e => e.slug === slug))}
+                  className="w-full h-10 rounded-lg"
+                >
+                  {events.map((e) => (
+                    <Select.Option key={e.id} value={e.slug}>{e.title}</Select.Option>
+                  ))}
+                </Select>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Event Name</label>
-                <Input value="Global Tech Summit 2026" className="h-10 rounded-lg" />
+                <Input 
+                  value={eventFormValues.title} 
+                  onChange={(e) => setEventFormValues({ ...eventFormValues, title: e.target.value })} 
+                  className="h-10 rounded-lg" 
+                  disabled={!selectedEvent}
+                />
               </div>
               <div>
                 <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Date</label>
-                <Input value="Oct 24 - 26, 2026" className="h-10 rounded-lg" />
+                <Input 
+                  value={eventFormValues.date} 
+                  onChange={(e) => setEventFormValues({ ...eventFormValues, date: e.target.value })} 
+                  className="h-10 rounded-lg" 
+                  disabled={!selectedEvent}
+                />
               </div>
               <div>
-                <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Timezone</label>
-                <Select defaultValue="Pacific" className="w-full h-10 rounded-lg">
-                  <Select.Option value="Pacific">(GMT-08:00) Pacific Time</Select.Option>
-                  <Select.Option value="Eastern">(GMT-05:00) Eastern Time</Select.Option>
-                </Select>
+                <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Time / Timezone</label>
+                <Input 
+                  value={eventFormValues.time} 
+                  onChange={(e) => setEventFormValues({ ...eventFormValues, time: e.target.value })} 
+                  className="h-10 rounded-lg" 
+                  placeholder="e.g. 09:00 AM - 05:00 PM" 
+                  disabled={!selectedEvent}
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Contact Email</label>
+                <Input 
+                  prefix={<Mail className="text-on-surface-variant" size={16} />} 
+                  value={eventFormValues.contactEmail} 
+                  onChange={(e) => setEventFormValues({ ...eventFormValues, contactEmail: e.target.value })} 
+                  placeholder="e.g. info@event.com" 
+                  className="h-10 rounded-lg" 
+                  disabled={!selectedEvent}
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Contact Phone</label>
+                <Input 
+                  prefix={<Phone className="text-on-surface-variant" size={16} />} 
+                  value={eventFormValues.contactPhone} 
+                  onChange={(e) => setEventFormValues({ ...eventFormValues, contactPhone: e.target.value })} 
+                  placeholder="e.g. +880-1711-000000" 
+                  className="h-10 rounded-lg" 
+                  disabled={!selectedEvent}
+                />
               </div>
               <div className="md:col-span-2">
-                <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Venue / Platform</label>
-                <div className="flex items-center gap-2 p-4 bg-surface-container-low rounded-lg border border-dashed border-outline-variant/80">
-                  <MapPin className="text-on-surface-variant" size={18} />
-                  <span className="text-xs text-foreground font-semibold">Convention Center North, SF</span>
-                  <button className="ml-auto text-primary font-bold text-xs border-none bg-transparent hover:underline cursor-pointer">Change</button>
-                </div>
+                <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Venue / Platform Location</label>
+                <Input 
+                  prefix={<MapPin className="text-on-surface-variant" size={16} />} 
+                  value={eventFormValues.location} 
+                  onChange={(e) => setEventFormValues({ ...eventFormValues, location: e.target.value })} 
+                  placeholder="Venue address" 
+                  className="h-10 rounded-lg" 
+                  disabled={!selectedEvent}
+                />
               </div>
             </div>
           </section>
@@ -165,58 +357,75 @@ export default function SettingsPage() {
               </h4>
               <p className="text-xs text-on-surface-variant m-0 mt-1">Manage roles and permissions for event collaborators.</p>
             </div>
-            <button className="bg-primary text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 hover:shadow-lg transition-all border-none cursor-pointer text-xs">
+            <button 
+              onClick={() => setIsInviteModalOpen(true)}
+              disabled={!selectedEvent}
+              className="bg-primary text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 hover:shadow-lg transition-all border-none cursor-pointer text-xs disabled:opacity-50"
+            >
               <UserPlus size={14} />
               <span>Invite Member</span>
             </button>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-outline-variant/50">
-                  <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Member</th>
-                  <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Role</th>
-                  <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Last Active</th>
-                  <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/30">
-                {[
-                  { name: 'Jane Doe', email: 'jane@example.com', role: 'Admin', active: '2 mins ago', initial: 'JD', color: 'blue' },
-                  { name: 'Rick Martinez', email: 'rick.m@gmail.com', role: 'Editor', active: '5 hours ago', initial: 'RM', color: 'orange' },
-                  { name: 'Sarah Lee', email: 's.lee@corp.com', role: 'Viewer', active: 'Yesterday', initial: 'SL', color: 'default' }
-                ].map((member, i) => (
-                  <tr key={i} className="hover:bg-surface-container-low transition-colors">
-                    <td className="py-3">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="bg-primary-container text-white font-bold">{member.initial}</Avatar>
-                        <div>
-                          <p className="text-xs font-bold text-foreground m-0">{member.name}</p>
-                          <p className="text-[10px] text-on-surface-variant m-0 mt-0.5">{member.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      <Tag color={member.color === 'blue' ? 'blue' : member.color === 'orange' ? 'orange' : 'default'} className="font-bold text-[10px]">
-                        {member.role}
-                      </Tag>
-                    </td>
-                    <td className="py-3 text-[11px] text-on-surface-variant">{member.active}</td>
-                    <td className="py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button className="p-1 hover:bg-surface-container rounded transition-colors text-on-surface-variant border-none bg-transparent cursor-pointer">
-                          <Edit size={14} />
-                        </button>
-                        <button className="p-1 hover:bg-error-container/20 rounded transition-colors text-error border-none bg-transparent cursor-pointer">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
+            {loadingTeam ? (
+              <div className="flex justify-center py-8">
+                <Spin />
+              </div>
+            ) : team.length === 0 ? (
+              <div className="text-center py-8 text-on-surface-variant/60 italic text-xs">
+                No team members registered. The event organizer is the sole manager.
+              </div>
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-outline-variant/50">
+                    <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Member</th>
+                    <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Role</th>
+                    <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Joined</th>
+                    <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/30">
+                  {team.map((member) => (
+                    <tr key={member.username} className="hover:bg-surface-container-low transition-colors">
+                      <td className="py-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar src={member.avatar || undefined} className="bg-primary-container text-white font-bold">
+                            {member.name ? member.name.charAt(0).toUpperCase() : member.username.charAt(0).toUpperCase()}
+                          </Avatar>
+                          <div>
+                            <p className="text-xs font-bold text-foreground m-0">{member.name || member.username}</p>
+                            <p className="text-[10px] text-on-surface-variant m-0 mt-0.5">{member.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <Tag color={member.role === 'ORGANIZER' ? 'blue' : 'green'} className="font-bold text-[10px]">
+                          {member.role}
+                        </Tag>
+                      </td>
+                      <td className="py-3 text-[11px] text-on-surface-variant">
+                        {new Date(member.joined_at).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 text-right">
+                        {member.role !== 'ORGANIZER' && (
+                          <div className="flex items-center justify-end gap-2">
+                            <button 
+                              onClick={() => handleRemoveMember(member.username)}
+                              className="p-1 hover:bg-error-container/20 rounded transition-colors text-error border-none bg-transparent cursor-pointer"
+                              title="Remove member"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </section>
       </div>
@@ -229,6 +438,44 @@ export default function SettingsPage() {
           Sign Out
         </Button>
       </Card>
+
+      {/* Invite Member Modal */}
+      <Modal
+        title={<span className="font-heading font-extrabold text-lg">Invite Event Manager</span>}
+        open={isInviteModalOpen}
+        onCancel={() => { setIsInviteModalOpen(false); setInviteUsername(''); }}
+        footer={[
+          <Button key="cancel" onClick={() => { setIsInviteModalOpen(false); setInviteUsername(''); }}>
+            Cancel
+          </Button>,
+          <Button 
+            key="submit" 
+            type="primary" 
+            loading={inviting} 
+            onClick={handleInvite}
+            className="bg-primary"
+            disabled={!inviteUsername.trim()}
+          >
+            Invite
+          </Button>
+        ]}
+        centered
+      >
+        <div className="space-y-4 py-2">
+          <p className="text-xs text-on-surface-variant leading-relaxed">
+            Invite an existing host on the platform to help manage registrations, scan tickets, and run checkpoints at your event.
+          </p>
+          <div>
+            <label className="block text-xs font-bold text-on-surface-variant mb-1.5">Username/ID</label>
+            <Input 
+              value={inviteUsername} 
+              onChange={(e) => setInviteUsername(e.target.value)} 
+              placeholder="e.g. volunteer-user"
+              className="h-10 rounded-lg"
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
