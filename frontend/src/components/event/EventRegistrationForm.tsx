@@ -31,6 +31,7 @@ const { Text, Title, Paragraph } = Typography;
 interface EventRegistrationFormProps {
   event: Event;
   trigger: React.ReactNode;
+  initialTicketId?: number;
 }
 
 interface RegisterFormValues {
@@ -42,7 +43,7 @@ interface RegisterFormValues {
 
 type Step = 'auth' | 'ticket-select' | 'details' | 'review' | 'success';
 
-export default function EventRegistrationForm({ event, trigger }: EventRegistrationFormProps) {
+export default function EventRegistrationForm({ event, trigger, initialTicketId }: EventRegistrationFormProps) {
   const { user } = useAuth();
   const [form] = Form.useForm();
   const [isOpen, setIsOpen] = useState(false);
@@ -69,7 +70,6 @@ export default function EventRegistrationForm({ event, trigger }: EventRegistrat
       if (!user) {
         setStep('auth');
       } else {
-        setStep('ticket-select');
         loadTicketTypes();
       }
     }
@@ -80,8 +80,18 @@ export default function EventRegistrationForm({ event, trigger }: EventRegistrat
     try {
       const types = await fetchTicketTypes(event.slug);
       setTicketTypes(types);
+      if (initialTicketId) {
+        const found = types.find(t => t.id === initialTicketId);
+        if (found && found.available) {
+          setSelectedTicket(found);
+          setStep('details');
+          return;
+        }
+      }
+      setStep('ticket-select');
     } catch (err) {
       console.warn('Could not load ticket types:', err);
+      setStep('ticket-select');
     } finally {
       setLoadingTickets(false);
     }

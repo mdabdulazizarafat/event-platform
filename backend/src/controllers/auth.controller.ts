@@ -3,6 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../db/pool';
 import { getPrivateKey } from '../services/crypto.service';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('auth.controller');
 
 export class AuthController {
   /**
@@ -26,7 +29,7 @@ export class AuthController {
         [username.toLowerCase().trim(), email.toLowerCase().trim()]
       );
 
-      if (checkUser.rowCount > 0) {
+      if (checkUser.rows.length > 0) {
         const existing = checkUser.rows[0];
         if (existing.username === username.toLowerCase().trim()) {
           return res.status(400).json({ error: 'Username is already taken' });
@@ -59,7 +62,7 @@ export class AuthController {
         user: newUser
       });
     } catch (error: any) {
-      console.error('Registration error:', error);
+      logger.error({ err: error }, 'Registration error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -74,24 +77,6 @@ export class AuthController {
       if (!emailOrUsername || !password) {
         return res.status(400).json({ error: 'Email/Username and password are required' });
       }
-
-      // Always ensure the default dev seed organizer exists for development convenience
-      const salt = await bcrypt.genSalt(10);
-      const devHash = await bcrypt.hash('password123', salt);
-      await pool.query(
-        `INSERT INTO users (username, name, email, password_hash, bio, avatar, role) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (username) DO UPDATE SET email = EXCLUDED.email, password_hash = EXCLUDED.password_hash`,
-        [
-          'tech-hub',
-          'Tech Hub Community',
-          'organizer@techhub.com',
-          devHash,
-          'Tech Hub Developer Ecosystem Organizer',
-          'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&h=200&fit=crop',
-          'ORGANIZER'
-        ]
-      );
 
       // Lookup user in users database
       const userQuery = `
@@ -142,7 +127,7 @@ export class AuthController {
         }
       });
     } catch (error: any) {
-      console.error('Login error:', error);
+      logger.error({ err: error }, 'Login error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Ban, ArrowRight, RefreshCw } from 'lucide-react';
 
-export default function PaymentCancelPage() {
+function PaymentCancelContent() {
   const searchParams = useSearchParams();
   const tranId = searchParams.get('tran_id');
 
@@ -53,5 +53,13 @@ export default function PaymentCancelPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentCancelPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p className="text-sm text-slate-400">Loading...</p></div>}>
+      <PaymentCancelContent />
+    </Suspense>
   );
 }

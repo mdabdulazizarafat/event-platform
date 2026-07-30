@@ -1,7 +1,7 @@
 export interface UserPayload {
   username: string;
   email: string;
-  role: 'USER' | 'SUPER_ADMIN' | 'EVENT_ADMIN' | 'USER_ADMIN' | 'SUPPORT_ADMIN';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'ORGANIZER' | 'PARTICIPANT';
 }
 
 declare global {

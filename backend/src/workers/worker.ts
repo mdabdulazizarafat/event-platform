@@ -1,11 +1,19 @@
 import { Worker } from 'bullmq';
 import { pool } from '../db/pool';
 import { EmailService } from '../services/email.service';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('worker');
 
 function getRedisConnection(): any {
+  const defaultOpts = {
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+  };
   if (process.env.REDIS_URL) {
     const url = new URL(process.env.REDIS_URL);
     return {
+      ...defaultOpts,
       host: url.hostname,
       port: parseInt(url.port) || 6379,
       password: url.password,
@@ -14,6 +22,7 @@ function getRedisConnection(): any {
     };
   }
   return {
+    ...defaultOpts,
     host: process.env.REDIS_HOST || '127.0.0.1',
     port: parseInt(process.env.REDIS_PORT || '6379'),
     password: process.env.REDIS_PASSWORD || undefined,
@@ -21,17 +30,17 @@ function getRedisConnection(): any {
 }
 
 export function startWorkers() {
-  console.log('Initializing BullMQ Workers...');
+  logger.info('Initializing BullMQ Workers...');
 
   const redisConnection = getRedisConnection();
-  console.log(`Connecting BullMQ worker to Redis at ${redisConnection.host}:${redisConnection.port}${redisConnection.tls ? ' (TLS)' : ''}...`);
+  logger.info(`Connecting BullMQ worker to Redis at ${redisConnection.host}:${redisConnection.port}${redisConnection.tls ? ' (TLS)' : ''}...`);
 
   // 1. Email Notifications Worker
   const emailWorker = new Worker(
     'email-notifications',
     async (job) => {
       const { email, eventId, registrationId, qrToken } = job.data;
-      console.log(`Processing email job ${job.id} (type: ${job.name}) for registration ${registrationId}...`);
+      logger.info({ jobId: job.id, jobName: job.name, registrationId }, 'Processing email job...');
 
       // Fetch event title
       const eventRes = await pool.query('SELECT title FROM events WHERE id = $1', [eventId]);
@@ -57,7 +66,7 @@ export function startWorkers() {
           qrCodeUrl,
         });
 
-        console.log(`Confirmation email sent successfully for registration ${registrationId}`);
+        logger.info({ registrationId }, 'Confirmation email sent successfully');
       } else if (job.name === 'sendCancellationEmail') {
         // Call Email Service for Cancellation
         await EmailService.sendTicketCancellation({
@@ -65,16 +74,16 @@ export function startWorkers() {
           eventTitle,
         });
 
-        console.log(`Cancellation email sent successfully for registration ${registrationId}`);
+        logger.info({ registrationId }, 'Cancellation email sent successfully');
       } else {
-        console.warn(`Unknown job name: ${job.name}`);
+        logger.warn({ jobName: job.name }, 'Unknown job name');
       }
     },
     { connection: redisConnection as any }
   );
 
   emailWorker.on('error', (err) => {
-    console.error('Email Worker connection warning/error:', err.message);
+    logger.error({ err }, 'Email Worker connection warning/error');
   });
 
   // Handle final job failure (DLQ concept)
@@ -83,7 +92,7 @@ export function startWorkers() {
       const { attemptsMade, opts, data } = job;
       const maxAttempts = opts.attempts || 3;
       if (attemptsMade >= maxAttempts) {
-        console.error(`Email job ${job.id} failed after ${attemptsMade} attempts. Marking registration ${data.registrationId} as DELIVERY_FAILED if not cancelled. Error: ${err.message}`);
+        logger.fatal({ jobId: job.id, registrationId: data.registrationId, attemptsMade, err }, 'Email job failed after max attempts. Marking DELIVERY_FAILED');
         try {
           // Do not overwrite CANCELLED status with DELIVERY_FAILED
           await pool.query(
@@ -91,7 +100,7 @@ export function startWorkers() {
             [data.registrationId, data.eventId]
           );
         } catch (dbErr: any) {
-          console.error(`Failed to update status to DELIVERY_FAILED for registration ${data.registrationId}:`, dbErr.message);
+          logger.error({ err: dbErr, registrationId: data.registrationId }, 'Failed to update status to DELIVERY_FAILED');
         }
       }
     }

@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import { EventService } from '../services/event.service';
 import { RegistrationService } from '../services/registration.service';
 import { pool } from '../db/pool';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('event.controller');
 
 export class EventController {
   static async create(req: Request, res: Response) {
@@ -45,7 +48,7 @@ export class EventController {
 
       return res.status(201).json({ message: 'Event created and partition created successfully', eventId });
     } catch (error: any) {
-      console.error('Error creating event:', error);
+      logger.error({ err: error }, 'Error creating event');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -71,7 +74,7 @@ export class EventController {
 
       return res.status(200).json({ message: 'Event updated successfully', event: updated });
     } catch (error: any) {
-      console.error('Error updating event:', error);
+      logger.error({ err: error }, 'Error updating event');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -137,7 +140,7 @@ export class EventController {
         qrToken: result.qrToken,
       });
     } catch (error: any) {
-      console.error('Error registering:', error);
+      logger.error({ err: error }, 'Error registering for event');
       return res.status(500).json({ error: error.message || 'Registration failed' });
     }
   }
@@ -160,7 +163,7 @@ export class EventController {
       const registrations = await RegistrationService.getRegistrationsByEvent(event.id);
       return res.status(200).json(registrations);
     } catch (error: any) {
-      console.error('Error fetching registrations:', error);
+      logger.error({ err: error }, 'Error fetching registrations');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

@@ -1,220 +1,470 @@
 'use client';
 
-import React from 'react';
-import { ConfigProvider, Button, Card, Typography, Avatar, Tag } from 'antd';
+import React, { useState, useEffect, useRef } from 'react';
+import { ConfigProvider, message } from 'antd';
 import { 
   Calendar as CalendarIcon, 
   MapPin, 
+  Clock,
   Sparkles,
-  Users,
-  Compass,
-  ArrowRight,
-  Download
+  Share2,
+  ChevronDown,
+  Facebook,
+  Twitter,
+  Mail,
+  Link2,
+  CalendarDays,
+  Ticket,
+  AlertCircle
 } from 'lucide-react';
 import { theme } from '../../../../theme/theme';
+import Navbar from '@/components/common/Navbar';
+import Footer from '@/components/common/Footer';
 import EventRegistrationForm from '@/components/event/EventRegistrationForm';
+import type { Event, TicketType } from '@/lib/api';
+import { getEventBySlug, fetchTicketTypes } from '@/lib/api';
 
-const { Title, Paragraph, Text } = Typography;
+// Fallback mock ticket types in case the backend database has no entries
+const fallbackTicketTypes: Record<string, TicketType[]> = {
+  '6th-gregorian-knowledge-fiesta-2026': [
+    { id: 101, event_id: 1, name: 'Bangla Bowl', description: 'Category: Kids (I-II) to Secondary (IX-X)', price: '0', currency: 'BDT', capacity: null, sort_order: 1, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: true },
+    { id: 102, event_id: 1, name: 'English Bowl', description: 'Category: Primary (III-V) to Higher Secondary (XI-XII)', price: '0', currency: 'BDT', capacity: null, sort_order: 2, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: true },
+    { id: 103, event_id: 1, name: 'Math Bowl', description: 'Category: Junior (VI-VIII) to Higher Secondary (XI-XII)', price: '0', currency: 'BDT', capacity: null, sort_order: 3, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: true },
+    { id: 104, event_id: 1, name: 'Science Bowl', description: 'Category: Primary (III-V) to Higher Secondary (XI-XII)', price: '0', currency: 'BDT', capacity: null, sort_order: 4, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: true },
+    { id: 105, event_id: 1, name: 'Solo Quiz', description: 'Category: Kids (I-II) to Higher Secondary (XI-XII)', price: '0', currency: 'BDT', capacity: null, sort_order: 5, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: true },
+    { id: 106, event_id: 1, name: 'Heroes Assemble (Cosplay)', description: 'Category: Open for All. Exam/Show Duration: 20min', price: '50', currency: 'BDT', capacity: null, sort_order: 6, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: 12, available: true, isFree: false },
+    { id: 107, event_id: 1, name: 'Criminal Case (Solve)', description: 'Category: Open for All. Analytical segment', price: '100', currency: 'BDT', capacity: null, sort_order: 7, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: 8, available: true, isFree: false },
+    { id: 108, event_id: 1, name: 'Case Study', description: 'Category: Open for All. Standard rules', price: '0', currency: 'BDT', capacity: null, sort_order: 8, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: true }
+  ],
+  'global-tech-summit': [
+    { id: 201, event_id: 2, name: 'Standard Pass', description: 'Access to all main stage keynotes and exhibition halls.', price: '0', currency: 'BDT', capacity: null, sort_order: 1, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: true },
+    { id: 202, event_id: 2, name: 'VIP All-Access Pass', description: 'Includes premium front-row seating, invite-only speaker dinner, and custom swag pack.', price: '1500', currency: 'BDT', capacity: 100, sort_order: 2, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: 45, available: true, isFree: false }
+  ],
+  'react-advanced-workshop': [
+    { id: 301, event_id: 3, name: 'Masterclass Entry', description: 'Complete 6-hour interactive training, code repositories, and certificate.', price: '500', currency: 'BDT', capacity: 150, sort_order: 1, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: 23, available: true, isFree: false }
+  ],
+  'ui-ux-design-forum': [
+    { id: 401, event_id: 4, name: 'Standard Ticket', description: 'Access to general design sessions and panels.', price: '250', currency: 'BDT', capacity: null, sort_order: 1, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: false },
+    { id: 402, event_id: 4, name: 'VIP Ticket', description: 'Includes design systems toolkit, workshop access, and portfolio review session.', price: '1000', currency: 'BDT', capacity: 50, sort_order: 2, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: 14, available: true, isFree: false }
+  ]
+};
 
 export default function EventRegistrationPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = React.use(params);
+  const ticketsSectionRef = useRef<HTMLDivElement>(null);
+  
+  // Page state
+  const [event, setEvent] = useState<Event | null>(null);
+  const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showStickyHeader, setShowStickyHeader] = useState(false);
 
-  // Mock lookup for rendering the public event page layout details
-  const eventsData: Record<string, { title: string; date: string; location: string; passType: string; gate: string; bg: string; contactEmail?: string; contactPhone?: string }> = {
-    'global-tech-summit': {
-      title: 'Global Tech Summit 2026',
-      date: 'October 24-26, 2026',
-      location: 'Convention Center, San Francisco, CA',
-      passType: 'VIP Access',
-      gate: 'South Hall • B2',
-      bg: 'radial-gradient(circle at top right, #e2dfff 0%, #f9f9ff 100%)',
-      contactEmail: 'info@globaltechsummit.com',
-      contactPhone: '+880-1711-000000',
-    },
-    'react-advanced-workshop': {
-      title: 'React 19 & Next.js 16 Masterclass',
-      date: 'November 12, 2026',
-      location: 'Tech Hub Headquarters, Boston, MA',
-      passType: 'General Admission',
-      gate: 'Main Entrance • Gate A',
-      bg: 'radial-gradient(circle at top right, #dee8ff 0%, #f9f9ff 100%)',
-      contactEmail: 'workshops@techhub.io',
-      contactPhone: '+880-1711-111111',
+  // Accordion states
+  const [isDescOpen, setIsDescOpen] = useState(true);
+  const [isTCOpen, setIsTCOpen] = useState(false);
+
+  useEffect(() => {
+    async function loadEventData() {
+      try {
+        const eventData = await getEventBySlug(slug);
+        if (eventData) {
+          setEvent(eventData);
+          
+          // Fetch ticket types
+          const dbTickets = await fetchTicketTypes(slug);
+          if (dbTickets && dbTickets.length > 0) {
+            setTicketTypes(dbTickets);
+          } else {
+            // Fallback to static mock ticket types
+            setTicketTypes(fallbackTicketTypes[slug] || []);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load event details:', err);
+      } finally {
+        setLoading(false);
+      }
     }
+    loadEventData();
+  }, [slug]);
+
+  // Window scroll handler for sticky header
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 380) {
+        setShowStickyHeader(true);
+      } else {
+        setShowStickyHeader(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTickets = () => {
+    ticketsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const event = eventsData[slug] || {
-    title: 'Special Event',
-    date: 'TBD',
-    location: 'TBD',
-    passType: 'Standard Access',
-    gate: 'TBD',
-    bg: 'radial-gradient(circle at top right, #e2dfff 0%, #f9f9ff 100%)'
+  const copyPageLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    message.success('Link copied to clipboard!');
   };
 
-  const speakers = [
-    { name: 'Dr. Elena Rodriguez', role: 'Director of AI Design @ TechCore', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=300&h=375&fit=crop' },
-    { name: 'Marcus Thorne', role: 'VP of Product, FutureFoundry', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=300&h=375&fit=crop' },
-    { name: 'Sarah Jenkins', role: 'Chief Ethics Officer, ClearMind AI', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=300&h=375&fit=crop' },
-    { name: 'David Chen', role: 'Open Source Architect, CloudPath', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&h=375&fit=crop' }
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f9f9ff] flex flex-col justify-between">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!event) {
+    return (
+      <div className="min-h-screen bg-[#f9f9ff] flex flex-col justify-between">
+        <Navbar />
+        <div className="flex-grow flex flex-col items-center justify-center p-6 text-center space-y-4">
+          <AlertCircle size={48} className="text-red-500" />
+          <h2 className="font-heading text-xl font-extrabold text-slate-800 m-0">Event Not Found</h2>
+          <p className="text-slate-500 text-xs max-w-xs m-0">The event you are looking for does not exist or may have been removed.</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <ConfigProvider theme={theme}>
-      <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-        {/* Public Nav */}
-        <nav className="w-full sticky top-0 z-50 bg-white/85 backdrop-blur-md border-b border-outline-variant shadow-sm h-16 flex items-center justify-between px-8">
-          <div className="text-lg font-bold text-primary">Rong Plan</div>
-          <div className="hidden md:flex items-center gap-8 text-xs font-bold text-on-surface-variant">
-            <a href="#about" className="hover:text-primary transition-colors">About</a>
-            <a href="#speakers" className="hover:text-primary transition-colors">Speakers</a>
-            <a href="#schedule" className="hover:text-primary transition-colors">Schedule</a>
-          </div>
-          <EventRegistrationForm 
-            event={{
-              slug,
-              title: event.title,
-              date: event.date,
-              time: '9:00 AM - 5:00 PM',
-              location: event.location,
-              description: 'Professional event entry validation.',
-              thumbnail: '',
-              hostUsername: 'tech-hub',
-              contactEmail: event.contactEmail,
-              contactPhone: event.contactPhone,
-              passType: event.passType,
-              gate: event.gate
-            }}
-            trigger={
-              <button className="bg-primary-container text-white px-6 py-2.5 rounded-lg font-bold text-xs hover:opacity-90 active:scale-95 transition-all shadow-md border-none cursor-pointer">
-                Register Now
-              </button>
-            }
-          />
-        </nav>
+      <div className="min-h-screen bg-[#f9f9ff] text-[#111c2d] flex flex-col">
+        {/* Main Sticky Navbar */}
+        <Navbar />
 
-        {/* Hero Section */}
-        <section className="relative py-20 flex items-center overflow-hidden" style={{ background: event.bg }}>
-          <div className="max-w-6xl mx-auto px-8 w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full font-bold text-[10px] uppercase tracking-wider">
-                <Sparkles size={14} />
-                <span>The Premier Tech Event</span>
-              </div>
-              <h1 className="font-heading text-5xl lg:text-6xl font-extrabold text-foreground leading-tight tracking-tight m-0">
+        {/* Dynamic Sticky Sub-header */}
+        <div 
+          className={`fixed top-16 left-0 right-0 z-40 bg-white border-b border-slate-200 shadow-sm py-3 transition-all duration-300 transform ${
+            showStickyHeader ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0 pointer-events-none'
+          }`}
+        >
+          <div className="max-w-6xl mx-auto px-6 flex justify-between items-center">
+            <div className="min-w-0">
+              <h2 className="font-heading text-sm md:text-base font-extrabold text-slate-800 truncate m-0">
                 {event.title}
-              </h1>
-              <p className="text-lg text-on-surface-variant max-w-xl leading-relaxed">
-                Join the industry's brightest minds to explore the future of Generative AI and Human-Centered Design. Three days of inspiration, networking, and innovation.
-              </p>
-              <div className="flex flex-wrap gap-4 pt-2">
-                <EventRegistrationForm 
-                  event={{
-                    slug,
-                    title: event.title,
-                    date: event.date,
-                    time: '9:00 AM - 5:00 PM',
-                    location: event.location,
-                    description: 'Professional event entry validation.',
-                    thumbnail: '',
-                    hostUsername: 'tech-hub',
-                    contactEmail: event.contactEmail,
-                    contactPhone: event.contactPhone,
-                    passType: event.passType,
-                    gate: event.gate
-                  }}
-                  trigger={
-                    <button className="px-8 py-4 bg-primary-container text-white rounded-xl font-bold text-sm hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 border-none cursor-pointer">
-                      Register Now
-                    </button>
-                  }
-                />
-                <a href="#schedule" className="px-8 py-4 border-2 border-primary-container text-primary-container rounded-xl font-bold text-sm hover:bg-primary-container/5 transition-all flex items-center justify-center">
-                  View Schedule
-                </a>
+              </h2>
+              <div className="flex items-center gap-4 text-[10px] md:text-xs text-slate-400 font-semibold mt-0.5">
+                <span className="flex items-center gap-1"><CalendarIcon size={12} /> {event.date}</span>
+                <span className="hidden sm:flex items-center gap-1"><MapPin size={12} /> {event.locationShort || event.location}</span>
               </div>
             </div>
-
-            {/* Bento Grid Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 glass-card p-6 rounded-2xl flex flex-col justify-between h-40 border-2 border-primary/10 hover:border-primary/30 transition-colors">
-                <CalendarIcon size={32} className="text-primary" />
-                <div>
-                  <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">{event.date}</div>
-                  <div className="font-heading text-lg font-bold text-foreground mt-1">Save the Date</div>
-                </div>
-              </div>
-              <div className="glass-card p-6 rounded-2xl border-2 border-primary/10 hover:border-primary/30 transition-colors">
-                <div className="text-primary font-heading text-3xl font-extrabold leading-none mb-1">2.5k+</div>
-                <div className="text-xs text-on-surface-variant font-bold">Expected Attendees</div>
-              </div>
-              <div className="glass-card p-6 rounded-2xl border-2 border-primary/10 hover:border-primary/30 transition-colors">
-                <div className="text-primary font-heading text-3xl font-extrabold leading-none mb-1">SF</div>
-                <div className="text-xs text-on-surface-variant font-bold">North Conv. Center</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Visionary Speakers */}
-        <section id="speakers" className="py-24 max-w-6xl mx-auto px-8">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-            <div>
-              <h2 className="font-heading text-3xl font-extrabold text-foreground m-0">Visionary Speakers</h2>
-              <p className="text-sm text-on-surface-variant mt-2 max-w-xl leading-relaxed">Meet the trailblazers who are reshaping the technological landscape through AI and purposeful design.</p>
-            </div>
-            <button className="flex items-center gap-1 text-primary font-bold text-xs border-none bg-transparent hover:underline cursor-pointer">
-              <span>View All 50+ Speakers</span>
-              <ArrowRight size={14} />
+            <button 
+              onClick={scrollToTickets}
+              className="bg-primary hover:bg-[#3525cd]/95 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md border-none cursor-pointer active:scale-95 transition-transform"
+            >
+              Buy Ticket Now!
             </button>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {speakers.map((speaker, i) => (
-              <div key={i} className="group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-outline-variant hover:shadow-md transition-all duration-300">
-                <div className="aspect-[4/5] relative overflow-hidden bg-slate-100">
-                  <img src={speaker.avatar} alt={speaker.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        {/* Hero Banner Section */}
+        <section className="bg-slate-900 overflow-hidden relative aspect-[21/9] max-h-[380px] w-full">
+          {event.thumbnail ? (
+            <img 
+              src={event.thumbnail} 
+              alt={event.title} 
+              className="w-full h-full object-cover opacity-95"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-[#3525cd]/25 to-[#4F46E5]/10 flex items-center justify-center text-white/20">
+              <CalendarDays size={96} />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
+        </section>
+
+        {/* Two-Column Layout Section */}
+        <section className="py-10 md:py-16 flex-grow">
+          <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* LEFT COLUMN: Accordions, Tickets Grid, Payments, Social Share */}
+            <div className="lg:col-span-8 space-y-6">
+              
+              {/* Event Title block on mobile */}
+              <div className="lg:hidden space-y-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h1 className="font-heading text-2xl font-black text-slate-800 m-0 leading-snug">
+                  {event.title}
+                </h1>
+                <div className="space-y-3 pt-2 text-xs font-semibold text-slate-500">
+                  <div className="flex items-start gap-2">
+                    <MapPin size={16} className="text-slate-400 shrink-0 mt-0.5" />
+                    <span>{event.location}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon size={16} className="text-slate-400 shrink-0" />
+                    <span>{event.date}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock size={16} className="text-slate-400 shrink-0" />
+                    <span>{event.time}</span>
+                  </div>
                 </div>
-                <div className="p-6 bg-white border-t border-outline-variant/30">
-                  <h3 className="font-heading text-sm font-bold text-foreground m-0">{speaker.name}</h3>
-                  <p className="text-[11px] text-on-surface-variant mt-1 mb-0 font-semibold">{speaker.role}</p>
+                <button 
+                  onClick={scrollToTickets}
+                  className="w-full py-4 bg-primary hover:bg-[#3525cd]/95 text-white rounded-2xl font-bold text-sm shadow-md border-none cursor-pointer"
+                >
+                  Buy Ticket Now!
+                </button>
+              </div>
+
+              {/* Accordion 1: Event Description */}
+              <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                <button 
+                  onClick={() => setIsDescOpen(!isDescOpen)}
+                  className="w-full px-6 py-5 flex items-center justify-between text-left font-bold text-sm text-slate-800 hover:text-primary transition-colors cursor-pointer border-none bg-transparent"
+                >
+                  <span className="font-heading font-extrabold">Event Description</span>
+                  <ChevronDown 
+                    size={18} 
+                    className={`text-slate-400 shrink-0 transition-transform duration-300 ${isDescOpen ? 'rotate-180 text-primary' : ''}`} 
+                  />
+                </button>
+                
+                <div 
+                  className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                    isDescOpen ? 'max-h-[1200px] border-t border-slate-100' : 'max-h-0'
+                  }`}
+                >
+                  <div className="px-6 py-5 space-y-4 text-xs text-slate-500 leading-relaxed font-semibold">
+                    <p className="m-0 text-slate-650">{event.description}</p>
+                    {slug === '6th-gregorian-knowledge-fiesta-2026' && (
+                      <div className="pt-2 space-y-3 border-t border-slate-50">
+                        <h4 className="text-xs font-black text-slate-700 m-0 uppercase tracking-wider">Fiesta Segment Highlights</h4>
+                        <ul className="list-disc list-inside space-y-1.5 pl-1 text-[11px] text-slate-550">
+                          <li><strong>Solo Quiz:</strong> Segments from Kids (Class I-II) to Secondary. General knowledge battlefield.</li>
+                          <li><strong>Bangla Bowl / English Bowl:</strong> Prove language and grammatical command.</li>
+                          <li><strong>Math Bowl / Science Bowl:</strong> Deep logic, equations, and law of nature segments.</li>
+                          <li><strong>Heroes Assemble:</strong> A grand pop-culture Cosplay segment (Class Kids to Higher Secondary).</li>
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            ))}
+
+              {/* Accordion 2: Rules / Details */}
+              <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                <button 
+                  onClick={() => setIsTCOpen(!isTCOpen)}
+                  className="w-full px-6 py-5 flex items-center justify-between text-left font-bold text-sm text-slate-800 hover:text-primary transition-colors cursor-pointer border-none bg-transparent"
+                >
+                  <span className="font-heading font-extrabold">Terms & Conditions</span>
+                  <ChevronDown 
+                    size={18} 
+                    className={`text-slate-400 shrink-0 transition-transform duration-300 ${isTCOpen ? 'rotate-180 text-primary' : ''}`} 
+                  />
+                </button>
+                
+                <div 
+                  className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                    isTCOpen ? 'max-h-[500px] border-t border-slate-100' : 'max-h-0'
+                  }`}
+                >
+                  <div className="px-6 py-5 space-y-3 text-xs text-slate-500 leading-relaxed font-semibold">
+                    <p className="m-0">1. All tickets are non-refundable unless specified otherwise by the event host.</p>
+                    <p className="m-0">2. Please carry your digital QR ticket (PDF or QR screenshot) to the entry gate for scanning.</p>
+                    <p className="m-0">3. Students must show valid ID at check-in when checking in under Student ticket types.</p>
+                    <p className="m-0">4. Please reach the venue gate at least 20 minutes prior to session/exam start times.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* TICKET PURCHASE GRID */}
+              <div ref={ticketsSectionRef} className="pt-6 space-y-4">
+                <h3 className="font-heading text-lg font-extrabold text-slate-800 flex items-center gap-2 m-0">
+                  <Ticket size={20} className="text-primary-container" />
+                  <span>Available Tickets</span>
+                </h3>
+                
+                {ticketTypes.length === 0 ? (
+                  <div className="p-8 text-center bg-white rounded-3xl border border-slate-200">
+                    <p className="text-xs text-slate-400 font-semibold m-0">No active ticket categories available at this moment.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {ticketTypes.map((ticket) => {
+                      const isFree = parseFloat(ticket.price) === 0;
+                      return (
+                        <div 
+                          key={ticket.id}
+                          className="bg-white p-5 rounded-3xl border border-slate-200 hover:border-primary-container/40 hover:shadow-md transition-all flex flex-col justify-between min-h-[160px]"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-bold text-slate-800 m-0">{ticket.name}</h4>
+                              {isFree && (
+                                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded-full uppercase">Free</span>
+                              )}
+                            </div>
+                            {ticket.description && (
+                              <p className="text-xs text-slate-450 leading-relaxed m-0">{ticket.description}</p>
+                            )}
+                          </div>
+
+                          <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between">
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold block">TICKET PRICE</span>
+                              <span className={`text-base font-extrabold ${isFree ? 'text-emerald-600' : 'text-primary'}`}>
+                                {isFree ? 'Free' : `৳${parseFloat(ticket.price).toLocaleString('en-BD')}`}
+                              </span>
+                            </div>
+                            
+                            {/* Registration Modal Trigger Wrapper */}
+                            <EventRegistrationForm 
+                              event={{
+                                slug,
+                                title: event.title,
+                                date: event.date,
+                                time: event.time,
+                                location: event.location,
+                                description: event.description,
+                                thumbnail: event.thumbnail,
+                                hostUsername: event.hostUsername,
+                                contactEmail: event.contactEmail,
+                                contactPhone: event.contactPhone,
+                                passType: ticket.name,
+                                gate: event.gate
+                              }}
+                              initialTicketId={ticket.id}
+                              trigger={
+                                <button className="px-5 py-2.5 bg-primary-container text-white text-xs font-bold rounded-xl hover:bg-primary transition-colors border-none cursor-pointer">
+                                  Buy Now
+                                </button>
+                              }
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* PAYMENT METHODS SECTION */}
+              <div className="pt-8 space-y-4">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest m-0">Payment Methods</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col items-center justify-center text-center space-y-2 shadow-sm">
+                    <span className="font-extrabold text-[#d81966] text-xs">bKash</span>
+                    <span className="text-[10px] text-slate-400 font-bold">Pay with bKash</span>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col items-center justify-center text-center space-y-2 shadow-sm">
+                    <span className="font-extrabold text-[#f7941d] text-xs">Nagad</span>
+                    <span className="text-[10px] text-slate-400 font-bold">Pay with Nagad</span>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col items-center justify-center text-center space-y-2 shadow-sm">
+                    <span className="font-extrabold text-blue-600 text-xs">VISA / MC</span>
+                    <span className="text-[10px] text-slate-400 font-bold">Card Payment</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* SHARE ON SOCIALS SECTION */}
+              <div className="pt-6 space-y-3">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest m-0">Share on Socials</h4>
+                <div className="flex flex-wrap gap-2">
+                  <button 
+                    onClick={copyPageLink}
+                    className="px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Link2 size={14} />
+                    <span>Copy Link</span>
+                  </button>
+                  <a 
+                    href={`mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                    className="px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors"
+                  >
+                    <Mail size={14} />
+                    <span>Email</span>
+                  </a>
+                  <a 
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors"
+                  >
+                    <Facebook size={14} className="text-blue-600" />
+                    <span>Facebook</span>
+                  </a>
+                  <a 
+                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(event.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors"
+                  >
+                    <Twitter size={14} className="text-sky-500" />
+                    <span>Twitter</span>
+                  </a>
+                </div>
+              </div>
+
+            </div>
+
+            {/* RIGHT COLUMN: Sticky Info Anchor Panel */}
+            <div className="lg:col-span-4 hidden lg:block sticky top-24 space-y-6">
+              
+              <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                <div className="space-y-4">
+                  <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-md uppercase tracking-wider">
+                    {slug === '6th-gregorian-knowledge-fiesta-2026' ? 'Academic / Quiz' : 'Masterclass / Summit'}
+                  </span>
+                  
+                  <h1 className="font-heading text-xl font-black text-slate-800 leading-snug m-0">
+                    {event.title}
+                  </h1>
+                </div>
+
+                <hr className="border-slate-100 my-0" />
+
+                <div className="space-y-4 text-xs font-semibold text-slate-500">
+                  <div className="flex items-start gap-3">
+                    <MapPin size={18} className="text-slate-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <span className="text-slate-400 text-[10px] font-bold block uppercase tracking-wider">VENUE</span>
+                      <span className="text-slate-700">{event.location}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <CalendarIcon size={18} className="text-slate-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <span className="text-slate-400 text-[10px] font-bold block uppercase tracking-wider">DATE</span>
+                      <span className="text-slate-700">{event.date}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Clock size={18} className="text-slate-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <span className="text-slate-400 text-[10px] font-bold block uppercase tracking-wider">TIME</span>
+                      <span className="text-slate-700">{event.time}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={scrollToTickets}
+                  className="w-full py-4 bg-primary hover:bg-[#3525cd]/95 text-white rounded-2xl font-bold text-sm shadow-md hover:-translate-y-0.5 transition-all border-none cursor-pointer"
+                >
+                  Buy Ticket Now!
+                </button>
+              </div>
+
+            </div>
+
           </div>
         </section>
 
-        {/* Schedule Timetable strip preview */}
-        <section id="schedule" className="bg-surface-container py-20 px-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="font-heading text-3xl font-extrabold text-foreground m-0">Schedule Preview</h2>
-              <div className="flex justify-center gap-2 mt-4">
-                <button className="px-6 py-2 bg-primary text-white rounded-full font-bold text-xs border-none shadow-sm cursor-pointer">Day 1: Oct 24</button>
-                <button className="px-6 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-full font-bold text-xs border-none bg-transparent cursor-pointer transition-colors">Day 2: Oct 25</button>
-                <button className="px-6 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-full font-bold text-xs border-none bg-transparent cursor-pointer transition-colors">Day 3: Oct 26</button>
-              </div>
-            </div>
-
-            <div className="space-y-4 max-w-4xl mx-auto">
-              {[
-                { time: '09:00 AM', hall: 'Grand Hall', title: 'Opening Keynote: The Generative Era', desc: 'Join Elena Rodriguez for a deep dive into how generative tools are redefining the creative process for the next decade.' },
-                { time: '11:30 AM', hall: 'Room 204', title: 'Workshop: Design Systems in AI', desc: 'Hands-on session on integrating AI workflows into your existing Figma and React design systems.' },
-              ].map((item, i) => (
-                <div key={i} className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-outline-variant flex flex-col md:flex-row gap-6 md:items-center hover:shadow-md transition-shadow">
-                  <div className="md:w-32 flex-shrink-0">
-                    <span className="text-primary font-heading text-lg font-bold block">{item.time}</span>
-                    <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">{item.hall}</span>
-                  </div>
-                  <div className="flex-grow">
-                    <h4 className="font-heading text-sm font-bold text-foreground m-0">{item.title}</h4>
-                    <p className="text-xs text-on-surface-variant mt-2 mb-0 leading-relaxed">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
       </div>
     </ConfigProvider>
   );

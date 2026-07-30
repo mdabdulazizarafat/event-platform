@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { PaymentService } from '../services/payment.service';
 import { EventService } from '../services/event.service';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('payment.controller');
 
 export class PaymentController {
   /**
@@ -37,7 +40,7 @@ export class PaymentController {
         tranId: result.tranId,
       });
     } catch (error: any) {
-      console.error('Error initiating payment:', error);
+      logger.error({ err: error }, 'Error initiating payment');
       return res.status(500).json({ error: error.message || 'Failed to initiate payment' });
     }
   }
@@ -61,7 +64,7 @@ export class PaymentController {
       const redirectUrl = `${frontendBaseUrl}/payment/success?tran_id=${encodeURIComponent(tran_id)}`;
       return res.redirect(redirectUrl);
     } catch (error: any) {
-      console.error('Error processing payment success:', error);
+      logger.error({ err: error }, 'Error processing payment success');
       const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       return res.redirect(`${frontendBaseUrl}/payment/fail?error=${encodeURIComponent(error.message)}`);
     }
@@ -81,7 +84,7 @@ export class PaymentController {
       const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       return res.redirect(`${frontendBaseUrl}/payment/fail?tran_id=${encodeURIComponent(tran_id || '')}`);
     } catch (error: any) {
-      console.error('Error processing payment failure:', error);
+      logger.error({ err: error }, 'Error processing payment failure');
       const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       return res.redirect(`${frontendBaseUrl}/payment/fail`);
     }
@@ -101,7 +104,7 @@ export class PaymentController {
       const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       return res.redirect(`${frontendBaseUrl}/payment/cancel?tran_id=${encodeURIComponent(tran_id || '')}`);
     } catch (error: any) {
-      console.error('Error processing payment cancellation:', error);
+      logger.error({ err: error }, 'Error processing payment cancellation');
       const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       return res.redirect(`${frontendBaseUrl}/payment/cancel`);
     }
@@ -129,7 +132,7 @@ export class PaymentController {
 
       return res.status(200).json({ message: 'IPN processed' });
     } catch (error: any) {
-      console.error('Error processing IPN:', error);
+      logger.error({ err: error }, 'Error processing IPN');
       // Always respond 200 to IPN to prevent retries for already-processed transactions
       return res.status(200).json({ error: error.message });
     }
@@ -162,7 +165,7 @@ export class PaymentController {
         paidAt: payment.paid_at,
       });
     } catch (error: any) {
-      console.error('Error fetching payment status:', error);
+      logger.error({ err: error }, 'Error fetching payment status');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

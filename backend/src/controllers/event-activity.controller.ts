@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
 import { EventActivityService } from '../services/event-activity.service';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('event-activity.controller');
 
 export class EventActivityController {
   /**
@@ -30,7 +33,7 @@ export class EventActivityController {
         activity
       });
     } catch (error: any) {
-      console.error('Error creating activity:', error);
+      logger.error({ err: error }, 'Error creating activity');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -49,7 +52,7 @@ export class EventActivityController {
       const activities = await EventActivityService.getActivities(eventId);
       return res.status(200).json(activities);
     } catch (error: any) {
-      console.error('Error listing activities:', error);
+      logger.error({ err: error }, 'Error listing activities');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -68,7 +71,7 @@ export class EventActivityController {
       const activities = await EventActivityService.getAllActivities(eventId);
       return res.status(200).json(activities);
     } catch (error: any) {
-      console.error('Error listing all activities:', error);
+      logger.error({ err: error }, 'Error listing all activities');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -105,7 +108,7 @@ export class EventActivityController {
         activity: updated
       });
     } catch (error: any) {
-      console.error('Error updating activity:', error);
+      logger.error({ err: error }, 'Error updating activity');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -135,7 +138,7 @@ export class EventActivityController {
         activity: deactivated
       });
     } catch (error: any) {
-      console.error('Error deactivating activity:', error);
+      logger.error({ err: error }, 'Error deactivating activity');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

@@ -1,4 +1,7 @@
 import { Resend } from 'resend';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('email.service');
 
 let resendClient: Resend | null = null;
 
@@ -46,8 +49,7 @@ export class EmailService {
 
     const client = getResendClient();
     if (!client) {
-      console.warn(`[MOCK EMAIL] To: ${payload.email} | Subject: Ticket Confirmed - ${payload.eventTitle}`);
-      console.log(`[MOCK EMAIL] QR Code Link: ${payload.qrCodeUrl}`);
+      logger.info({ to: payload.email, subject: `Ticket Confirmed - ${payload.eventTitle}`, qrCodeUrl: payload.qrCodeUrl }, 'Mock email sent (no Resend key)');
       return;
     }
 
@@ -63,9 +65,9 @@ export class EmailService {
         throw new Error(error.message);
       }
 
-      console.log(`Resend email sent successfully: ${data?.id}`);
+      logger.info({ id: data?.id }, 'Resend email sent successfully');
     } catch (err: any) {
-      console.error('Resend delivery failed, falling back to log warning:', err.message);
+      logger.error({ err }, 'Resend delivery failed');
     }
   }
 
@@ -85,7 +87,7 @@ export class EmailService {
 
     const client = getResendClient();
     if (!client) {
-      console.warn(`[MOCK EMAIL] To: ${payload.email} | Subject: Registration Cancelled - ${payload.eventTitle}`);
+      logger.info({ to: payload.email, subject: `Registration Cancelled - ${payload.eventTitle}` }, 'Mock cancellation email sent (no Resend key)');
       return;
     }
 
@@ -101,9 +103,9 @@ export class EmailService {
         throw new Error(error.message);
       }
 
-      console.log(`Resend cancellation email sent successfully: ${data?.id}`);
+      logger.info({ id: data?.id }, 'Resend cancellation email sent successfully');
     } catch (err: any) {
-      console.error('Resend delivery failed, falling back to log warning:', err.message);
+      logger.error({ err }, 'Resend delivery failed');
     }
   }
 }

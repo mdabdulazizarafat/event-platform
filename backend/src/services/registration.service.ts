@@ -1,5 +1,8 @@
 import { pool } from '../db/pool';
 import { Queue } from 'bullmq';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('registration.service');
 
 // BullMQ Sidecar Worker Offloading Queues
 // Lazy initialization to ensure dotenv has loaded before reading env vars
@@ -29,7 +32,7 @@ export function getEmailQueue(): Queue {
       connection: getRedisConnection(),
     });
     _emailQueue.on('error', (err) => {
-      console.warn('Redis connection warning (emailQueue):', err.message);
+      logger.warn({ err }, 'Redis connection warning (emailQueue)');
     });
   }
   return _emailQueue;
@@ -106,7 +109,7 @@ export class RegistrationService {
         );
 
       } catch (queueError: any) {
-        console.warn('Failed to queue email confirmation job (Redis offline):', queueError.message);
+        logger.warn({ err: queueError }, 'Failed to queue email confirmation job (Redis offline)');
       }
 
       return { registrationId, qrToken };

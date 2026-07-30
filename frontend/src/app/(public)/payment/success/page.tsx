@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, Calendar, MapPin, Ticket, QrCode, ArrowRight, Download, Wallet } from 'lucide-react';
 import { checkPaymentStatus } from '@/lib/api';
@@ -19,7 +19,7 @@ interface PaymentData {
   paidAt: string;
 }
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const tranId = searchParams.get('tran_id');
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
@@ -154,5 +154,20 @@ export default function PaymentSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/30 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-[#4F46E5]/20 border-t-[#4F46E5] rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-slate-500 font-semibold">Loading...</p>
+        </div>
+      </div>
+    }>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }

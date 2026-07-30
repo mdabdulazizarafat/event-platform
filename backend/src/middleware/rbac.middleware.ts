@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { pool } from '../db/pool';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('rbac.middleware');
 
 /**
  * Middleware to restrict route to specific platform-level global roles.
@@ -54,12 +57,12 @@ export function requireEventRole(allowedRoles: ('ORGANIZER' | 'MANAGER')[]) {
       if (eventIdParam) {
         eventId = parseInt(eventIdParam);
         const eventRes = await pool.query('SELECT host_username FROM events WHERE id = $1', [eventId]);
-        if (eventRes.rowCount > 0) {
+        if (eventRes.rows.length > 0) {
           hostUsername = eventRes.rows[0].host_username;
         }
       } else if (slug) {
         const eventRes = await pool.query('SELECT id, host_username FROM events WHERE slug = $1', [slug]);
-        if (eventRes.rowCount > 0) {
+        if (eventRes.rows.length > 0) {
           eventId = eventRes.rows[0].id;
           hostUsername = eventRes.rows[0].host_username;
         }
@@ -77,7 +80,7 @@ export function requireEventRole(allowedRoles: ('ORGANIZER' | 'MANAGER')[]) {
 
       let userRole: 'ORGANIZER' | 'MANAGER' | null = null;
 
-      if (teamRes.rowCount > 0) {
+      if (teamRes.rows.length > 0) {
         userRole = teamRes.rows[0].role as 'ORGANIZER' | 'MANAGER';
       } else if (hostUsername === username) {
         // Fallback: If not in event_team but is original creator/host, they are ORGANIZER
@@ -93,7 +96,7 @@ export function requireEventRole(allowedRoles: ('ORGANIZER' | 'MANAGER')[]) {
 
       return next();
     } catch (error: any) {
-      console.error('Event role verification error:', error);
+      logger.error({ err: error }, 'Event role verification error');
       return res.status(500).json({ error: 'Internal server error during authorization.' });
     }
   };

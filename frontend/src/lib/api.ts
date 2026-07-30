@@ -68,10 +68,32 @@ const mockHosts: Record<string, Host> = {
     name: 'Creative Studio Co.',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&h=200&fit=crop',
     bio: 'A collective of designers, writers, and product builders designing the future. Sharing design systems and product knowledge.',
+  },
+  'gregorian-quiz-club': {
+    username: 'gregorian-quiz-club',
+    name: 'Gregorian Quiz Club',
+    avatar: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=200&h=200&fit=crop',
+    bio: 'One of the oldest and most prestigious quiz clubs in the country, fostering general knowledge, debate, and intellectual growth.',
   }
 };
 
 const mockEvents: Event[] = [
+  {
+    slug: '6th-gregorian-knowledge-fiesta-2026',
+    title: '6th Gregorian Knowledge Fiesta 2026',
+    date: '28 Aug, 2026 - 29 Aug, 2026',
+    time: '12:00 PM - 06:00 PM',
+    location: "St. Gregory's High School & College",
+    locationShort: "St. Gregory's, Dhaka",
+    attendeesCount: '1.2k+',
+    description: 'Learning Today, Leading Tomorrow. Behold, intellectual voyagers and paragons of erudition! The long-anticipated 6th Gregorian Knowledge Fiesta 2026 has dawned—a sophisticated crucible where pedagogy, tactical acumen, and synergistic cooperation converge.',
+    thumbnail: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=800&h=450&fit=crop',
+    hostUsername: 'gregorian-quiz-club',
+    contactEmail: 'gqc@stgregorys.edu',
+    contactPhone: '+880-1835-099555',
+    passType: 'Standard Access',
+    gate: 'Main Gate'
+  },
   {
     slug: 'global-tech-summit',
     title: 'Global Tech Summit 2026',
@@ -110,22 +132,109 @@ const mockEvents: Event[] = [
     contactPhone: '+880-1711-111111',
     passType: 'General Admission',
     gate: 'Main Entrance • Gate A'
+  },
+  {
+    slug: 'ui-ux-design-forum',
+    title: 'UI/UX Design Systems Forum 2026',
+    date: 'Dec 05, 2026',
+    time: '10:00 AM - 04:00 PM',
+    location: 'Creative Studio HQ, New York',
+    locationShort: 'Creative HQ, NY',
+    attendeesCount: '300+',
+    description: 'A gathering of design leaders to discuss design systems, scaling UI, and modern branding aesthetics.',
+    thumbnail: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800&h=450&fit=crop',
+    hostUsername: 'creative-studio',
+    contactEmail: 'design@creativestudio.com',
+    contactPhone: '+880-1711-222222',
+    passType: 'Standard Access',
+    gate: 'Hall C • Level 2'
   }
 ];
 
+function mapBackendEventToFrontend(e: any): Event {
+  return {
+    slug: e.slug || '',
+    title: e.title || 'Untitled Event',
+    date: e.date || '',
+    time: e.time || '',
+    location: e.location || '',
+    locationShort: (e.location || '').split(',')[0],
+    attendeesCount: e.attendees_count || '1.2k+',
+    description: e.description || e.title || '',
+    thumbnail: e.thumbnail || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=800&h=450&fit=crop',
+    hostUsername: e.host_username || e.hostUsername || 'gregorian-quiz-club',
+    contactEmail: e.contact_email || e.contactEmail,
+    contactPhone: e.contact_phone || e.contactPhone,
+    passType: 'Standard Access',
+    gate: 'Main Gate',
+  };
+}
+
+export async function getUpcomingEvents(): Promise<Event[]> {
+  try {
+    const response = await fetch('/api/v1/events');
+    if (!response.ok) throw new Error('Backend response not ok');
+    const data = await response.json();
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map(mapBackendEventToFrontend);
+    }
+  } catch {
+    // Fallback to mockEvents if backend offline in static preview
+  }
+  return mockEvents;
+}
+
 export async function getEventBySlug(slug: string): Promise<Event | null> {
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  try {
+    const response = await fetch(`/api/v1/events/${slug}`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.slug) {
+        return mapBackendEventToFrontend(data);
+      }
+    }
+  } catch {
+    // Fallback to mockEvents
+  }
   const event = mockEvents.find((e) => e.slug === slug);
   return event || null;
 }
 
 export async function getHostByUsername(username: string): Promise<Host | null> {
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  try {
+    const response = await fetch(`/api/v1/auth/users/${username}`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.username) {
+        return {
+          username: data.username,
+          name: data.name || data.username,
+          avatar: data.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&h=200&fit=crop',
+          bio: data.bio || 'Event Organizer on Rong Plan.',
+        };
+      }
+    }
+  } catch {
+    // Fallback to mockHosts
+  }
   return mockHosts[username] || null;
 }
 
 export async function getEventsByHost(hostUsername: string): Promise<Event[]> {
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  try {
+    const response = await fetch('/api/v1/events');
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const filtered = data.filter((e: any) => (e.host_username || e.hostUsername) === hostUsername);
+        if (filtered.length > 0) {
+          return filtered.map(mapBackendEventToFrontend);
+        }
+      }
+    }
+  } catch {
+    // Fallback to mockEvents
+  }
   return mockEvents.filter((e) => e.hostUsername === hostUsername);
 }
 

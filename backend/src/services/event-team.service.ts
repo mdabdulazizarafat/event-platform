@@ -13,7 +13,7 @@ export class EventTeamService {
 
     // 2. Prevent inviting yourself or inviting the owner
     const eventRes = await pool.query('SELECT host_username FROM events WHERE id = $1', [eventId]);
-    if (eventRes.rowCount > 0 && eventRes.rows[0].host_username === username) {
+    if (eventRes.rows.length > 0 && eventRes.rows[0].host_username === username) {
       throw new Error('The event owner is already the organizer.');
     }
 

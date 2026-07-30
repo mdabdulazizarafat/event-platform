@@ -1,7 +1,10 @@
 import { pool } from './pool';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('db.migrate');
 
 export async function runMigrations() {
-  console.log('Running automatic database migrations & checks...');
+  logger.info('Running automatic database migrations & checks...');
   const client = await pool.connect();
   try {
     // 1. Enable UUID extension
@@ -17,7 +20,7 @@ export async function runMigrations() {
     
     const hostsExists = tableCheck.rows[0].exists;
     if (hostsExists) {
-      console.log('Renaming "hosts" table to "users"...');
+      logger.info('Renaming "hosts" table to "users"...');
       // Drop referencing foreign keys temporarily to avoid cascade issues, or rename table
       // In PG, RENAME TABLE automatically renames the table and updates referencing FK constraints!
       await client.query('ALTER TABLE hosts RENAME TO users');
@@ -100,8 +103,8 @@ export async function runMigrations() {
         registered_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (id, event_id)
       ) PARTITION BY LIST (event_id)
-    `).catch((err) => {
-      console.warn('Note: registrations table creation skipped or partitioned table already configured:', err.message);
+    `).catch((err: any) => {
+      logger.warn({ err }, 'Note: registrations table creation skipped or partitioned table already configured');
     });
 
     // 6b. Add new columns to registrations if they don't exist
@@ -123,8 +126,8 @@ export async function runMigrations() {
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_registrations_qr_token 
       ON registrations (lower(qr_token))
-    `).catch((err) => {
-      console.warn('Could not create functional index:', err.message);
+    `).catch((err: any) => {
+      logger.warn({ err }, 'Could not create functional index');
     });
 
     // 8. Ensure payments table exists
@@ -204,9 +207,10 @@ export async function runMigrations() {
 
     await client.query('CREATE INDEX IF NOT EXISTS idx_activity_logs_lookup ON activity_logs (registration_id, event_id, activity_id)').catch(() => {});
 
-    console.log('Database migrations completed successfully.');
+    logger.info('Database migrations completed successfully.');
   } catch (error) {
-    console.error('Migration failed:', error);
+    logger.error({ err: error }, 'Migration failed');
+    throw error;
   } finally {
     client.release();
   }

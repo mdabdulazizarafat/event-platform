@@ -46,11 +46,16 @@ export class EventService {
       const eventId = res.rows[0].id;
 
       // 2. Allocate the PostgreSQL List Partition table dynamically.
-      // Name formatting: p_reg_[eventId]
+      // Strictly validate eventId is a positive integer before identifier construction
+      const parsedEventId = parseInt(String(eventId), 10);
+      if (isNaN(parsedEventId) || parsedEventId <= 0) {
+        throw new Error(`Invalid eventId generated for partition table: ${eventId}`);
+      }
+      const partitionTableName = `p_reg_${parsedEventId}`;
       const partitionQuery = `
-        CREATE TABLE IF NOT EXISTS p_reg_${eventId} 
+        CREATE TABLE IF NOT EXISTS ${partitionTableName} 
         PARTITION OF registrations 
-        FOR VALUES IN (${eventId});
+        FOR VALUES IN (${parsedEventId});
       `;
       await client.query(partitionQuery);
 

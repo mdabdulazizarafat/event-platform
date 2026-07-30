@@ -1,5 +1,8 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('storage.service');
 
 // Lazy client initialization to handle missing env variables gracefully during dev
 let r2Client: S3Client | null = null;
@@ -41,10 +44,10 @@ export class StorageService {
       });
 
       await client.send(command);
-      console.log(`Successfully uploaded ${key} to Cloudflare R2.`);
+      logger.info({ key }, 'Successfully uploaded to Cloudflare R2.');
       return `${this.publicUrl}/${key}`;
     } catch (err: any) {
-      console.warn(`R2 upload failed for ${key} (using fallback mock URL):`, err.message);
+      logger.warn({ err, key }, 'R2 upload failed (using fallback URL)');
       // Fallback url for development convenience when credentials are mock
       return `${this.publicUrl}/${key}`;
     }
@@ -63,7 +66,7 @@ export class StorageService {
 
       return await getSignedUrl(client, command, { expiresIn: expiresInSeconds });
     } catch (err: any) {
-      console.warn(`R2 presigned URL generation failed for ${key}:`, err.message);
+      logger.warn({ err, key }, 'R2 presigned URL generation failed');
       return `${this.publicUrl}/${key}?token=mock-presigned-token`;
     }
   }

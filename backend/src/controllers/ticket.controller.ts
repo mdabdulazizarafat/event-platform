@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
 import { pool } from '../db/pool';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('ticket.controller');
 
 export class TicketController {
   /**
@@ -75,7 +78,7 @@ export class TicketController {
         // Find or create default Check-in activity
         let activityId: number;
         const activityRes = await client.query("SELECT id FROM event_activities WHERE event_id = $1 AND name = 'Check-in'", [registration.event_id]);
-        if (activityRes.rowCount > 0) {
+        if (activityRes.rows.length > 0) {
           activityId = activityRes.rows[0].id;
         } else {
           const insertAct = await client.query("INSERT INTO event_activities (event_id, name, scan_limit, sort_order) VALUES ($1, 'Check-in', 1, 0) RETURNING id", [registration.event_id]);
@@ -108,7 +111,7 @@ export class TicketController {
         }
       });
     } catch (error: any) {
-      console.error('Error verifying ticket scan:', error);
+      logger.error({ err: error }, 'Error verifying ticket scan');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -180,7 +183,7 @@ export class TicketController {
         let activityId = eventActivities[registration.event_id];
         if (!activityId) {
           const activityRes = await client.query("SELECT id FROM event_activities WHERE event_id = $1 AND name = 'Check-in'", [registration.event_id]);
-          if (activityRes.rowCount > 0) {
+          if (activityRes.rows.length > 0) {
             activityId = activityRes.rows[0].id;
           } else {
             const insertAct = await client.query("INSERT INTO event_activities (event_id, name, scan_limit, sort_order) VALUES ($1, 'Check-in', 1, 0) RETURNING id", [registration.event_id]);
@@ -208,7 +211,7 @@ export class TicketController {
       });
     } catch (err: any) {
       await client.query('ROLLBACK');
-      console.error('Offline sync database failure:', err.message);
+      logger.error({ err }, 'Offline sync database failure');
       return res.status(500).json({ error: 'Database transaction failed during batch synchronization' });
     } finally {
       client.release();
@@ -269,7 +272,7 @@ export class TicketController {
 
       return res.status(200).json({ message: 'Ticket resent successfully' });
     } catch (err: any) {
-      console.error('Error resending ticket:', err);
+      logger.error({ err }, 'Error resending ticket');
       return res.status(500).json({ error: err.message || 'Internal server error' });
     }
   }
@@ -326,7 +329,7 @@ export class TicketController {
 
       return res.status(200).json({ message: 'Ticket cancelled successfully' });
     } catch (err: any) {
-      console.error('Error cancelling ticket:', err);
+      logger.error({ err }, 'Error cancelling ticket');
       return res.status(500).json({ error: err.message || 'Internal server error' });
     }
   }
@@ -386,7 +389,7 @@ export class TicketController {
 
       return res.status(200).json(enriched);
     } catch (err: any) {
-      console.error('Error fetching participant registrations:', err);
+      logger.error({ err }, 'Error fetching participant registrations');
       return res.status(500).json({ error: err.message || 'Internal server error' });
     }
   }

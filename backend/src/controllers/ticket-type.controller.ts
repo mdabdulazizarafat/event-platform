@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { TicketTypeService } from '../services/ticket-type.service';
 import { EventService } from '../services/event.service';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('ticket-type.controller');
 
 export class TicketTypeController {
   /**
@@ -41,7 +44,7 @@ export class TicketTypeController {
 
       return res.status(201).json({ message: 'Ticket type created successfully', ticketType });
     } catch (error: any) {
-      console.error('Error creating ticket type:', error);
+      logger.error({ err: error }, 'Error creating ticket type');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -73,7 +76,7 @@ export class TicketTypeController {
 
       return res.status(200).json(enriched);
     } catch (error: any) {
-      console.error('Error listing ticket types:', error);
+      logger.error({ err: error }, 'Error listing ticket types');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -118,7 +121,7 @@ export class TicketTypeController {
 
       return res.status(200).json({ message: 'Ticket type updated successfully', ticketType: updated });
     } catch (error: any) {
-      console.error('Error updating ticket type:', error);
+      logger.error({ err: error }, 'Error updating ticket type');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -151,7 +154,7 @@ export class TicketTypeController {
       const deactivated = await TicketTypeService.deactivateTicketType(parseInt(id));
       return res.status(200).json({ message: 'Ticket type deactivated successfully', ticketType: deactivated });
     } catch (error: any) {
-      console.error('Error deactivating ticket type:', error);
+      logger.error({ err: error }, 'Error deactivating ticket type');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

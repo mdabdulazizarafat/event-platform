@@ -1,6 +1,9 @@
 import { pool } from '../db/pool';
 import { TicketTypeService } from './ticket-type.service';
 import { getEmailQueue } from './registration.service';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('payment.service');
 
 // SSLCommerz is loaded dynamically to avoid issues if not installed yet
 let SSLCommerzPayment: any = null;
@@ -239,7 +242,7 @@ export class PaymentService {
           { attempts: 3, backoff: { type: 'exponential', delay: 2000 } }
         );
       } catch (queueError: any) {
-        console.warn('Failed to queue email after payment (Redis offline):', queueError.message);
+        logger.warn({ err: queueError }, 'Failed to queue email after payment (Redis offline)');
       }
 
       return { alreadyProcessed: false, registrationId: payment.registration_id, eventId: payment.event_id, qrToken };

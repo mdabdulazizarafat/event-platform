@@ -48,7 +48,7 @@ async function encryptData(key: CryptoKey, dataStr: string): Promise<{ ciphertex
 }
 
 // Decrypt payload back to string
-async function decryptData(key: CryptoKey, ciphertext: ArrayBuffer, iv: Uint8Array): Promise<string> {
+async function decryptData(key: CryptoKey, ciphertext: ArrayBuffer, iv: BufferSource): Promise<string> {
   const decrypted = await window.crypto.subtle.decrypt(
     { name: 'AES-GCM', iv },
     key,

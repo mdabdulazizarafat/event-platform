@@ -1,0 +1,40 @@
+import { Request, Response, NextFunction } from 'express';
+
+/**
+ * Production Security Headers Middleware (Helmet equivalent)
+ */
+export function securityHeaders(req: Request, res: Response, next: NextFunction) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
+  next();
+}
+
+/**
+ * Production CORS Middleware
+ */
+export function corsMiddleware(req: Request, res: Response, next: NextFunction) {
+  const allowedOriginsEnv = process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:3000';
+  const allowedOrigins = allowedOriginsEnv.split(',').map((o) => o.trim());
+  const origin = req.headers.origin;
+
+  if (origin && (allowedOrigins.includes(origin) || allowedOrigins.includes('*'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin && process.env.NODE_ENV !== 'production') {
+    // Allow non-browser calls (Postman/curl) in dev
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-Request-Id, Accept');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
+  next();
+}

@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
 import { ActivityLogService } from '../services/activity-log.service';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('activity-log.controller');
 
 export class ActivityLogController {
   /**
@@ -29,7 +32,7 @@ export class ActivityLogController {
 
       return res.status(200).json(result);
     } catch (error: any) {
-      console.error('Scan error:', error);
+      logger.error({ err: error }, 'Scan error');
       // Return 400 for scanning errors (like already scanned, invalid ticket)
       // to let the frontend show a clear red warning badge.
       return res.status(400).json({ error: error.message || 'Scan validation failed.' });
@@ -50,7 +53,7 @@ export class ActivityLogController {
       const logs = await ActivityLogService.getLogsForEvent(eventId);
       return res.status(200).json(logs);
     } catch (error: any) {
-      console.error('Error fetching scan logs:', error);
+      logger.error({ err: error }, 'Error fetching scan logs');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -69,7 +72,7 @@ export class ActivityLogController {
       const stats = await ActivityLogService.getScanStats(eventId);
       return res.status(200).json(stats);
     } catch (error: any) {
-      console.error('Error fetching scan statistics:', error);
+      logger.error({ err: error }, 'Error fetching scan statistics');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

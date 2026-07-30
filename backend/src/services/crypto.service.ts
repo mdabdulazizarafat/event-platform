@@ -1,4 +1,7 @@
 import crypto from 'crypto';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('crypto.service');
 
 let privateKey: string;
 let publicKey: string;
@@ -8,10 +11,10 @@ if (process.env.JWT_PRIVATE_KEY && process.env.JWT_PUBLIC_KEY) {
   // Production / configured keypair
   privateKey = process.env.JWT_PRIVATE_KEY.replace(/\\n/g, '\n');
   publicKey = process.env.JWT_PUBLIC_KEY.replace(/\\n/g, '\n');
-  console.log('Asymmetric JWT Keys loaded from environment configurations.');
+  logger.info('Asymmetric JWT Keys loaded from environment configurations.');
 } else {
   // Local development fallback: dynamically generate a 2048-bit RSA key pair at startup
-  console.log('Generating dynamic 2048-bit RSA keypair for stateless JWT signatures...');
+  logger.info('Generating dynamic 2048-bit RSA keypair for stateless JWT signatures...');
   const { privateKey: genPrivate, publicKey: genPublic } = crypto.generateKeyPairSync('rsa', {
     modulusLength: 2048,
     publicKeyEncoding: {
@@ -25,7 +28,7 @@ if (process.env.JWT_PRIVATE_KEY && process.env.JWT_PUBLIC_KEY) {
   });
   privateKey = genPrivate;
   publicKey = genPublic;
-  console.log('Dynamic keypair successfully initialized.');
+  logger.info('Dynamic keypair successfully initialized.');
 }
 
 export const getPrivateKey = () => privateKey;

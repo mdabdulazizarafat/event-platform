@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
 import { EventTeamService } from '../services/event-team.service';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('event-team.controller');
 
 export class EventTeamController {
   /**
@@ -26,7 +29,7 @@ export class EventTeamController {
         teamMember
       });
     } catch (error: any) {
-      console.error('Error inviting team member:', error);
+      logger.error({ err: error }, 'Error inviting team member');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -45,7 +48,7 @@ export class EventTeamController {
       const team = await EventTeamService.getTeam(eventId);
       return res.status(200).json(team);
     } catch (error: any) {
-      console.error('Error listing team members:', error);
+      logger.error({ err: error }, 'Error listing team members');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -73,7 +76,7 @@ export class EventTeamController {
         removed
       });
     } catch (error: any) {
-      console.error('Error removing team member:', error);
+      logger.error({ err: error }, 'Error removing team member');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

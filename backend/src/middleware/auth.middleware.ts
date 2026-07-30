@@ -2,6 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { getPublicKey } from '../services/crypto.service';
 import { UserPayload } from '../types';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('auth.middleware');
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
@@ -34,7 +37,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
 
     return next();
   } catch (error: any) {
-    console.error('JWT verification error:', error.message);
+    logger.warn({ err: error.message }, 'JWT verification error');
     return res.status(401).json({ error: 'Invalid or expired session token' });
   }
 }

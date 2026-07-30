@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
 import { AdminService } from '../services/admin.service';
+import { createChildLogger } from '../lib/logger';
+
+const logger = createChildLogger('admin.controller');
 
 export class AdminController {
   /**
@@ -11,7 +14,7 @@ export class AdminController {
       const users = await AdminService.listUsers();
       return res.status(200).json(users);
     } catch (error: any) {
-      console.error('Admin user list error:', error);
+      logger.error({ err: error }, 'Admin user list error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -37,7 +40,7 @@ export class AdminController {
         user: updatedUser
       });
     } catch (error: any) {
-      console.error('Admin update user role error:', error);
+      logger.error({ err: error }, 'Admin update user role error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -51,7 +54,7 @@ export class AdminController {
       const events = await AdminService.listEvents();
       return res.status(200).json(events);
     } catch (error: any) {
-      console.error('Admin event list error:', error);
+      logger.error({ err: error }, 'Admin event list error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -75,7 +78,7 @@ export class AdminController {
         event: deletedEvent
       });
     } catch (error: any) {
-      console.error('Admin delete event error:', error);
+      logger.error({ err: error }, 'Admin delete event error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -89,7 +92,7 @@ export class AdminController {
       const logs = await AdminService.getAdminLogs();
       return res.status(200).json(logs);
     } catch (error: any) {
-      console.error('Admin log list error:', error);
+      logger.error({ err: error }, 'Admin log list error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
