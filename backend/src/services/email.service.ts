@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { createChildLogger } from '../lib/logger';
+import { getParticipantEmailHtml } from './email-templates';
 
 const logger = createChildLogger('email.service');
 
@@ -20,6 +21,14 @@ export interface TicketEmailPayload {
   email: string;
   eventTitle: string;
   qrCodeUrl: string;
+  participantName?: string;
+  ticketCode?: string;
+  ticketId?: string;
+  ticketTier?: string;
+  eventDate?: string;
+  eventTime?: string;
+  venueName?: string;
+  venueAddress?: string;
 }
 
 export interface CancellationEmailPayload {
@@ -34,18 +43,26 @@ export class EmailService {
    * Sends transactional ticket confirmation email via Resend
    */
   static async sendTicketConfirmation(payload: TicketEmailPayload): Promise<void> {
-    const htmlContent = `
-      <div style="font-family: sans-serif; padding: 24px; color: #111c2d; max-width: 600px; margin: 0 auto; border: 1px solid #c7c4d8; border-radius: 16px;">
-        <h2 style="color: #3525cd; font-family: 'Plus Jakarta Sans', sans-serif;">Your Ticket is Confirmed!</h2>
-        <p>Thank you for registering for <strong>${payload.eventTitle}</strong>.</p>
-        <p>Here is your digital entry pass QR code. Present it at check-in:</p>
-        <div style="margin: 24px 0; text-align: center;">
-          <img src="${payload.qrCodeUrl}" alt="Check-in QR Code" style="width: 200px; height: 200px; border: 4px solid #3525cd; border-radius: 12px; padding: 8px; background: white;" />
-        </div>
-        <hr style="border: 0; border-top: 1px solid #c7c4d8; margin: 24px 0;" />
-        <p style="font-size: 11px; color: #464555;">Best regards,<br/>Rong Plan Event Infrastructure Team</p>
-      </div>
-    `;
+    const htmlContent = getParticipantEmailHtml({
+      event_name: payload.eventTitle,
+      participant_name: payload.participantName || 'Guest',
+      qr_code_url: payload.qrCodeUrl,
+      ticket_code: payload.ticketCode || 'TICKET-CODE',
+      ticket_id: payload.ticketId || '1000',
+      ticket_tier: payload.ticketTier || 'General Admission',
+      event_date: payload.eventDate || 'TBA',
+      event_time: payload.eventTime || 'TBA',
+      venue_name: payload.venueName || 'TBA',
+      venue_address: payload.venueAddress || 'TBA',
+      calendar_url: 'https://calendar.google.com/',
+      organizer_name: 'Ayojok',
+      organizer_address: 'Dhaka, Bangladesh',
+      unsubscribe_url: 'https://ayojok.com/unsubscribe',
+      facebook_url: 'https://facebook.com/ayojok',
+      instagram_url: 'https://instagram.com/ayojok',
+      linkedin_url: 'https://linkedin.com/ayojok',
+      support_email: 'support@ayojok.com'
+    });
 
     const client = getResendClient();
     if (!client) {
@@ -57,7 +74,7 @@ export class EmailService {
       const { data, error } = await client.emails.send({
         from: this.fromEmail,
         to: [payload.email],
-        subject: `Your Ticket: ${payload.eventTitle}`,
+        subject: `You're confirmed for ${payload.eventTitle}`,
         html: htmlContent,
       });
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Typography, Card, Spin, Tag, Timeline, Alert, Button, Empty, Modal } from 'antd';
+import { Typography, Card, Spin, Tag, Timeline, Alert, Empty, Modal } from 'antd';
 import { 
   Calendar, 
   MapPin, 
@@ -15,6 +15,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import Button from '@/components/ui/Button';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -94,19 +95,18 @@ export default function MyTicketsPage() {
       {error && <Alert type="error" message={error} showIcon />}
 
       {tickets.length === 0 ? (
-        <Card className="rounded-2xl border-outline-variant bg-surface-container-lowest text-center py-12">
+        <div className="bento-card text-center py-12 flex flex-col items-center justify-center">
           <Empty 
             description={
               <span className="text-sm font-semibold text-on-surface-variant">
                 You don't have any event registrations yet.
               </span>
             }
-          >
-            <Button type="primary" onClick={() => window.location.href = '/'} className="bg-primary font-bold px-6 h-10 mt-2">
-              Explore Events
-            </Button>
-          </Empty>
-        </Card>
+          />
+          <Button variant="primary" size="md" onClick={() => window.location.href = '/'} className="mt-4">
+            Explore Events
+          </Button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {tickets.map((ticket) => {
@@ -114,10 +114,9 @@ export default function MyTicketsPage() {
             const isPaid = ticket.payment_status === 'COMPLETED';
             
             return (
-              <Card 
+              <div 
                 key={ticket.id} 
-                className="rounded-2xl border-outline-variant bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col justify-between"
-                styles={{ body: { padding: '24px' } }}
+                className="bento-card p-6 flex flex-col justify-between"
               >
                 <div className="space-y-4">
                   {/* Event Title & Header */}
@@ -149,15 +148,15 @@ export default function MyTicketsPage() {
                   {/* Meta details */}
                   <div className="space-y-2 py-3 border-y border-outline-variant/30 text-xs text-on-surface-variant font-medium">
                     <div className="flex items-center gap-2">
-                      <Calendar size={14} className="text-on-surface-variant" />
+                      <Calendar size={14} className="text-primary/70" />
                       <span>{ticket.event_date}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock size={14} className="text-on-surface-variant" />
+                      <Clock size={14} className="text-primary/70" />
                       <span>{ticket.event_time}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <MapPin size={14} className="text-on-surface-variant" />
+                      <MapPin size={14} className="text-primary/70 shrink-0" />
                       <span className="truncate">{ticket.event_location}</span>
                     </div>
                   </div>
@@ -194,21 +193,25 @@ export default function MyTicketsPage() {
                 {/* Card footer QR Trigger */}
                 <div className="mt-6 pt-4 border-t border-outline-variant/30 flex gap-3">
                   <Button 
-                    type="primary" 
+                    variant="primary" 
+                    size="md"
                     icon={<QrCode size={16} />}
                     onClick={() => { setSelectedTicket(ticket); setIsQrModalOpen(true); }}
-                    className="flex-1 h-10 font-bold bg-[#3525cd] flex items-center justify-center gap-1.5"
+                    className="flex-1 justify-center"
                     disabled={ticket.status === 'CANCELLED'}
                   >
                     View Ticket QR
                   </Button>
                   <Button 
+                    variant="outline"
+                    size="md"
                     icon={<ExternalLink size={14} />}
                     onClick={() => window.location.href = `/events/${ticket.event_slug}`}
-                    className="h-10 font-bold flex items-center justify-center"
+                    className="justify-center"
+                    aria-label="View Event"
                   />
                 </div>
-              </Card>
+              </div>
             );
           })}
         </div>
@@ -218,7 +221,7 @@ export default function MyTicketsPage() {
       <Modal
         title={
           <div className="text-center pt-2">
-            <span className="font-heading font-extrabold text-lg block">Your Ticket Entry Pass</span>
+            <span className="font-heading font-extrabold text-lg block text-foreground">Your Ticket Entry Pass</span>
             <span className="text-xs font-bold text-primary uppercase mt-1 block">
               {selectedTicket?.event_title}
             </span>
@@ -229,9 +232,10 @@ export default function MyTicketsPage() {
         footer={null}
         centered
         width={340}
+        className="custom-ticket-modal"
       >
         {selectedTicket && (
-          <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
+          <div className="bento-card flex flex-col items-center justify-center p-6 text-center space-y-4">
             {/* Dynamic QR API rendering */}
             <div className="p-4 bg-white border border-outline-variant rounded-2xl shadow-sm">
               <img 

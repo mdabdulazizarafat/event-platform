@@ -23,6 +23,10 @@ export class PaymentController {
         return res.status(404).json({ error: 'Event not found' });
       }
 
+      if (event.registration_deadline && new Date(event.registration_deadline) < new Date()) {
+        return res.status(400).json({ error: 'Registration deadline has passed' });
+      }
+
       const result = await PaymentService.initiatePayment({
         eventId: event.id,
         eventSlug,
@@ -61,7 +65,9 @@ export class PaymentController {
 
       // Redirect to frontend success page with transaction info
       const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      const redirectUrl = `${frontendBaseUrl}/payment/success?tran_id=${encodeURIComponent(tran_id)}`;
+      const payment = await PaymentService.getPaymentByTranId(tran_id);
+      const eventSlug = payment?.event_slug || 'event';
+      const redirectUrl = `${frontendBaseUrl}/events/${eventSlug}/checkout/confirmation?tran_id=${encodeURIComponent(tran_id)}`;
       return res.redirect(redirectUrl);
     } catch (error: any) {
       logger.error({ err: error }, 'Error processing payment success');

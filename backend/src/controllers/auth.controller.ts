@@ -14,14 +14,30 @@ export class AuthController {
    */
   static async register(req: Request, res: Response) {
     try {
-      const { username, name, email, password, role } = req.body;
+      let { username, name, email, password, role, mobile, org } = req.body;
 
-      if (!username || !name || !email || !password) {
-        return res.status(400).json({ error: 'Username, name, email, and password are required' });
+      if (!name || !email || !password) {
+        return res.status(400).json({ error: 'Name, email, and password are required' });
+      }
+
+      if (!username) {
+        const baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+        let attempt = baseUsername;
+        let count = 1;
+        while (true) {
+          const check = await pool.query('SELECT 1 FROM users WHERE username = $1', [attempt]);
+          if (check.rowCount === 0) {
+            username = attempt;
+            break;
+          }
+          attempt = `${baseUsername}${count}`;
+          count++;
+        }
       }
 
       // Enforce valid roles for public registration
       const targetRole = role === 'ORGANIZER' ? 'ORGANIZER' : 'PARTICIPANT';
+      const targetStatus = targetRole === 'ORGANIZER' ? 'PENDING_APPROVAL' : 'ACTIVE';
 
       // Check if username or email is already taken
       const checkUser = await pool.query(
@@ -43,22 +59,27 @@ export class AuthController {
 
       // Insert new user into users table
       const insertQuery = `
-        INSERT INTO users (username, name, email, password_hash, role)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING username, name, email, role, created_at;
+        INSERT INTO users (username, name, email, password_hash, role, mobile, org, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING username, name, email, mobile, org, role, status, created_at;
       `;
       const insertRes = await pool.query(insertQuery, [
         username.toLowerCase().trim(),
         name.trim(),
         email.toLowerCase().trim(),
         hashedPassword,
-        targetRole
+        targetRole,
+        mobile || null,
+        org || null,
+        targetStatus
       ]);
 
       const newUser = insertRes.rows[0];
 
       return res.status(201).json({
-        message: 'Registration successful',
+        message: targetStatus === 'PENDING_APPROVAL'
+          ? 'Organizer application submitted successfully. Pending admin approval.'
+          : 'Registration successful',
         user: newUser
       });
     } catch (error: any) {
@@ -101,6 +122,9 @@ export class AuthController {
         username: user.username,
         email: user.email,
         role: user.role || 'PARTICIPANT',
+        mobile: user.mobile,
+        org: user.org,
+        status: user.status || 'ACTIVE'
       };
       
       const token = jwt.sign(tokenPayload, getPrivateKey(), {
@@ -123,7 +147,10 @@ export class AuthController {
           name: user.name,
           email: user.email,
           avatar: user.avatar,
-          role: user.role || 'PARTICIPANT'
+          role: user.role || 'PARTICIPANT',
+          mobile: user.mobile,
+          org: user.org,
+          status: user.status || 'ACTIVE'
         }
       });
     } catch (error: any) {
@@ -153,13 +180,111 @@ export class AuthController {
     }
     
     try {
-      const userRes = await pool.query('SELECT username, name, email, avatar, bio, role FROM users WHERE username = $1', [req.user.username]);
+      const userRes = await pool.query('SELECT username, name, email, avatar, bio, role, mobile, org, status FROM users WHERE username = $1', [req.user.username]);
       if (userRes.rowCount === 0) {
         return res.status(404).json({ error: 'User not found' });
       }
       return res.status(200).json({ user: userRes.rows[0] });
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * Update profile information for authenticated user.
+   * PUT /api/v1/auth/profile
+   */
+  static async updateProfile(req: Request, res: Response) {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthenticated' });
+    }
+
+    try {
+      const { name, email, mobile, avatar, bio, org, role, status } = req.body;
+      const username = req.user.username;
+
+      // Check if user is organizer or manager in any event to allow updating org
+      const userRes = await pool.query('SELECT role FROM users WHERE username = $1', [username]);
+      if (userRes.rowCount === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Build dynamic update query to properly handle empty strings and avoid COALESCE issues
+      const setClauses: string[] = [];
+      const values: any[] = [];
+      let paramIndex = 1;
+
+      const addField = (field: string, value: any) => {
+        if (value !== undefined) {
+          setClauses.push(`${field} = $${paramIndex}`);
+          values.push(value === '' ? null : value);
+          paramIndex++;
+        }
+      };
+
+      addField('name', name);
+      addField('email', email);
+      addField('mobile', mobile);
+      addField('avatar', avatar);
+      addField('bio', bio);
+      addField('org', org);
+      addField('role', role);
+      addField('status', status);
+
+      if (setClauses.length === 0) {
+        return res.status(200).json({ message: 'No changes', user: userRes.rows[0] });
+      }
+
+      setClauses.push(`updated_at = CURRENT_TIMESTAMP`);
+      values.push(username);
+
+      const query = `
+        UPDATE users
+        SET ${setClauses.join(', ')}
+        WHERE username = $${paramIndex}
+        RETURNING username, name, email, avatar, bio, mobile, org, role, status;
+      `;
+      
+      const updateRes = await pool.query(query, values);
+
+      return res.status(200).json({
+        message: 'Profile updated successfully',
+        user: updateRes.rows[0]
+      });
+    } catch (error: any) {
+      logger.error({ err: error }, 'Profile update error');
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  /**
+   * Upload user avatar.
+   * POST /api/v1/auth/upload-avatar
+   */
+  static async uploadAvatar(req: Request, res: Response) {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthenticated' });
+    }
+    
+    try {
+      const { imageBase64 } = req.body;
+      if (!imageBase64) {
+        return res.status(400).json({ error: 'Missing imageBase64' });
+      }
+
+      const matches = imageBase64.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        return res.status(400).json({ error: 'Invalid base64 format' });
+      }
+
+      const buffer = Buffer.from(matches[2], 'base64');
+      const { StorageService } = await import('../services/storage.service');
+      const url = await StorageService.uploadAvatar(req.user.username, buffer);
+      
+      return res.status(200).json({ url });
+    } catch (error: any) {
+      logger.error({ err: error }, 'Error uploading avatar');
+      return res.status(500).json({ error: error.message || 'Upload failed' });
     }
   }
 }

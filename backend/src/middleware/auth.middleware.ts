@@ -41,3 +41,35 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
     return res.status(401).json({ error: 'Invalid or expired session token' });
   }
 }
+
+export function authMiddlewareOptional(req: Request, res: Response, next: NextFunction) {
+  try {
+    let token: string | undefined;
+
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+
+    if (!token && req.cookies) {
+      token = req.cookies.session_token;
+    }
+
+    if (!token) {
+      return next();
+    }
+
+    const decoded = jwt.verify(token, getPublicKey(), { algorithms: ['RS256'] }) as UserPayload;
+    
+    req.user = {
+      username: decoded.username,
+      email: decoded.email,
+      role: decoded.role,
+    };
+
+    return next();
+  } catch (error: any) {
+    // Just ignore token errors in optional middleware
+    return next();
+  }
+}

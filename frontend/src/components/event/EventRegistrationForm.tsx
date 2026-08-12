@@ -687,7 +687,7 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
             name: values.name.trim(),
             email: values.email.toLowerCase().trim(),
             password: values.password,
-            role: 'PARTICIPANT'
+            role: 'USER'
           })
         });
 

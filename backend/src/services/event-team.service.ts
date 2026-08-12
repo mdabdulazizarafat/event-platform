@@ -2,13 +2,23 @@ import { pool } from '../db/pool';
 
 export class EventTeamService {
   /**
-   * Invite a user to join an event's team as a MANAGER.
+   * Invite a user to join an event's team with a specific role.
    */
-  static async inviteManager(eventId: number, username: string, invitedBy: string) {
-    // 1. Verify target user exists in users table
-    const userCheck = await pool.query('SELECT username FROM users WHERE username = $1', [username]);
+  static async inviteManager(eventId: number, username: string, invitedBy: string, role: string = 'SCANNER') {
+    const validRoles = ['ORGANIZER', 'MANAGER', 'SCANNER'];
+    if (!validRoles.includes(role)) {
+      throw new Error(`Invalid role: ${role}`);
+    }
+
+    // 1. Verify target user exists in users table and get their global role
+    const userCheck = await pool.query('SELECT username, role FROM users WHERE username = $1', [username]);
     if (userCheck.rowCount === 0) {
       throw new Error(`User "${username}" does not exist on the platform.`);
+    }
+    const targetUser = userCheck.rows[0];
+
+    if (role === 'ORGANIZER' && !['ORGANIZER', 'ADMIN', 'SUPER_ADMIN'].includes(targetUser.role)) {
+      throw new Error('Only users with a global Organizer or Admin role can be invited as a Co-Organizer.');
     }
 
     // 2. Prevent inviting yourself or inviting the owner
@@ -17,15 +27,15 @@ export class EventTeamService {
       throw new Error('The event owner is already the organizer.');
     }
 
-    // 3. Add to event_team as MANAGER
+    // 3. Add to event_team
     const query = `
       INSERT INTO event_team (event_id, username, role, invited_by)
-      VALUES ($1, $2, 'MANAGER', $3)
+      VALUES ($1, $2, $3, $4)
       ON CONFLICT (event_id, username) 
-      DO UPDATE SET role = 'MANAGER', invited_by = EXCLUDED.invited_by
+      DO UPDATE SET role = EXCLUDED.role, invited_by = EXCLUDED.invited_by
       RETURNING *;
     `;
-    const res = await pool.query(query, [eventId, username, invitedBy]);
+    const res = await pool.query(query, [eventId, username, role, invitedBy]);
     return res.rows[0];
   }
 

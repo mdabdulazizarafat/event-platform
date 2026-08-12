@@ -15,7 +15,10 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   avatar VARCHAR(512),
   bio TEXT,
+  mobile VARCHAR(20),
+  org VARCHAR(255),
   role VARCHAR(20) NOT NULL DEFAULT 'PARTICIPANT', -- 'SUPER_ADMIN', 'ADMIN', 'ORGANIZER', 'PARTICIPANT'
+  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE', -- 'ACTIVE', 'PENDING_APPROVAL', 'SUSPENDED'
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -25,6 +28,8 @@ CREATE TABLE IF NOT EXISTS events (
   id SERIAL PRIMARY KEY,
   slug VARCHAR(255) NOT NULL UNIQUE,
   title VARCHAR(255) NOT NULL,
+  description TEXT,
+  thumbnail VARCHAR(512),
   date VARCHAR(100) NOT NULL,
   time VARCHAR(100) NOT NULL,
   location VARCHAR(512) NOT NULL,
@@ -32,6 +37,7 @@ CREATE TABLE IF NOT EXISTS events (
   contact_email VARCHAR(255),
   contact_phone VARCHAR(50),
   host_username VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+  status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -56,30 +62,30 @@ CREATE TABLE IF NOT EXISTS ticket_types (
 -- Index for efficient ticket type lookups by event
 CREATE INDEX IF NOT EXISTS idx_ticket_types_event_id ON ticket_types (event_id);
 
--- Master Partitioned Table: Registrations
--- Partitioned by list (event_id).
+-- Master Table: Registrations
 CREATE TABLE IF NOT EXISTS registrations (
-  id SERIAL,
-  event_id INTEGER NOT NULL,
-  ticket_type_id INTEGER,
-  user_id VARCHAR(255) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  ticket_type_id INTEGER REFERENCES ticket_types(id),
+  user_id VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
   email VARCHAR(255) NOT NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'CONFIRMED',
   payment_status VARCHAR(50) NOT NULL DEFAULT 'NOT_REQUIRED',
-  qr_token VARCHAR(255) NOT NULL DEFAULT uuid_generate_v4()::text,
-  registered_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id, event_id)
-) PARTITION BY LIST (event_id);
+  qr_token VARCHAR(64) NOT NULL DEFAULT uuid_generate_v4()::text,
+  registered_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- Global Functional Index to ensure sub-50ms door scans during peak traffic.
-CREATE INDEX IF NOT EXISTS idx_registrations_qr_token 
-ON registrations (lower(qr_token));
+-- Global Indexes to ensure sub-50ms door scans during peak traffic.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reg_qr_token ON registrations (qr_token);
+CREATE INDEX IF NOT EXISTS idx_reg_event_status ON registrations (event_id, status);
+CREATE INDEX IF NOT EXISTS idx_reg_user ON registrations (user_id);
+CREATE INDEX IF NOT EXISTS idx_reg_ticket_type ON registrations (ticket_type_id, event_id) WHERE status != 'CANCELLED';
 
 -- Payment records for paid ticket purchases
 CREATE TABLE IF NOT EXISTS payments (
   id SERIAL PRIMARY KEY,
-  registration_id INTEGER NOT NULL,
-  event_id INTEGER NOT NULL,
+  registration_id BIGINT NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
+  event_id INTEGER NOT NULL REFERENCES events(id),
   ticket_type_id INTEGER NOT NULL REFERENCES ticket_types(id),
   tran_id VARCHAR(255) NOT NULL UNIQUE,
   amount DECIMAL(10,2) NOT NULL,
@@ -131,15 +137,27 @@ CREATE TABLE IF NOT EXISTS event_activities (
 );
 
 -- Log each scan event atomically
-CREATE TABLE IF NOT EXISTS activity_logs (
-  id SERIAL PRIMARY KEY,
-  registration_id INTEGER NOT NULL,
-  event_id INTEGER NOT NULL,
+CREATE TABLE IF NOT EXISTS activity_scans (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  registration_id BIGINT NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
+  event_id INTEGER NOT NULL REFERENCES events(id),
   activity_id INTEGER NOT NULL REFERENCES event_activities(id) ON DELETE CASCADE,
   scanned_by VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
-  scanned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(registration_id, event_id, activity_id)
+  scanned_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(registration_id, activity_id)
 );
 
 -- Indexes for activity logs
-CREATE INDEX IF NOT EXISTS idx_activity_logs_lookup ON activity_logs (registration_id, event_id, activity_id);
+CREATE INDEX IF NOT EXISTS idx_scans_event ON activity_scans (event_id, scanned_at DESC);
+
+-- Granular Admin Permissions Table
+CREATE TABLE IF NOT EXISTS admin_permissions (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+  permission VARCHAR(50) NOT NULL,
+  granted_by VARCHAR(100) REFERENCES users(username) ON DELETE SET NULL,
+  granted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(username, permission)
+);
+CREATE INDEX IF NOT EXISTS idx_admin_permissions_user ON admin_permissions (username);
+

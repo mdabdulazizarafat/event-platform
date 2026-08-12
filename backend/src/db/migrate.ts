@@ -1,5 +1,6 @@
 import { pool } from './pool';
 import { createChildLogger } from '../lib/logger';
+import bcrypt from 'bcryptjs';
 
 const logger = createChildLogger('db.migrate');
 
@@ -21,12 +22,10 @@ export async function runMigrations() {
     const hostsExists = tableCheck.rows[0].exists;
     if (hostsExists) {
       logger.info('Renaming "hosts" table to "users"...');
-      // Drop referencing foreign keys temporarily to avoid cascade issues, or rename table
-      // In PG, RENAME TABLE automatically renames the table and updates referencing FK constraints!
       await client.query('ALTER TABLE hosts RENAME TO users');
     }
 
-    // 3. Ensure users table exists (in case it didn't exist before)
+    // 3. Ensure users table exists
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         username VARCHAR(100) PRIMARY KEY,
@@ -35,16 +34,22 @@ export async function runMigrations() {
         password_hash VARCHAR(255) NOT NULL,
         avatar VARCHAR(512),
         bio TEXT,
-        role VARCHAR(20) NOT NULL DEFAULT 'PARTICIPANT',
+        role VARCHAR(20) NOT NULL DEFAULT 'USER',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // 3b. Add role column or rename global_role to role
-    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT \'PARTICIPANT\'').catch(() => {});
+    // Add necessary columns if they don't exist
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT \'USER\'').catch(() => {});
     await client.query('ALTER TABLE users RENAME COLUMN global_role TO role').catch(() => {});
-    await client.query('ALTER TABLE users ALTER COLUMN role SET DEFAULT \'PARTICIPANT\'').catch(() => {});
+    await client.query('ALTER TABLE users ALTER COLUMN role SET DEFAULT \'USER\'').catch(() => {});
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS mobile VARCHAR(20)').catch(() => {});
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS org VARCHAR(255)').catch(() => {});
+    await client.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'").catch(() => {});
+
+    // Data migration: update existing participants to user role
+    await client.query("UPDATE users SET role = 'USER' WHERE role = 'PARTICIPANT'").catch(() => {});
 
     // 4. Ensure events table exists
     await client.query(`
@@ -52,21 +57,32 @@ export async function runMigrations() {
         id SERIAL PRIMARY KEY,
         slug VARCHAR(255) NOT NULL UNIQUE,
         title VARCHAR(255) NOT NULL,
+        description TEXT,
+        thumbnail VARCHAR(512),
         date VARCHAR(100) NOT NULL,
         time VARCHAR(100) NOT NULL,
+        start_date TIMESTAMP WITH TIME ZONE,
+        end_date TIMESTAMP WITH TIME ZONE,
+        registration_deadline TIMESTAMP WITH TIME ZONE,
         location VARCHAR(512) NOT NULL,
         capacity INTEGER NOT NULL DEFAULT 100,
         contact_email VARCHAR(255),
         contact_phone VARCHAR(50),
         host_username VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+        status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // 4b. Add contact columns to events if they don't exist (for existing databases)
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS description TEXT').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(50) NOT NULL DEFAULT \'DRAFT\'').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS thumbnail VARCHAR(512)').catch(() => {});
     await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS contact_email VARCHAR(255)').catch(() => {});
     await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(50)').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS start_date TIMESTAMP WITH TIME ZONE').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS end_date TIMESTAMP WITH TIME ZONE').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_deadline TIMESTAMP WITH TIME ZONE').catch(() => {});
 
     // 5. Ensure ticket_types table exists
     await client.query(`
@@ -89,53 +105,41 @@ export async function runMigrations() {
 
     await client.query('CREATE INDEX IF NOT EXISTS idx_ticket_types_event_id ON ticket_types (event_id)').catch(() => {});
 
-    // 6. Ensure registrations master partitioned table exists
+    // Drop old partitioned tables and related tables to apply new schema cleanly
+    await client.query('DROP TABLE IF EXISTS activity_logs CASCADE').catch(() => {});
+    await client.query('DROP TABLE IF EXISTS payments CASCADE').catch(() => {});
+    await client.query('DROP TABLE IF EXISTS registrations CASCADE').catch(() => {});
+
+    // 6. Ensure unified registrations normal table exists
     await client.query(`
       CREATE TABLE IF NOT EXISTS registrations (
-        id SERIAL,
-        event_id INTEGER NOT NULL,
-        ticket_type_id INTEGER,
-        user_id VARCHAR(255) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+        id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        ticket_type_id INTEGER REFERENCES ticket_types(id),
+        user_id VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
         email VARCHAR(255) NOT NULL,
         status VARCHAR(50) NOT NULL DEFAULT 'CONFIRMED',
         payment_status VARCHAR(50) NOT NULL DEFAULT 'NOT_REQUIRED',
-        qr_token VARCHAR(255) NOT NULL DEFAULT uuid_generate_v4()::text,
-        registered_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (id, event_id)
-      ) PARTITION BY LIST (event_id)
-    `).catch((err: any) => {
-      logger.warn({ err }, 'Note: registrations table creation skipped or partitioned table already configured');
-    });
+        qr_token VARCHAR(64) NOT NULL DEFAULT uuid_generate_v4()::text,
+        registered_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
 
-    // 6b. Add new columns to registrations if they don't exist
-    await client.query('ALTER TABLE registrations ADD COLUMN IF NOT EXISTS ticket_type_id INTEGER').catch(() => {});
-    await client.query("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) NOT NULL DEFAULT 'NOT_REQUIRED'").catch(() => {});
-    
-    // Add Foreign Key constraint to registrations user_id if not present
-    try {
-      await client.query(`
-        ALTER TABLE registrations 
-        ADD CONSTRAINT fk_registrations_user 
-        FOREIGN KEY (user_id) REFERENCES users(username) ON DELETE CASCADE
-      `);
-    } catch (e) {
-      // Constraint might already exist
-    }
-
-    // 7. Ensure functional index exists
+    // 7. Ensure indexes exist
     await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_registrations_qr_token 
-      ON registrations (lower(qr_token))
-    `).catch((err: any) => {
-      logger.warn({ err }, 'Could not create functional index');
-    });
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_reg_qr_token 
+      ON registrations (qr_token)
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_reg_event_status ON registrations (event_id, status)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_reg_user ON registrations (user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_reg_ticket_type ON registrations (ticket_type_id, event_id) WHERE status != 'CANCELLED'`);
 
     // 8. Ensure payments table exists
     await client.query(`
       CREATE TABLE IF NOT EXISTS payments (
         id SERIAL PRIMARY KEY,
-        registration_id INTEGER NOT NULL,
-        event_id INTEGER NOT NULL,
+        registration_id BIGINT NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
+        event_id INTEGER NOT NULL REFERENCES events(id),
         ticket_type_id INTEGER NOT NULL REFERENCES ticket_types(id),
         tran_id VARCHAR(255) NOT NULL UNIQUE,
         amount DECIMAL(10,2) NOT NULL,
@@ -144,9 +148,9 @@ export async function runMigrations() {
         payment_method VARCHAR(100),
         gateway_response JSONB,
         val_id VARCHAR(255),
-        paid_at TIMESTAMP WITH TIME ZONE,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        paid_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
 
@@ -172,12 +176,15 @@ export async function runMigrations() {
         id SERIAL PRIMARY KEY,
         event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
         username VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
-        role VARCHAR(20) NOT NULL DEFAULT 'MANAGER',
+        role VARCHAR(20) NOT NULL DEFAULT 'SCANNER',
         invited_by VARCHAR(100) REFERENCES users(username) ON DELETE SET NULL,
         joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(event_id, username)
       )
     `);
+
+    // Data migration: update existing manager roles in event_team to scanner
+    await client.query("UPDATE event_team SET role = 'SCANNER' WHERE role = 'MANAGER'").catch(() => {});
 
     // 11. Create event_activities table
     await client.query(`
@@ -192,24 +199,101 @@ export async function runMigrations() {
       )
     `);
 
-    // 12. Create activity_logs table
+    // 12. Create activity_scans table
     await client.query(`
-      CREATE TABLE IF NOT EXISTS activity_logs (
-        id SERIAL PRIMARY KEY,
-        registration_id INTEGER NOT NULL,
-        event_id INTEGER NOT NULL,
+      CREATE TABLE IF NOT EXISTS activity_scans (
+        id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        registration_id BIGINT NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
+        event_id INTEGER NOT NULL REFERENCES events(id),
         activity_id INTEGER NOT NULL REFERENCES event_activities(id) ON DELETE CASCADE,
         scanned_by VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
-        scanned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(registration_id, event_id, activity_id)
+        scanned_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(registration_id, activity_id)
       )
     `);
 
-    await client.query('CREATE INDEX IF NOT EXISTS idx_activity_logs_lookup ON activity_logs (registration_id, event_id, activity_id)').catch(() => {});
+    await client.query('CREATE INDEX IF NOT EXISTS idx_scans_event ON activity_scans (event_id, scanned_at DESC)').catch(() => {});
 
-    logger.info('Database migrations completed successfully.');
+    // 13. Create admin_permissions table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS admin_permissions (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+        permission VARCHAR(50) NOT NULL,
+        granted_by VARCHAR(100) REFERENCES users(username) ON DELETE SET NULL,
+        granted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(username, permission)
+      )
+    `);
+    await client.query('CREATE INDEX IF NOT EXISTS idx_admin_permissions_user ON admin_permissions (username)').catch(() => {});
+
+    // 14. Inject 5 secure seed/test accounts
+    logger.info('Seeding test/live accounts...');
+    const defaultPasswordHash = bcrypt.hashSync('RongPlan2026!@#', 10);
+    const seeds = [
+      {
+        username: 'abdulaziz',
+        name: 'Abdul Aziz',
+        email: 'abdulaziz@ayojok.rongplan.com',
+        password_hash: defaultPasswordHash,
+        role: 'SUPER_ADMIN',
+        status: 'ACTIVE'
+      },
+      {
+        username: 'zobaerahmed',
+        name: 'Zobaer Ahmed',
+        email: 'zobaerahmed@ayojok.rongplan.com',
+        password_hash: defaultPasswordHash,
+        role: 'ADMIN',
+        status: 'ACTIVE'
+      },
+      {
+        username: 'organizer',
+        name: 'Event Organizer',
+        email: 'organizer@ayojok.rongplan.com',
+        password_hash: defaultPasswordHash,
+        role: 'ORGANIZER',
+        status: 'ACTIVE',
+        org: 'Ayojok Events'
+      },
+      {
+        username: 'eventmanager',
+        name: 'Event Manager',
+        email: 'eventmanager@ayojok.rongplan.com',
+        password_hash: defaultPasswordHash,
+        role: 'USER', // Managers/Scanners are registered as users platform-wide and added to event teams locally
+        status: 'ACTIVE'
+      },
+      {
+        username: 'participant',
+        name: 'Test Participant',
+        email: 'participant@ayojok.rongplan.com',
+        password_hash: defaultPasswordHash,
+        role: 'USER',
+        status: 'ACTIVE'
+      }
+    ];
+
+    for (const seed of seeds) {
+      await client.query(`
+        INSERT INTO users (username, name, email, password_hash, role, status, org)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (username) DO UPDATE 
+        SET email = EXCLUDED.email, role = EXCLUDED.role, status = EXCLUDED.status, org = EXCLUDED.org
+      `, [
+        seed.username,
+        seed.name,
+        seed.email,
+        seed.password_hash,
+        seed.role,
+        seed.status,
+        seed.org || null
+      ]);
+    }
+
+    logger.info('Database migrations and seeding completed successfully.');
   } catch (error) {
-    logger.error({ err: error }, 'Migration failed');
+    logger.error({ err: error }, 'Migration/Seed failed');
     throw error;
   } finally {
     client.release();

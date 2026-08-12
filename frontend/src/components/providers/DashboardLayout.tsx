@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Typography, Avatar, Dropdown, Button, Modal, Form, Input, InputNumber, message } from 'antd';
+import { Typography, Avatar, Dropdown, Button, message } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   LayoutDashboard,
@@ -19,7 +19,11 @@ import {
   Plus,
   Tv,
   UserPlus,
-  Scan
+  Scan,
+  Award,
+  Activity,
+  DollarSign,
+  Globe
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -32,13 +36,43 @@ interface NavItem {
   href: string;
 }
 
-const navItems: NavItem[] = [
+// Host Navigation
+const hostNavItems: NavItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
-  { key: 'my-tickets', label: 'My Tickets', icon: CalendarDays, href: '/dashboard/tickets' },
   { key: 'attendees', label: 'Attendees', icon: Users, href: '/dashboard/attendees' },
   { key: 'scanner', label: 'QR Scanner', icon: Scan, href: '/dashboard/scanner' },
-  { key: 'schedule', label: 'Schedule', icon: CalendarDays, href: '/dashboard/schedule' },
-  { key: 'settings', label: 'Settings', icon: Settings, href: '/dashboard/settings' },
+  // { key: 'schedule', label: 'Schedule', icon: CalendarDays, href: '/dashboard/schedule' },
+  { key: 'account', label: 'My Account', icon: Users, href: '/dashboard/account' },
+  // { key: 'settings', label: 'Event Settings', icon: Settings, href: '/dashboard/settings' },
+];
+
+// User Navigation
+const userNavItems: NavItem[] = [
+  { key: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard/user' },
+  { key: 'schedule', label: 'My Schedule', icon: CalendarDays, href: '/dashboard/user/schedule' },
+  { key: 'my-tickets', label: 'My Tickets', icon: CalendarDays, href: '/dashboard/tickets' },
+  { key: 'certificates', label: 'Certificates', icon: Award, href: '/dashboard/user/certificates' },
+  { key: 'account', label: 'My Account', icon: Users, href: '/dashboard/account' },
+];
+
+// Super Admin Navigation
+const superAdminNavItems: NavItem[] = [
+  { key: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard/admin' },
+  { key: 'accounts', label: 'Accounts', icon: Users, href: '/dashboard/admin/accounts' },
+  { key: 'events', label: 'Events Directory', icon: Globe, href: '/dashboard/admin/events' },
+  { key: 'finance', label: 'Finance Operations', icon: DollarSign, href: '/dashboard/admin/finance' },
+  { key: 'infrastructure', label: 'System Health', icon: Activity, href: '/dashboard/admin/infrastructure' },
+  { key: 'account', label: 'My Account', icon: Users, href: '/dashboard/account' },
+  { key: 'settings', label: 'Platform Settings', icon: Settings, href: '/dashboard/admin/settings' },
+];
+
+// Admin Navigation
+const adminNavItems: NavItem[] = [
+  { key: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard/admin' },
+  { key: 'accounts', label: 'Accounts', icon: Users, href: '/dashboard/admin/accounts' },
+  { key: 'events', label: 'Events Directory', icon: Globe, href: '/dashboard/admin/events' },
+  { key: 'finance', label: 'Finance Operations', icon: DollarSign, href: '/dashboard/admin/finance' },
+  { key: 'account', label: 'My Account', icon: Users, href: '/dashboard/account' },
 ];
 
 function slugify(text: string): string {
@@ -56,46 +90,62 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { user, logout } = useAuth();
 
-  // Create Event Modal state
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [form] = Form.useForm();
+  const profileMenuItems: MenuProps['items'] = [
+    { key: 'account', label: 'My Account', onClick: () => router.push('/dashboard/account') },
+    { type: 'divider' },
+    { key: 'logout', label: 'Sign Out', danger: true, onClick: async () => { await logout(); router.push('/sign-in'); } },
+  ];
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const title = e.target.value;
-    form.setFieldsValue({ slug: slugify(title) });
+  const [hasScannerAccess, setHasScannerAccess] = useState(false);
+
+  useEffect(() => {
+    async function checkScannerAccess() {
+      if (!user) return;
+      try {
+        const res = await fetch('/api/v1/events');
+        if (res.ok) {
+          const data = await res.json();
+          const isScanner = data.some((e: any) => e.is_team_member);
+          setHasScannerAccess(isScanner);
+        }
+      } catch (err) {
+        console.error('Error checking scanner access', err);
+      }
+    }
+    checkScannerAccess();
+  }, [user]);
+
+  // Pick Nav Items based on user role
+  const getNavItems = () => {
+    if (user?.role === 'SUPER_ADMIN') return superAdminNavItems;
+    if (user?.role === 'ADMIN') return adminNavItems;
+    if (user?.role === 'USER') {
+      const items = [...userNavItems];
+      if (hasScannerAccess && !items.some(item => item.key === 'scanner')) {
+        items.splice(1, 0, { key: 'scanner', label: 'QR Scanner', icon: Scan, href: '/dashboard/scanner' });
+      }
+      return items;
+    }
+    return hostNavItems; // Default to host (ORGANIZER)
   };
 
-  const handleCreateEvent = async (values: any) => {
-    setCreating(true);
-    try {
-      const res = await fetch('/api/v1/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      });
-
-      if (res.ok) {
-        message.success('Event created successfully!');
-        setIsCreateModalOpen(false);
-        form.resetFields();
-        window.location.reload();
-      } else {
-        const data = await res.json();
-        message.error(data.error || 'Failed to create event.');
-      }
-    } catch (err) {
-      message.error('Network error. Please try again.');
-    } finally {
-      setCreating(false);
+  const getRoleLabel = () => {
+    switch (user?.role) {
+      case 'SUPER_ADMIN':
+        return 'Super Admin';
+      case 'ADMIN':
+        return 'Admin';
+      case 'USER':
+        return 'User';
+      case 'ORGANIZER':
+        return 'Event Organizer';
+      default:
+        return 'Guest';
     }
   };
 
-  const profileMenuItems: MenuProps['items'] = [
-    { key: 'settings', label: 'Settings', onClick: () => router.push('/dashboard/settings') },
-    { type: 'divider' },
-    { key: 'logout', label: 'Sign Out', danger: true, onClick: async () => { await logout(); router.push('/login'); } },
-  ];
+  const currentNavItems = getNavItems();
+  const canCreateEvent = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'ORGANIZER';
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -108,45 +158,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           <div>
             <h1 className="font-heading text-lg font-bold text-primary leading-tight">Rong Plan</h1>
-            <p className="font-sans text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Event Portal</p>
+            <p className="font-sans text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+              {user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
+                ? 'Admin Portal'
+                : user?.role === 'USER'
+                ? 'User Portal'
+                : 'Organizer Portal'}
+            </p>
           </div>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1">
-          {navItems
-            .filter((item) => {
-              if (user?.role === 'PARTICIPANT') {
-                return ['my-tickets', 'settings'].includes(item.key);
-              }
-              return ['overview', 'attendees', 'scanner', 'schedule', 'settings'].includes(item.key);
-            })
-            .map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-              return (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all ${
-                    isActive
-                      ? 'bg-primary-container text-white'
-                      : 'text-on-surface-variant hover:bg-surface-container-high hover:text-foreground'
-                  }`}
-                >
-                  <Icon size={18} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+          {currentNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.key}
+                href={item.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all ${
+                  isActive
+                    ? 'bg-primary-container text-white'
+                    : 'text-on-surface-variant hover:bg-surface-container-high hover:text-foreground'
+                }`}
+              >
+                <Icon size={18} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Sidebar Footer */}
         <div className="mt-auto space-y-1 pt-4 border-t border-outline-variant">
-          {user?.role !== 'PARTICIPANT' && (
+          {canCreateEvent && (
             <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="w-full bg-primary text-white font-bold py-3 rounded-lg mb-4 hover:opacity-90 transition-opacity flex items-center justify-center gap-2 active:scale-95 duration-100"
+              onClick={() => router.push('/dashboard/events/create')}
+              className="w-full bg-primary text-white font-bold py-3 rounded-lg mb-4 hover:opacity-90 transition-opacity flex items-center justify-center gap-2 active:scale-95 duration-100 border-none cursor-pointer"
             >
               <Plus size={18} />
               <span>Create New Event</span>
@@ -159,7 +208,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Link>
 
           <button 
-            onClick={async () => { await logout(); router.push('/login'); }}
+            onClick={async () => { await logout(); router.push('/sign-in'); }}
             className="w-full flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high hover:text-error rounded-lg px-4 py-2 text-sm font-bold transition-colors border-0 bg-transparent text-left cursor-pointer"
           >
             <LogOut size={18} />
@@ -195,14 +244,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="h-8 w-px bg-outline-variant"></div>
 
             <div className="flex items-center gap-3">
-              <button className="text-primary font-bold text-sm hover:underline border-none bg-transparent cursor-pointer">Go Live</button>
-              <button className="bg-primary-container text-white px-4 py-2 rounded-lg font-bold text-xs hover:opacity-90 active:scale-95 transition-all">Invite Team</button>
+              {/* Contextual actions can be injected here by specific pages in the future */}
             </div>
 
             <div className="flex items-center gap-3 pl-4 border-l border-outline-variant">
               <div className="text-right hidden xl:block">
                 <p className="font-bold text-xs text-foreground leading-none">{user?.name || 'Sarah Jenkins'}</p>
-                <p className="text-[10px] text-on-surface-variant">Senior Organizer</p>
+                <p className="text-[10px] text-on-surface-variant">{getRoleLabel()}</p>
               </div>
               <Avatar size={40} src={user?.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAlMARQHkkZDSofG5XDsxX4aoSLB9g672BvKKBaOdTA174cYGxaQuohJdP6O-srf5yH90ezmTxXpDo8pLs86dLw8HO2fSZEL_xzjCwtTtuNolAxpvERhqCd4FBKPnLI2BU44lXcyU6TvdWbXuPoTr_293IRYAJUsHeLkERJUbYzQQ3OvFuVQ23cq5ljivpz4UiOrF7bwHx_GvjgxMiE9gVYksCV9Arlu-wlbCDn-1PMcF3-w_nrjNCuu8ng1yHBieQ7ukqalKN3Kg'} className="border-2 border-primary-container object-cover" />
             </div>
@@ -214,83 +262,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
-
-      {/* Create Event Modal */}
-      <Modal
-        title={<span className="font-heading font-extrabold text-lg text-foreground">Create New Event</span>}
-        open={isCreateModalOpen}
-        onCancel={() => { setIsCreateModalOpen(false); form.resetFields(); }}
-        footer={null}
-        destroyOnClose
-        width={520}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleCreateEvent}
-          className="pt-4"
-          requiredMark={false}
-        >
-          <Form.Item
-            label={<span className="font-bold text-on-surface-variant text-xs">Event Title</span>}
-            name="title"
-            rules={[{ required: true, message: 'Please enter an event title' }]}
-          >
-            <Input placeholder="e.g. Global Tech Summit 2026" className="h-10 rounded-lg" onChange={handleTitleChange} />
-          </Form.Item>
-
-          <Form.Item
-            label={<span className="font-bold text-on-surface-variant text-xs">URL Slug</span>}
-            name="slug"
-            rules={[{ required: true, message: 'Please enter a URL slug' }]}
-          >
-            <Input placeholder="e.g. global-tech-summit-2026" className="h-10 rounded-lg font-mono text-xs" />
-          </Form.Item>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item
-              label={<span className="font-bold text-on-surface-variant text-xs">Date</span>}
-              name="date"
-              rules={[{ required: true, message: 'Required' }]}
-            >
-              <Input type="date" className="h-10 rounded-lg" />
-            </Form.Item>
-
-            <Form.Item
-              label={<span className="font-bold text-on-surface-variant text-xs">Time</span>}
-              name="time"
-              rules={[{ required: true, message: 'Required' }]}
-            >
-              <Input type="time" className="h-10 rounded-lg" />
-            </Form.Item>
-          </div>
-
-          <Form.Item
-            label={<span className="font-bold text-on-surface-variant text-xs">Location / Venue</span>}
-            name="location"
-            rules={[{ required: true, message: 'Please enter a location' }]}
-          >
-            <Input placeholder="e.g. Convention Center North, SF" className="h-10 rounded-lg" />
-          </Form.Item>
-
-          <Form.Item
-            label={<span className="font-bold text-on-surface-variant text-xs">Capacity</span>}
-            name="capacity"
-            rules={[{ required: true, message: 'Please set a capacity' }]}
-          >
-            <InputNumber min={1} max={100000} placeholder="500" className="w-full h-10 rounded-lg" />
-          </Form.Item>
-
-          <div className="flex justify-end gap-3 pt-2 border-t border-outline-variant/30">
-            <Button onClick={() => { setIsCreateModalOpen(false); form.resetFields(); }} className="font-bold">
-              Cancel
-            </Button>
-            <Button type="primary" htmlType="submit" loading={creating} className="bg-[#3525cd] font-bold">
-              Create Event
-            </Button>
-          </div>
-        </Form>
-      </Modal>
     </div>
   );
 }

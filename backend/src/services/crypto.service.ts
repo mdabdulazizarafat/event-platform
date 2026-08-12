@@ -6,11 +6,18 @@ const logger = createChildLogger('crypto.service');
 let privateKey: string;
 let publicKey: string;
 
-// Initialize keys
-if (process.env.JWT_PRIVATE_KEY && process.env.JWT_PUBLIC_KEY) {
+// Initialize keys - check that env keys are real RSA keys (not placeholder '...' strings)
+const isRealPrivateKey = process.env.JWT_PRIVATE_KEY && 
+  process.env.JWT_PRIVATE_KEY.length > 500 && 
+  !process.env.JWT_PRIVATE_KEY.includes('...');
+const isRealPublicKey = process.env.JWT_PUBLIC_KEY && 
+  process.env.JWT_PUBLIC_KEY.length > 100 && 
+  !process.env.JWT_PUBLIC_KEY.includes('...');
+
+if (isRealPrivateKey && isRealPublicKey) {
   // Production / configured keypair
-  privateKey = process.env.JWT_PRIVATE_KEY.replace(/\\n/g, '\n');
-  publicKey = process.env.JWT_PUBLIC_KEY.replace(/\\n/g, '\n');
+  privateKey = process.env.JWT_PRIVATE_KEY!.replace(/\\n/g, '\n');
+  publicKey = process.env.JWT_PUBLIC_KEY!.replace(/\\n/g, '\n');
   logger.info('Asymmetric JWT Keys loaded from environment configurations.');
 } else {
   // Local development fallback: dynamically generate a 2048-bit RSA key pair at startup

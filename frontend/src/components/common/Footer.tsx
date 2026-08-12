@@ -1,103 +1,82 @@
 'use client';
 
 import React from 'react';
-import { Armchair, Mail, Phone, MapPin, Facebook, Instagram, Youtube, Twitter } from 'lucide-react';
 import Link from 'next/link';
+import { Globe } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="bg-slate-950 text-slate-400 py-16 mt-auto border-t border-slate-900">
-      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10">
-        
-        {/* Company Info */}
-        <div className="space-y-4">
-          <div className="text-xl font-heading font-extrabold text-white flex items-center gap-2">
-            <Armchair className="text-primary-container" size={22} />
-            <span>Rong Plan</span>
+    <footer className="bg-surface-soft text-on-surface-variant py-16 mt-auto border-t border-slate-200">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+
+          {/* Column 1: Products */}
+          <div className="space-y-6">
+            <div>
+              <h4 className="font-semibold text-foreground mb-4 text-sm">Ayojok</h4>
+              <ul className="space-y-3 text-sm font-medium">
+                <li><Link href="/ticketing-registration" className="hover:text-primary transition-colors">Ticketing & Registration</Link></li>
+                <li><Link href="/event-management" className="hover:text-primary transition-colors">Event Management</Link></li>
+                <li><Link href="/event-analytics" className="hover:text-primary transition-colors">Event Analytics</Link></li>
+                <li><Link href="/post-event-works" className="hover:text-primary transition-colors">Post Event Works</Link></li>
+              </ul>
+            </div>
           </div>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Rong Plan is a modern ticketing and event infrastructure platform, designed for seamless registration, real-time ticket scanning, and comprehensive management.
-          </p>
-          <div className="flex items-center gap-3 pt-2">
-            <a href="#" className="w-8 h-8 rounded-full bg-slate-900 hover:bg-[#3525cd] hover:text-white flex items-center justify-center transition-colors text-slate-400">
-              <Facebook size={16} />
-            </a>
-            <a href="#" className="w-8 h-8 rounded-full bg-slate-900 hover:bg-[#3525cd] hover:text-white flex items-center justify-center transition-colors text-slate-400">
-              <Instagram size={16} />
-            </a>
-            <a href="#" className="w-8 h-8 rounded-full bg-slate-900 hover:bg-[#3525cd] hover:text-white flex items-center justify-center transition-colors text-slate-400">
-              <Twitter size={16} />
-            </a>
-            <a href="#" className="w-8 h-8 rounded-full bg-slate-900 hover:bg-[#3525cd] hover:text-white flex items-center justify-center transition-colors text-slate-400">
-              <Youtube size={16} />
-            </a>
+
+          {/* Column 2: Terms & Legal */}
+          <div className="space-y-6">
+            <div>
+              <h4 className="font-semibold text-foreground mb-4 text-sm">Terms & Legal</h4>
+              <ul className="space-y-3 text-sm font-medium">
+                <li><Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms-and-conditions" className="hover:text-primary transition-colors">Terms & Conditions</Link></li>
+                <li><Link href="/organizer-policy" className="hover:text-primary transition-colors">Organizer Policy</Link></li>
+                <li><Link href="/events-policy" className="hover:text-primary transition-colors">Events Policy</Link></li>
+              </ul>
+            </div>
           </div>
+
+          {/* Column 3: Resources */}
+          <div className="space-y-6">
+            <div>
+              <h4 className="font-semibold text-foreground mb-4 text-sm">Resources & Support</h4>
+              <ul className="space-y-3 text-sm font-medium">
+                <li><Link href="/event-guidelines" className="hover:text-primary transition-colors">Events Guidelines</Link></li>
+                <li><Link href="/organizer-guidelines" className="hover:text-primary transition-colors">Organizer Guidelines</Link></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="space-y-12">
+            <div>
+              <h4 className="font-semibold text-foreground mb-4 text-sm">Company</h4>
+              <ul className="space-y-3 text-sm font-medium">
+                <li><Link href="/about" className="hover:text-primary transition-colors">About</Link></li>
+                <li><Link href="/careers" className="hover:text-primary transition-colors">Careers</Link></li>
+                <li><Link href="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-foreground mb-4 text-sm">Quick Actions</h4>
+              <ul className="space-y-3 text-sm font-medium">
+                <li><Link href="/sign-in" className="hover:text-primary transition-colors flex items-center gap-1 group">Sign in <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
+                <li><Link href="/sign-up" className="hover:text-primary transition-colors flex items-center gap-1 group">Sign up <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
+                <li><Link href="/organizer-signup" className="hover:text-primary transition-colors flex items-center gap-1 group">Become an Organizer <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
+              </ul>
+            </div>
+          </div>
+
         </div>
 
-        {/* More Info */}
-        <div className="space-y-4">
-          <h4 className="text-sm font-bold text-white tracking-wider uppercase font-heading">More Info</h4>
-          <ul className="space-y-2 text-xs">
-            <li>
-              <a href="/#contact" className="hover:text-white transition-colors">Contact us</a>
-            </li>
-            <li>
-              <a href="/#faq" className="hover:text-white transition-colors">FAQ</a>
-            </li>
-            <li>
-              <a href="/#events" className="hover:text-white transition-colors">Browse Events</a>
-            </li>
-          </ul>
-        </div>
-
-        {/* Legals */}
-        <div className="space-y-4">
-          <h4 className="text-sm font-bold text-white tracking-wider uppercase font-heading">Legals</h4>
-          <ul className="space-y-2 text-xs">
-            <li>
-              <a href="#" className="hover:text-white transition-colors">Terms and Conditions</a>
-            </li>
-            <li>
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            </li>
-            <li>
-              <a href="#" className="hover:text-white transition-colors">Refund Policy</a>
-            </li>
-          </ul>
-        </div>
-
-        {/* Contacts */}
-        <div className="space-y-4">
-          <h4 className="text-sm font-bold text-white tracking-wider uppercase font-heading">Contacts</h4>
-          <ul className="space-y-3 text-xs">
-            <li className="flex items-start gap-2.5">
-              <MapPin size={16} className="text-primary-container shrink-0 mt-0.5" />
-              <span>Flat 4C, House no- 8, Road 12, Gulshan, Dhaka 1212</span>
-            </li>
-            <li className="flex items-center gap-2.5">
-              <Phone size={16} className="text-primary-container shrink-0" />
-              <a href="tel:+8801835099555" className="hover:text-white transition-colors">+880 1835 099 555</a>
-            </li>
-            <li className="flex items-center gap-2.5">
-              <Mail size={16} className="text-primary-container shrink-0" />
-              <a href="mailto:info@rongplan.com" className="hover:text-white transition-colors">info@rongplan.com</a>
-            </li>
-          </ul>
-        </div>
-
-      </div>
-
-      <div className="max-w-6xl mx-auto px-6 mt-16 pt-8 border-t border-slate-900 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-600">
-        {/* Payment options */}
-        <div className="flex items-center gap-4 opacity-50">
-          <span className="font-semibold uppercase tracking-wider text-[10px]">Supported Payments:</span>
-          <span className="font-bold">bKash</span>
-          <span className="font-bold">Nagad</span>
-          <span className="font-bold">VISA</span>
-          <span className="font-bold">Mastercard</span>
-        </div>
-        <div>
-          © {new Date().getFullYear()} Rong Plan. All rights reserved.
+        {/* Bottom row */}
+        <div className="mt-16 pt-8 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm font-medium">
+          <div className="flex items-center gap-2 text-primary hover:text-foreground transition-colors cursor-pointer">
+            <Globe size={16} />
+            <span>United States (English)</span>
+          </div>
+          <div>
+            © {new Date().getFullYear()} Ayojok By Rong Plan.
+          </div>
         </div>
       </div>
     </footer>

@@ -28,7 +28,7 @@ export class TicketController {
         SELECT r.id as registration_id, r.event_id, r.user_id, r.email, r.status, e.title as event_title, e.host_username
         FROM registrations r
         JOIN events e ON r.event_id = e.id
-        WHERE lower(r.qr_token) = lower($1);
+        WHERE r.qr_token = $1;
       `;
       const regRes = await pool.query(registrationQuery, [qrToken]);
 
@@ -85,11 +85,11 @@ export class TicketController {
           activityId = insertAct.rows[0].id;
         }
 
-        // Insert into activity_logs
+        // Insert into activity_scans
         await client.query(`
-          INSERT INTO activity_logs (registration_id, event_id, activity_id, scanned_by)
+          INSERT INTO activity_scans (registration_id, event_id, activity_id, scanned_by)
           VALUES ($1, $2, $3, $4)
-          ON CONFLICT (registration_id, event_id, activity_id) DO NOTHING
+          ON CONFLICT (registration_id, activity_id) DO NOTHING
         `, [registration.registration_id, registration.event_id, activityId, activeHost]);
 
         await client.query('COMMIT');
@@ -148,7 +148,7 @@ export class TicketController {
           SELECT r.id, r.event_id, e.host_username, r.status
           FROM registrations r
           JOIN events e ON r.event_id = e.id
-          WHERE lower(r.qr_token) = lower($1)
+          WHERE r.qr_token = $1
         `;
         const regRes = await client.query(query, [qrToken]);
 
@@ -192,11 +192,11 @@ export class TicketController {
           eventActivities[registration.event_id] = activityId;
         }
 
-        // Log to activity_logs
+        // Log to activity_scans
         await client.query(`
-          INSERT INTO activity_logs (registration_id, event_id, activity_id, scanned_by)
+          INSERT INTO activity_scans (registration_id, event_id, activity_id, scanned_by)
           VALUES ($1, $2, $3, $4)
-          ON CONFLICT (registration_id, event_id, activity_id) DO NOTHING
+          ON CONFLICT (registration_id, activity_id) DO NOTHING
         `, [registration.id, registration.event_id, activityId, activeHost]);
 
         syncedTokens.push(qrToken);
@@ -368,9 +368,9 @@ export class TicketController {
       const regIds = registrations.map(r => r.id);
       const logsQuery = `
         SELECT al.registration_id, al.scanned_at, ea.name as activity_name
-        FROM activity_logs al
+        FROM activity_scans al
         JOIN event_activities ea ON al.activity_id = ea.id
-        WHERE al.registration_id = ANY($1::int[]);
+        WHERE al.registration_id = ANY($1::bigint[]);
       `;
       const logsRes = await pool.query(logsQuery, [regIds]);
       const logs = logsRes.rows;

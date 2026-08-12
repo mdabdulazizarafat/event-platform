@@ -16,13 +16,13 @@ export class EventTeamController {
         return res.status(400).json({ error: 'Resolved Event ID required' });
       }
 
-      const { username } = req.body;
+      const { username, role } = req.body;
       if (!username) {
         return res.status(400).json({ error: 'Username is required to invite a team member.' });
       }
 
       const invitedBy = req.user!.username;
-      const teamMember = await EventTeamService.inviteManager(eventId, username, invitedBy);
+      const teamMember = await EventTeamService.inviteManager(eventId, username, invitedBy, role);
 
       return res.status(201).json({
         message: `Successfully invited ${username} as a manager.`,

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Typography, Card, Button, Avatar, Input, Tag } from 'antd';
+import { Typography, Card, Avatar, Input, Tag } from 'antd';
 import { 
   Plus, 
   Search, 
@@ -15,6 +15,7 @@ import {
   Compass,
   UserPlus
 } from 'lucide-react';
+import Button from '@/components/ui/Button';
 
 const { Title, Paragraph } = Typography;
 
@@ -52,10 +53,13 @@ export default function SchedulePage() {
           ))}
         </div>
 
-        <button className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg font-bold text-xs hover:shadow-lg transition-all active:scale-95 border-none cursor-pointer">
-          <PlusCircle size={16} />
-          <span>Add Session</span>
-        </button>
+        <Button 
+          variant="primary"
+          size="md"
+          icon={<PlusCircle size={16} />}
+        >
+          Add Session
+        </Button>
       </div>
 
       {/* Workspace Grid Area */}
@@ -232,10 +236,14 @@ export default function SchedulePage() {
           </div>
 
           <div className="p-4 bg-surface-container-low border-t border-outline-variant/80">
-            <button className="w-full py-2.5 bg-white border border-primary text-primary rounded-lg font-bold text-xs flex items-center justify-center gap-2 hover:bg-primary/5 transition-colors cursor-pointer border-solid">
-              <UserPlus size={14} />
-              <span>Add New Speaker</span>
-            </button>
+            <Button 
+              variant="outline"
+              size="md"
+              className="w-full"
+              icon={<UserPlus size={14} />}
+            >
+              Add New Speaker
+            </Button>
           </div>
         </aside>
       </div>

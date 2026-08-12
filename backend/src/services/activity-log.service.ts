@@ -27,12 +27,12 @@ export class ActivityLogService {
         throw new Error('This scanning checkpoint is currently inactive.');
       }
 
-      // 2. Look up registration by lower-cased QR token
+      // 2. Look up registration by exact B-Tree indexed QR token
       const registrationQuery = `
         SELECT r.*, tt.name as ticket_name 
         FROM registrations r
         LEFT JOIN ticket_types tt ON r.ticket_type_id = tt.id
-        WHERE r.event_id = $1 AND lower(r.qr_token) = lower($2);
+        WHERE r.event_id = $1 AND r.qr_token = $2;
       `;
       const regRes = await client.query(registrationQuery, [input.eventId, input.qrToken]);
       if (regRes.rowCount === 0) {
@@ -56,11 +56,11 @@ export class ActivityLogService {
 
       // 5. Handle duplicate scan checking based on scan_limit (typically 1)
       if (activity.scan_limit === 1) {
-        // Try atomic INSERT into activity_logs
+        // Try atomic INSERT into activity_scans
         const logQuery = `
-          INSERT INTO activity_logs (registration_id, event_id, activity_id, scanned_by)
+          INSERT INTO activity_scans (registration_id, event_id, activity_id, scanned_by)
           VALUES ($1, $2, $3, $4)
-          ON CONFLICT (registration_id, event_id, activity_id) DO NOTHING
+          ON CONFLICT (registration_id, activity_id) DO NOTHING
           RETURNING id, scanned_at;
         `;
         const logRes = await client.query(logQuery, [
@@ -74,7 +74,7 @@ export class ActivityLogService {
           // If insert failed due to conflict, retrieve the original scanner and time
           const originalScanQuery = `
             SELECT l.scanned_at, h.name as scanner_name 
-            FROM activity_logs l
+            FROM activity_scans l
             JOIN users h ON l.scanned_by = h.username
             WHERE l.registration_id = $1 AND l.event_id = $2 AND l.activity_id = $3;
           `;
@@ -110,9 +110,9 @@ export class ActivityLogService {
         // If we want actual unlimited logs we'd have to drop the unique constraint,
         // but for now all check-in/food/gift activities have limit=1).
         const logQuery = `
-          INSERT INTO activity_logs (registration_id, event_id, activity_id, scanned_by)
+          INSERT INTO activity_scans (registration_id, event_id, activity_id, scanned_by)
           VALUES ($1, $2, $3, $4)
-          ON CONFLICT (registration_id, event_id, activity_id) 
+          ON CONFLICT (registration_id, activity_id) 
           DO UPDATE SET scanned_at = CURRENT_TIMESTAMP, scanned_by = EXCLUDED.scanned_by
           RETURNING id, scanned_at;
         `;
@@ -150,7 +150,7 @@ export class ActivityLogService {
   static async getLogsForEvent(eventId: number) {
     const query = `
       SELECT l.*, r.email, r.user_id, tt.name as ticket_name, a.name as activity_name, h.name as scanner_name
-      FROM activity_logs l
+      FROM activity_scans l
       JOIN registrations r ON l.registration_id = r.id AND l.event_id = r.event_id
       LEFT JOIN ticket_types tt ON r.ticket_type_id = tt.id
       JOIN event_activities a ON l.activity_id = a.id
@@ -169,7 +169,7 @@ export class ActivityLogService {
     const query = `
       SELECT a.id as activity_id, a.name as activity_name, COUNT(l.id)::INTEGER as scan_count
       FROM event_activities a
-      LEFT JOIN activity_logs l ON a.id = l.activity_id
+      LEFT JOIN activity_scans l ON a.id = l.activity_id
       WHERE a.event_id = $1 AND a.is_active = true
       GROUP BY a.id, a.name
       ORDER BY a.sort_order ASC;

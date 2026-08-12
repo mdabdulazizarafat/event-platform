@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import ThemeProvider from "@/components/providers/ThemeProvider";
+import Navbar from "@/components/common/Navbar";
+import Footer from "@/components/common/Footer";
 import "./globals.css";
 
 const inter = Inter({
@@ -9,10 +11,10 @@ const inter = Inter({
   weight: ["400", "500", "600", "700"],
 });
 
-const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
+  weight: ["600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -28,11 +30,15 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${plusJakarta.variable} h-full antialiased`}
+      className={`${inter.variable} ${spaceGrotesk.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#f9f9ff] text-[#111c2d]">
+      <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>
-          {children}
+          <Navbar />
+          <main className="flex-grow flex flex-col pt-16">
+            {children}
+          </main>
+          <Footer />
         </ThemeProvider>
       </body>
     </html>

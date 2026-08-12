@@ -8,7 +8,7 @@ const logger = createChildLogger('rbac.middleware');
  * Middleware to restrict route to specific platform-level global roles.
  * Super Admin always bypasses/satisfies any global role check.
  */
-export function requireGlobalRole(allowedRoles: ('SUPER_ADMIN' | 'ADMIN' | 'ORGANIZER' | 'PARTICIPANT')[]) {
+export function requireGlobalRole(allowedRoles: ('SUPER_ADMIN' | 'ADMIN' | 'ORGANIZER' | 'USER')[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -33,7 +33,7 @@ export function requireGlobalRole(allowedRoles: ('SUPER_ADMIN' | 'ADMIN' | 'ORGA
  * Super Admin and Platform Admin roles bypass this check.
  * Fallbacks to checking event.host_username for backward compatibility.
  */
-export function requireEventRole(allowedRoles: ('ORGANIZER' | 'MANAGER')[]) {
+export function requireEventRole(allowedRoles: ('ORGANIZER' | 'MANAGER' | 'SCANNER')[]) {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -78,10 +78,10 @@ export function requireEventRole(allowedRoles: ('ORGANIZER' | 'MANAGER')[]) {
         [eventId, username]
       );
 
-      let userRole: 'ORGANIZER' | 'MANAGER' | null = null;
+      let userRole: 'ORGANIZER' | 'MANAGER' | 'SCANNER' | null = null;
 
       if (teamRes.rows.length > 0) {
-        userRole = teamRes.rows[0].role as 'ORGANIZER' | 'MANAGER';
+        userRole = teamRes.rows[0].role as 'ORGANIZER' | 'MANAGER' | 'SCANNER';
       } else if (hostUsername === username) {
         // Fallback: If not in event_team but is original creator/host, they are ORGANIZER
         userRole = 'ORGANIZER';

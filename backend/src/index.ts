@@ -20,8 +20,8 @@ const port = process.env.PORT || 3001;
 
 app.use(securityHeaders);
 app.use(corsMiddleware);
-app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // Required for SSLCommerz form-encoded callbacks
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true })); // Required for SSLCommerz form-encoded callbacks
 app.use(cookieParser());
 app.use(requestLogger);
 

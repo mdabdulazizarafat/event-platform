@@ -47,6 +47,8 @@ export interface Event {
   locationShort?: string;
   speakers?: Speaker[];
   sessions?: Session[];
+  status?: string;
+  capacity?: number;
 }
 
 export interface Host {
@@ -165,6 +167,8 @@ function mapBackendEventToFrontend(e: any): Event {
     hostUsername: e.host_username || e.hostUsername || 'gregorian-quiz-club',
     contactEmail: e.contact_email || e.contactEmail,
     contactPhone: e.contact_phone || e.contactPhone,
+    status: e.status || 'PUBLISHED',
+    capacity: e.capacity || 100,
     passType: 'Standard Access',
     gate: 'Main Gate',
   };
@@ -244,6 +248,21 @@ export async function getEventsByHost(hostUsername: string): Promise<Event[]> {
 export async function fetchTicketTypes(slug: string): Promise<TicketType[]> {
   try {
     const response = await fetch(`/api/v1/events/${slug}/ticket-types`);
+    if (!response.ok) {
+      return [];
+    }
+    return await response.json();
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetch the logged in user's registrations from the backend.
+ */
+export async function fetchMyRegistrations() {
+  try {
+    const response = await fetch(`/api/v1/tickets/my-registrations`);
     if (!response.ok) {
       return [];
     }
@@ -414,11 +433,11 @@ export async function fetchEventTeam(slug: string): Promise<TeamMember[]> {
   return await response.json();
 }
 
-export async function inviteTeamMember(slug: string, username: string): Promise<TeamMember> {
+export async function inviteTeamMember(slug: string, username: string, role: string): Promise<TeamMember> {
   const response = await fetch(`/api/v1/events/${slug}/team`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username })
+    body: JSON.stringify({ username, role })
   });
   if (!response.ok) {
     const err = await response.json();
@@ -437,4 +456,88 @@ export async function removeTeamMember(slug: string, username: string): Promise<
     throw new Error(err.error || 'Failed to remove team member');
   }
 }
+
+/**
+ * User Account & Admin Moderation API client functions.
+ */
+export async function registerAccount(data: {
+  username: string;
+  name: string;
+  email: string;
+  password: string;
+  role?: 'USER' | 'ORGANIZER';
+  mobile?: string;
+  org?: string;
+}) {
+  const response = await fetch('/api/v1/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  const resData = await response.json();
+  if (!response.ok) {
+    throw new Error(resData.error || 'Registration failed');
+  }
+  return resData;
+}
+
+export async function updateProfile(data: {
+  name?: string;
+  email?: string;
+  mobile?: string;
+  avatar?: string;
+  bio?: string;
+  org?: string;
+}) {
+  const response = await fetch('/api/v1/auth/profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  const resData = await response.json();
+  if (!response.ok) {
+    throw new Error(resData.error || 'Failed to update profile');
+  }
+  return resData;
+}
+
+export async function fetchPendingOrganizers() {
+  const response = await fetch('/api/v1/admin/organizer-applications');
+  if (!response.ok) {
+    throw new Error('Failed to load organizer applications');
+  }
+  return await response.json();
+}
+
+export async function approveOrganizerApplication(username: string) {
+  const response = await fetch(`/api/v1/admin/organizer-applications/${username}/approve`, {
+    method: 'PUT',
+  });
+  const resData = await response.json();
+  if (!response.ok) {
+    throw new Error(resData.error || 'Failed to approve organizer');
+  }
+  return resData;
+}
+
+export async function rejectOrganizerApplication(username: string) {
+  const response = await fetch(`/api/v1/admin/organizer-applications/${username}/reject`, {
+    method: 'PUT',
+  });
+  const resData = await response.json();
+  if (!response.ok) {
+    throw new Error(resData.error || 'Failed to reject organizer');
+  }
+  return resData;
+}
+
+export async function fetchMyManagedEvents() {
+  const response = await fetch('/api/v1/events/my-managed');
+  if (!response.ok) {
+    throw new Error('Failed to load managed events');
+  }
+  return await response.json();
+}
+
+
 

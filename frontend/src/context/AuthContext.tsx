@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { message } from 'antd';
+import { App } from 'antd';
 
 export interface User {
   username: string;
@@ -10,6 +10,9 @@ export interface User {
   avatar?: string;
   bio?: string;
   role?: string;
+  mobile?: string;
+  org?: string;
+  status?: string;
 }
 
 interface AuthContextType {
@@ -17,12 +20,32 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (emailOrUsername: string, password: string) => Promise<boolean>;
+  registerUser: (data: {
+    username?: string;
+    name: string;
+    email: string;
+    password: string;
+    role?: 'USER' | 'ORGANIZER';
+    mobile?: string;
+    org?: string;
+  }) => Promise<{ success: boolean; message: string }>;
+  updateUserProfile: (data: {
+    name?: string;
+    email?: string;
+    mobile?: string;
+    avatar?: string;
+    bio?: string;
+    org?: string;
+    role?: string;
+    status?: string;
+  }) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { message } = App.useApp();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -103,8 +126,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const registerUser = async (data: {
+    username?: string;
+    name: string;
+    email: string;
+    password: string;
+    role?: 'USER' | 'ORGANIZER';
+    mobile?: string;
+    org?: string;
+  }): Promise<{ success: boolean; message: string }> => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/v1/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Registration failed');
+      }
+
+      message.success(resData.message || 'Successfully registered!');
+      return { success: true, message: resData.message };
+    } catch (error: any) {
+      message.error(error.message);
+      return { success: false, message: error.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUserProfile = async (data: {
+    name?: string;
+    email?: string;
+    mobile?: string;
+    avatar?: string;
+    bio?: string;
+    org?: string;
+    role?: string;
+    status?: string;
+  }): Promise<boolean> => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/v1/auth/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to update profile');
+      }
+
+      setUser(resData.user);
+      message.success('Profile updated successfully!');
+      return true;
+    } catch (error: any) {
+      message.error(error.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, registerUser, updateUserProfile, logout }}>
       {children}
     </AuthContext.Provider>
   );

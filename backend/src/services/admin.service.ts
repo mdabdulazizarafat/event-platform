@@ -1,4 +1,6 @@
 import { pool } from '../db/pool';
+import bcrypt from 'bcryptjs';
+
 
 export class AdminService {
   /**
@@ -24,7 +26,7 @@ export class AdminService {
    */
   static async listUsers() {
     const query = `
-      SELECT username, name, email, avatar, bio, role, created_at 
+      SELECT username, name, email, avatar, bio, mobile, org, role, status, created_at 
       FROM users 
       ORDER BY created_at DESC;
     `;
@@ -37,7 +39,7 @@ export class AdminService {
    * Only SUPER_ADMIN can execute this.
    */
   static async updateUserRole(username: string, newRole: string, adminUsername: string) {
-    const validRoles = ['SUPER_ADMIN', 'ADMIN', 'ORGANIZER', 'PARTICIPANT'];
+    const validRoles = ['SUPER_ADMIN', 'ADMIN', 'ORGANIZER', 'USER'];
     if (!validRoles.includes(newRole)) {
       throw new Error(`Invalid role: ${newRole}`);
     }
@@ -108,4 +110,356 @@ export class AdminService {
     const res = await pool.query(query);
     return res.rows;
   }
+
+  /**
+   * List pending organizer applications.
+   */
+  static async listPendingOrganizers() {
+    const query = `
+      SELECT username, name, email, mobile, org, avatar, bio, role, status, created_at
+      FROM users
+      WHERE role = 'ORGANIZER' AND status = 'PENDING_APPROVAL'
+      ORDER BY created_at ASC;
+    `;
+    const res = await pool.query(query);
+    return res.rows;
+  }
+
+  /**
+   * Approve an organizer application.
+   */
+  static async approveOrganizer(username: string, adminUsername: string) {
+    const query = `
+      UPDATE users
+      SET status = 'ACTIVE', updated_at = CURRENT_TIMESTAMP
+      WHERE username = $1 AND role = 'ORGANIZER'
+      RETURNING username, name, email, mobile, org, role, status;
+    `;
+    const res = await pool.query(query, [username]);
+    if (res.rowCount === 0) {
+      throw new Error(`Pending organizer application for "${username}" not found.`);
+    }
+    await this.logAction(adminUsername, 'APPROVE_ORGANIZER', 'USER', username, { status: 'ACTIVE' });
+    return res.rows[0];
+  }
+
+  /**
+   * Reject an organizer application (reverts user role to USER and ACTIVE status).
+   */
+  static async rejectOrganizer(username: string, adminUsername: string) {
+    const query = `
+      UPDATE users
+      SET role = 'USER', status = 'ACTIVE', updated_at = CURRENT_TIMESTAMP
+      WHERE username = $1 AND role = 'ORGANIZER'
+      RETURNING username, name, email, mobile, org, role, status;
+    `;
+    const res = await pool.query(query, [username]);
+    if (res.rowCount === 0) {
+      throw new Error(`Pending organizer application for "${username}" not found.`);
+    }
+    await this.logAction(adminUsername, 'REJECT_ORGANIZER', 'USER', username, { newRole: 'USER' });
+    return res.rows[0];
+  }
+
+  /**
+   * Get permissions granted to an admin user.
+   */
+  static async getAdminPermissions(username: string) {
+    const query = `
+      SELECT permission, granted_by, granted_at
+      FROM admin_permissions
+      WHERE username = $1
+      ORDER BY granted_at DESC;
+    `;
+    const res = await pool.query(query, [username]);
+    return res.rows;
+  }
+
+  /**
+   * Grant a permission to an admin user.
+   */
+  static async grantAdminPermission(username: string, permission: string, grantedBy: string) {
+    const validPermissions = ['MANAGE_USERS', 'MANAGE_EVENTS', 'VIEW_LOGS', 'APPROVE_ORGANIZERS'];
+    if (!validPermissions.includes(permission)) {
+      throw new Error(`Invalid permission: ${permission}`);
+    }
+    const query = `
+      INSERT INTO admin_permissions (username, permission, granted_by)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (username, permission) DO NOTHING
+      RETURNING *;
+    `;
+    const res = await pool.query(query, [username, permission, grantedBy]);
+    await this.logAction(grantedBy, 'GRANT_PERMISSION', 'USER', username, { permission });
+    return res.rows[0];
+  }
+
+  /**
+   * Revoke a permission from an admin user.
+   */
+  static async revokeAdminPermission(username: string, permission: string, revokedBy: string) {
+    const query = `
+      DELETE FROM admin_permissions
+      WHERE username = $1 AND permission = $2
+      RETURNING *;
+    `;
+    const res = await pool.query(query, [username, permission]);
+    await this.logAction(revokedBy, 'REVOKE_PERMISSION', 'USER', username, { permission });
+    return res.rows[0];
+  }
+
+  /**
+   * Super Admin update event details, including re-assigning host.
+   */
+  static async updateEvent(eventId: number, adminUsername: string, input: any) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const checkRes = await client.query('SELECT * FROM events WHERE id = $1', [eventId]);
+      if (checkRes.rowCount === 0) {
+        throw new Error('Event not found');
+      }
+      const event = checkRes.rows[0];
+      const oldHost = event.host_username;
+
+      const updates: string[] = [];
+      const values: any[] = [];
+      let idx = 1;
+
+      // Handle simple fields
+      const fields = ['title', 'description', 'thumbnail', 'date', 'time', 'location', 'capacity', 'contact_email', 'contact_phone', 'status'];
+      for (const field of fields) {
+        // We use camelCase in input except when already snake_case. Let's handle both.
+        const inputKey = field.replace(/_([a-z])/g, g => g[1].toUpperCase());
+        const val = input[inputKey] !== undefined ? input[inputKey] : input[field];
+        if (val !== undefined) {
+          updates.push(`${field} = $${idx++}`);
+          values.push(val);
+        }
+      }
+
+      // Handle host_username separately
+      const newHost = input.host_username || input.hostUsername;
+      if (newHost && newHost !== oldHost) {
+        const userCheck = await client.query('SELECT username FROM users WHERE username = $1', [newHost]);
+        if (userCheck.rowCount === 0) {
+          throw new Error(`User "${newHost}" not found.`);
+        }
+        updates.push(`host_username = $${idx++}`);
+        values.push(newHost);
+        
+        // 1. Demote old host to MANAGER
+        await client.query(`
+          UPDATE event_team SET role = 'MANAGER'
+          WHERE event_id = $1 AND username = $2
+        `, [eventId, oldHost]);
+
+        // 2. Insert or update new host as ORGANIZER
+        await client.query(`
+          INSERT INTO event_team (event_id, username, role, invited_by)
+          VALUES ($1, $2, 'ORGANIZER', $3)
+          ON CONFLICT (event_id, username) 
+          DO UPDATE SET role = 'ORGANIZER', invited_by = EXCLUDED.invited_by;
+        `, [eventId, newHost, adminUsername]);
+      }
+
+      if (updates.length > 0) {
+        values.push(eventId);
+        const query = `
+          UPDATE events
+          SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $${idx}
+          RETURNING *;
+        `;
+        const updateRes = await client.query(query, values);
+        
+        await this.logAction(adminUsername, 'ADMIN_UPDATE_EVENT', 'EVENT', eventId.toString(), input);
+        
+        await client.query('COMMIT');
+        return updateRes.rows[0];
+      }
+
+      await client.query('ROLLBACK');
+      return event;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Super Admin list event team.
+   */
+  static async listEventTeam(eventId: number) {
+    const query = `
+      SELECT t.*, h.name, h.email, h.avatar, h.bio
+      FROM event_team t
+      JOIN users h ON t.username = h.username
+      WHERE t.event_id = $1
+      ORDER BY t.role DESC, t.joined_at ASC;
+    `;
+    const res = await pool.query(query, [eventId]);
+    return res.rows;
+  }
+
+  /**
+   * Super Admin add/update team member.
+   */
+  static async addEventTeamMember(eventId: number, username: string, role: string, adminUsername: string) {
+    const validRoles = ['ORGANIZER', 'MANAGER', 'SCANNER'];
+    if (!validRoles.includes(role)) {
+      throw new Error(`Invalid role: ${role}`);
+    }
+
+    const userCheck = await pool.query('SELECT username FROM users WHERE username = $1', [username]);
+    if (userCheck.rowCount === 0) {
+      throw new Error(`User "${username}" does not exist on the platform.`);
+    }
+
+    const query = `
+      INSERT INTO event_team (event_id, username, role, invited_by)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (event_id, username) 
+      DO UPDATE SET role = EXCLUDED.role, invited_by = EXCLUDED.invited_by
+      RETURNING *;
+    `;
+    const res = await pool.query(query, [eventId, username, role, adminUsername]);
+    await this.logAction(adminUsername, 'ADMIN_ADD_EVENT_TEAM', 'EVENT', eventId.toString(), { username, role });
+    return res.rows[0];
+  }
+
+  /**
+   * Super Admin remove team member.
+   */
+  static async removeEventTeamMember(eventId: number, username: string, adminUsername: string) {
+    const deleteQuery = 'DELETE FROM event_team WHERE event_id = $1 AND username = $2 RETURNING *';
+    const deleteRes = await pool.query(deleteQuery, [eventId, username]);
+    
+    if (deleteRes.rowCount !== null && deleteRes.rowCount > 0) {
+      await this.logAction(adminUsername, 'ADMIN_REMOVE_EVENT_TEAM', 'EVENT', eventId.toString(), { username });
+    }
+    
+    return deleteRes.rows[0] || null;
+  }
+
+  /**
+   * Create a new user account.
+   */
+  static async createUser(input: any, adminUsername: string) {
+    const { username, name, email, password, role, status, mobile, org } = input;
+    if (!username || !name || !email || !password) {
+      throw new Error('Username, name, email, and password are required');
+    }
+
+    const check = await pool.query(
+      'SELECT username, email FROM users WHERE username = $1 OR email = $2',
+      [username.toLowerCase().trim(), email.toLowerCase().trim()]
+    );
+    if (check.rows.length > 0) {
+      const existing = check.rows[0];
+      if (existing.username === username.toLowerCase().trim()) {
+        throw new Error('Username is already taken');
+      }
+      throw new Error('Email is already registered');
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    const query = `
+      INSERT INTO users (username, name, email, password_hash, role, status, mobile, org)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING username, name, email, role, status, mobile, org, created_at;
+    `;
+    const res = await pool.query(query, [
+      username.toLowerCase().trim(),
+      name.trim(),
+      email.toLowerCase().trim(),
+      passwordHash,
+      role || 'USER',
+      status || 'ACTIVE',
+      mobile || null,
+      org || null
+    ]);
+
+    await this.logAction(adminUsername, 'CREATE_USER', 'USER', username, { role, status });
+    return res.rows[0];
+  }
+
+  /**
+   * Update user details.
+   */
+  static async updateUser(username: string, input: any, adminUsername: string) {
+    const { name, email, role, status, mobile, org } = input;
+    
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (name !== undefined) {
+      setClauses.push(`name = $${idx++}`);
+      values.push(name.trim());
+    }
+    if (email !== undefined) {
+      setClauses.push(`email = $${idx++}`);
+      values.push(email.toLowerCase().trim());
+    }
+    if (role !== undefined) {
+      setClauses.push(`role = $${idx++}`);
+      values.push(role);
+    }
+    if (status !== undefined) {
+      setClauses.push(`status = $${idx++}`);
+      values.push(status);
+    }
+    if (mobile !== undefined) {
+      setClauses.push(`mobile = $${idx++}`);
+      values.push(mobile || null);
+    }
+    if (org !== undefined) {
+      setClauses.push(`org = $${idx++}`);
+      values.push(org || null);
+    }
+
+    if (setClauses.length === 0) {
+      throw new Error('No modifications provided');
+    }
+
+    values.push(username);
+    const query = `
+      UPDATE users
+      SET ${setClauses.join(', ')}, updated_at = CURRENT_TIMESTAMP
+      WHERE username = $${idx}
+      RETURNING username, name, email, role, status, mobile, org;
+    `;
+    const res = await pool.query(query, values);
+    if (res.rowCount === 0) {
+      throw new Error(`User "${username}" not found.`);
+    }
+
+    await this.logAction(adminUsername, 'UPDATE_USER', 'USER', username, input);
+    return res.rows[0];
+  }
+
+  /**
+   * Delete a user account.
+   */
+  static async deleteUser(username: string, adminUsername: string) {
+    const query = `
+      DELETE FROM users
+      WHERE username = $1
+      RETURNING username, name, email;
+    `;
+    const res = await pool.query(query, [username]);
+    if (res.rowCount === 0) {
+      throw new Error(`User "${username}" not found.`);
+    }
+
+    await this.logAction(adminUsername, 'DELETE_USER', 'USER', username, null);
+    return res.rows[0];
+  }
 }
+

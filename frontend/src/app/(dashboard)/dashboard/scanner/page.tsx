@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Typography, Card, Select, Button, Input, Tag, Spin, Alert, List, Badge, message } from 'antd';
+import { Typography, Card, Tag, Spin, Alert, List, Badge, message } from 'antd';
 import { 
   Scan, 
   Wifi, 
@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { fetchEventActivities, scanTicket, EventActivity } from '@/lib/api';
+import Button from '@/components/ui/Button';
+import FormField from '@/components/ui/FormField';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -160,8 +162,8 @@ export default function QRScannerPage() {
         const res = await fetch('/api/v1/events');
         if (res.ok) {
           const data = await res.json();
-          // Filter events hosted by this user
-          const hostEvents = data.filter((e: any) => e.host_username === user?.username);
+          // Filter events hosted by this user or where they are in the team
+          const hostEvents = data.filter((e: any) => e.host_username === user?.username || e.is_team_member);
           setEvents(hostEvents);
           if (hostEvents.length > 0) {
             setSelectedEventSlug(hostEvents[0].slug);
@@ -580,9 +582,8 @@ export default function QRScannerPage() {
           </div>
 
           <Button 
-            type={forceOffline ? 'primary' : 'default'} 
-            danger={forceOffline}
-            className="font-bold text-xs"
+            variant={forceOffline ? 'danger' : 'outline'}
+            size="sm"
             onClick={() => setForceOffline(!forceOffline)}
           >
             {forceOffline ? 'Disable Offline Force' : 'Force Offline'}
@@ -595,42 +596,40 @@ export default function QRScannerPage() {
         {/* LEFT COLUMN: Controls & Sync */}
         <div className="space-y-6 lg:col-span-1">
           {/* Configuration Card */}
-          <Card className="rounded-2xl border-outline-variant bg-surface-container-lowest shadow-sm" title={<span className="font-heading font-extrabold text-sm">Scanner Control Center</span>}>
+          <Card className="rounded-2xl border-outline-variant bg-surface-container-lowest shadow-sm animate-fade-in" title={<span className="font-heading font-extrabold text-sm">Scanner Control Center</span>}>
             <div className="space-y-4">
               {/* Event selection */}
               <div>
                 <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Selected Event</label>
-                <Select
+                <select
                   value={selectedEventSlug}
-                  onChange={handleEventChange}
-                  className="w-full h-10 rounded-lg"
-                  loading={events.length === 0}
+                  onChange={(e) => handleEventChange(e.target.value)}
+                  className="w-full px-4 py-2.2 text-sm bg-surface-container-lowest border border-outline-variant rounded-lg text-foreground cursor-pointer focus-ring"
                 >
                   {events.map((e) => (
-                    <Select.Option key={e.id} value={e.slug}>
+                    <option key={e.id} value={e.slug}>
                       {e.title}
-                    </Select.Option>
+                    </option>
                   ))}
-                </Select>
+                </select>
               </div>
 
               {/* Activity selection */}
               <div>
                 <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Scan Checkpoint</label>
-                <Select
-                  value={selectedActivityId || undefined}
-                  onChange={(val) => setSelectedActivityId(val)}
-                  className="w-full h-10 rounded-lg"
-                  loading={activities.length === 0}
+                <select
+                  value={selectedActivityId || ''}
+                  onChange={(e) => setSelectedActivityId(e.target.value ? parseInt(e.target.value) : null)}
+                  className="w-full px-4 py-2.2 text-sm bg-surface-container-lowest border border-outline-variant rounded-lg text-foreground cursor-pointer focus-ring"
                   disabled={activities.length === 0}
-                  placeholder="Select Checkpoint"
                 >
+                  <option value="">Select Checkpoint</option>
                   {activities.map((a) => (
-                    <Select.Option key={a.id} value={a.id}>
+                    <option key={a.id} value={a.id}>
                       {a.name} {a.scan_limit === 1 ? '(Once)' : '(Unlimited)'}
-                    </Select.Option>
+                    </option>
                   ))}
-                </Select>
+                </select>
               </div>
 
               {/* Cache Stats */}
@@ -646,9 +645,9 @@ export default function QRScannerPage() {
 
               {/* Cache Download Button */}
               <Button
-                type="primary"
+                variant="primary"
                 icon={<Download size={16} />}
-                className="w-full h-10 font-bold bg-[#3525cd]"
+                className="w-full"
                 loading={isCaching}
                 onClick={downloadAttendeesOffline}
                 disabled={!isOnline || forceOffline}
@@ -673,9 +672,9 @@ export default function QRScannerPage() {
               </p>
 
               <Button
-                type="primary"
+                variant="secondary"
                 icon={<RefreshCw size={16} />}
-                className="w-full h-10 font-bold bg-[#006c49]"
+                className="w-full"
                 onClick={syncOfflineScans}
                 disabled={pendingSyncs.length === 0 || !isOnline || forceOffline}
                 loading={isSyncing}
@@ -714,7 +713,7 @@ export default function QRScannerPage() {
               {/* Quick simulation buttons for developers */}
               <div className="absolute bottom-4 z-20 flex gap-2">
                 <Button 
-                  size="small"
+                  size="sm"
                   className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold border-0 text-xs px-3 rounded-lg"
                   onClick={handleSimulatedScan}
                 >
@@ -727,17 +726,17 @@ export default function QRScannerPage() {
             <div className="p-6">
               <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Manual Ticket Verification</label>
               <div className="flex gap-3">
-                <Input
+                <input
                   placeholder="Enter QR Ticket Token..."
                   value={manualToken}
                   onChange={(e) => setManualToken(e.target.value)}
-                  onPressEnter={() => verifyTicket(manualToken)}
-                  className="h-11 rounded-lg"
+                  onKeyDown={(e) => e.key === 'Enter' && verifyTicket(manualToken)}
+                  className="w-full px-4 py-2.2 text-sm text-foreground bg-surface-container-lowest border border-outline-variant rounded-lg focus-ring transition-all duration-150"
                 />
                 <Button 
-                  type="primary" 
+                  variant="primary" 
                   onClick={() => verifyTicket(manualToken)}
-                  className="h-11 px-6 font-bold bg-[#3525cd]"
+                  className="px-6 shrink-0"
                 >
                   Verify
                 </Button>
