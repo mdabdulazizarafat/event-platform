@@ -54,6 +54,11 @@ export default function CreateEventWizardPage() {
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   
+  // Registration Form Options
+  const [formTshirtSize, setFormTshirtSize] = useState(false);
+  const [formReference, setFormReference] = useState(false);
+  const [formTransactionId, setFormTransactionId] = useState(false);
+  
   // Simulated R2 Upload State
   const [isUploading, setIsUploading] = useState(false);
 
@@ -247,7 +252,13 @@ export default function CreateEventWizardPage() {
           contactPhone,
           thumbnail,
           description,
-          status: publishImmediate ? 'PUBLISHED' : 'DRAFT'
+          status: publishImmediate ? 'PUBLISHED' : 'DRAFT',
+          formPhone: true,
+          formJobTitle: true,
+          formOrganization: true,
+          formTshirtSize,
+          formReference,
+          formTransactionId,
         })
       });
 
@@ -468,6 +479,54 @@ export default function CreateEventWizardPage() {
                   onChange={(e) => setContactPhone(e.target.value)}
                   placeholder="+88017XXXXXXXX"
                 />
+              </div>
+
+              <div className="border-t border-outline-variant/60 pt-6 mt-6">
+                <h4 className="text-sm font-bold text-foreground mb-1 uppercase tracking-wider">
+                  Registration Form Customization
+                </h4>
+                <p className="text-xs text-on-surface-variant mb-4">
+                  Select which fields should be shown on the registration form. Name and Email are always required.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-surface-container-low p-4 rounded-xl">
+
+                  <div className="flex items-center justify-between p-2 hover:bg-surface-container-high rounded-lg transition-colors">
+                    <div>
+                      <span className="text-xs font-bold text-foreground block">T-Shirt Size</span>
+                      <span className="text-[10px] text-on-surface-variant">Collect size option (XS to XXL)</span>
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      checked={formTshirtSize} 
+                      onChange={(e) => setFormTshirtSize(e.target.checked)} 
+                      className="w-4 h-4 text-primary rounded border-outline-variant focus:ring-primary cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-2 hover:bg-surface-container-high rounded-lg transition-colors">
+                    <div>
+                      <span className="text-xs font-bold text-foreground block">Reference</span>
+                      <span className="text-[10px] text-on-surface-variant">How did they hear about this event?</span>
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      checked={formReference} 
+                      onChange={(e) => setFormReference(e.target.checked)} 
+                      className="w-4 h-4 text-primary rounded border-outline-variant focus:ring-primary cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-2 hover:bg-surface-container-high rounded-lg transition-colors">
+                    <div>
+                      <span className="text-xs font-bold text-foreground block">Transaction ID</span>
+                      <span className="text-[10px] text-on-surface-variant">For manual payment references</span>
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      checked={formTransactionId} 
+                      onChange={(e) => setFormTransactionId(e.target.checked)} 
+                      className="w-4 h-4 text-primary rounded border-outline-variant focus:ring-primary cursor-pointer"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}

@@ -11,6 +11,7 @@ import adminRoutes from './routes/admin.routes';
 import queueRoutes from './routes/queue-monitor';
 import { runMigrations } from './db/migrate';
 import { startWorkers } from './workers/worker';
+import { startStatusScheduler } from './workers/status-scheduler';
 import logger from './lib/logger';
 import { requestLogger } from './middleware/request-logger.middleware';
 import { securityHeaders, corsMiddleware } from './middleware/security.middleware';
@@ -48,6 +49,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 async function startServer() {
   await runMigrations();
   startWorkers(); // Boot BullMQ workers
+  startStatusScheduler(); // Start background event status transitions scheduler
   app.listen(port, () => {
     logger.info(`Backend Express server listening on port ${port}`);
   });

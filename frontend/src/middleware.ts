@@ -54,7 +54,6 @@ export function middleware(request: NextRequest) {
     // 2. Guard organizer host routes (default dashboard paths)
     const hostOnlyPaths = [
       '/dashboard/attendees',
-      '/dashboard/scanner',
       '/dashboard/schedule',
       '/dashboard/events'
     ];

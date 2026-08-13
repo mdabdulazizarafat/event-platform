@@ -47,6 +47,11 @@ export class PaymentService {
     email: string;
     customerName: string;
     customerPhone?: string;
+    jobTitle?: string;
+    organization?: string;
+    tshirtSize?: string;
+    reference?: string;
+    transactionId?: string;
   }) {
     const client = await pool.connect();
     try {
@@ -90,8 +95,11 @@ export class PaymentService {
 
       // 4. Create PENDING registration
       const registerQuery = `
-        INSERT INTO registrations (event_id, ticket_type_id, user_id, email, status, payment_status)
-        VALUES ($1, $2, $3, $4, 'PENDING', 'PENDING')
+        INSERT INTO registrations (
+          event_id, ticket_type_id, user_id, email, status, payment_status,
+          full_name, phone, job_title, organization, tshirt_size, reference, transaction_id
+        )
+        VALUES ($1, $2, $3, $4, 'PENDING', 'PENDING', $5, $6, $7, $8, $9, $10, $11)
         RETURNING id, qr_token;
       `;
       const regRes = await client.query(registerQuery, [
@@ -99,6 +107,13 @@ export class PaymentService {
         input.ticketTypeId,
         input.userId,
         input.email,
+        input.customerName,
+        input.customerPhone || null,
+        input.jobTitle || null,
+        input.organization || null,
+        input.tshirtSize || null,
+        input.reference || null,
+        input.transactionId || null,
       ]);
       const { id: registrationId, qr_token: qrToken } = regRes.rows[0];
 

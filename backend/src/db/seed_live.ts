@@ -211,11 +211,14 @@ async function seed() {
         ON CONFLICT (event_id, username) DO NOTHING;
       `, [eventId]);
 
-      // Create default Check-in activity
-      await client.query(`
-        INSERT INTO event_activities (event_id, name, scan_limit, sort_order)
-        VALUES ($1, 'Check-in', 1, 0);
-      `, [eventId]);
+      // Create default activities
+      const defaultActivities = ['Check-in', 'Food', 'Gift', 'Certificate'];
+      for (let i = 0; i < defaultActivities.length; i++) {
+        await client.query(`
+          INSERT INTO event_activities (event_id, name, scan_limit, sort_order)
+          VALUES ($1, $2, 1, $3);
+        `, [eventId, defaultActivities[i], i]);
+      }
     }
 
     await client.query('COMMIT');

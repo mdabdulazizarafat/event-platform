@@ -5,12 +5,12 @@ import { useAuth } from '@/context/AuthContext';
 import DataTable from '@/components/ui/DataTable';
 import Button from '@/components/ui/Button';
 import StatusChip from '@/components/ui/StatusChip';
-import { Plus, Settings, Trash2, Calendar, MapPin, Globe, ArrowLeft, User } from 'lucide-react';
+import { Plus, LayoutDashboard, Globe, Calendar, MapPin, Settings } from 'lucide-react';
 import { message, Pagination } from 'antd';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function AdminEventsDirectoryPage() {
+export default function HostEventsDirectoryPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [events, setEvents] = useState<any[]>([]);
@@ -19,52 +19,29 @@ export default function AdminEventsDirectoryPage() {
   const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
-    loadEvents();
-  }, []);
+    if (user) {
+      loadEvents();
+    }
+  }, [user]);
 
   async function loadEvents() {
     try {
-      const res = await fetch('/api/v1/admin/events');
+      const res = await fetch('/api/v1/events');
       if (res.ok) {
         const data = await res.json();
-        setEvents(data);
+        // Filter events hosted by this host or where they are in the team
+        const hostEvents = data.filter((e: any) => e.host_username === user?.username || e.is_team_member);
+        setEvents(hostEvents);
       } else {
         setEvents([]);
       }
     } catch {
       setEvents([]);
-      message.error('Failed to load global events directory.');
+      message.error('Failed to load events directory.');
     } finally {
       setLoading(false);
     }
   }
-
-  const handleDeleteEvent = async (id: number) => {
-    if (user?.role !== 'SUPER_ADMIN') {
-      message.error('Only Super Admins can purge events.');
-      return;
-    }
-    const confirmText = window.prompt('Type "delete the event" to confirm purging this event:');
-    if (confirmText !== 'delete the event') {
-      message.error('Confirmation text did not match. Purge cancelled.');
-      return;
-    }
-    try {
-      const res = await fetch(`/api/v1/admin/events/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        message.success('Event purged successfully.');
-        setEvents(events.filter(e => e.id !== id));
-      } else {
-        const err = await res.json();
-        message.error(err.error || 'Purge request failed.');
-      }
-    } catch (err: any) {
-      console.error(err);
-      message.error('Purge action failed.');
-    }
-  };
 
   const columns = [
     { 
@@ -72,16 +49,6 @@ export default function AdminEventsDirectoryPage() {
       title: 'Event Title',
       render: (row: any) => (
         <span className="font-bold text-foreground">{row.title}</span>
-      )
-    },
-    { 
-      key: 'host_username', 
-      title: 'Organizer',
-      render: (row: any) => (
-        <span className="text-on-surface-variant font-medium text-xs flex items-center gap-1.5">
-          <User size={13} className="text-[#7b55fa]" />
-          {row.host_username}
-        </span>
       )
     },
     { 
@@ -123,16 +90,6 @@ export default function AdminEventsDirectoryPage() {
               Control Panel
             </Button>
           </Link>
-          {user?.role === 'SUPER_ADMIN' && (
-            <Button
-              variant="danger"
-              size="sm"
-              icon={<Trash2 className="w-3.5 h-3.5" />}
-              onClick={() => handleDeleteEvent(row.id)}
-            >
-              Purge
-            </Button>
-          )}
         </div>
       )
     }
@@ -141,18 +98,13 @@ export default function AdminEventsDirectoryPage() {
   return (
     <div className="space-y-6">
       <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/60 pb-5 gap-4">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/admin')} icon={<ArrowLeft className="w-4 h-4" />}>
-            Back
-          </Button>
-          <div>
-            <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none m-0">
-              Global Events Directory
-            </h2>
-            <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
-              Moderate platform events, review statuses, monitor organizers, and access internal control panels.
-            </p>
-          </div>
+        <div>
+          <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none m-0">
+            Events Directory
+          </h2>
+          <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
+            View all your hosted events, check their current stage, and open the Control Panel to manage details.
+          </p>
         </div>
 
         <Button 
@@ -168,14 +120,14 @@ export default function AdminEventsDirectoryPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-body-sm text-on-surface-variant">Loading global events directory...</span>
+            <span className="text-body-sm text-on-surface-variant">Loading events directory...</span>
           </div>
         ) : (
           <>
             <DataTable 
               columns={columns} 
               data={events.slice((currentPage - 1) * pageSize, currentPage * pageSize)} 
-              emptyText="No events found in the global directory." 
+              emptyText="No events found in your directory." 
             />
             {events.length > 0 && (
               <div className="flex justify-end pt-2">

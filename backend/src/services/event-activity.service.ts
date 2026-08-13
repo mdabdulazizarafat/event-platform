@@ -71,25 +71,22 @@ export class EventActivityService {
    * Update an activity.
    */
   static async updateActivity(id: number, input: UpdateActivityInput) {
+    const fieldToColumnMap: Record<string, string> = {
+      name: 'name',
+      scanLimit: 'scan_limit',
+      isActive: 'is_active',
+      sortOrder: 'sort_order',
+    };
+
     const updates: string[] = [];
     const values: any[] = [];
-    let idx = 1;
 
-    if (input.name !== undefined) {
-      updates.push(`name = $${idx++}`);
-      values.push(input.name);
-    }
-    if (input.scanLimit !== undefined) {
-      updates.push(`scan_limit = $${idx++}`);
-      values.push(input.scanLimit);
-    }
-    if (input.isActive !== undefined) {
-      updates.push(`is_active = $${idx++}`);
-      values.push(input.isActive);
-    }
-    if (input.sortOrder !== undefined) {
-      updates.push(`sort_order = $${idx++}`);
-      values.push(input.sortOrder);
+    for (const [key, columnName] of Object.entries(fieldToColumnMap)) {
+      const val = (input as Record<string, any>)[key];
+      if (val !== undefined) {
+        values.push(val);
+        updates.push(`${columnName} = $${values.length}`);
+      }
     }
 
     if (updates.length === 0) {
@@ -100,7 +97,7 @@ export class EventActivityService {
     const query = `
       UPDATE event_activities
       SET ${updates.join(', ')}
-      WHERE id = $${idx}
+      WHERE id = $${values.length}
       RETURNING *;
     `;
     const res = await pool.query(query, values);

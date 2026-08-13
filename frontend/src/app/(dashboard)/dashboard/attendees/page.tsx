@@ -70,8 +70,14 @@ export default function AttendeesPage() {
   }, [selectedEventSlug]);
 
   const filteredRegistrations = registrations.filter((reg) => {
-    const matchesSearch = reg.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (reg.user_id && reg.user_id.toLowerCase().includes(searchQuery.toLowerCase()));
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = 
+      reg.email.toLowerCase().includes(query) ||
+      (reg.user_id && reg.user_id.toLowerCase().includes(query)) ||
+      (reg.full_name && reg.full_name.toLowerCase().includes(query)) ||
+      (reg.phone && reg.phone.toLowerCase().includes(query)) ||
+      (reg.organization && reg.organization.toLowerCase().includes(query)) ||
+      (reg.transaction_id && reg.transaction_id.toLowerCase().includes(query));
     
     const matchesStatus = statusFilter === 'All' || reg.status === statusFilter;
     
@@ -79,8 +85,15 @@ export default function AttendeesPage() {
   });
 
   const columns = [
+    { key: 'full_name', title: 'Name', render: (row: any) => row.full_name || row.user_id },
     { key: 'user_id', title: 'Username' },
     { key: 'email', title: 'Email Address' },
+    { key: 'phone', title: 'Phone Number', render: (row: any) => row.phone || '-' },
+    { key: 'organization', title: 'Organization', render: (row: any) => row.organization || '-' },
+    { key: 'job_title', title: 'Job Title', render: (row: any) => row.job_title || '-' },
+    { key: 'tshirt_size', title: 'T-Shirt', render: (row: any) => row.tshirt_size || '-' },
+    { key: 'reference', title: 'Reference', render: (row: any) => row.reference || '-' },
+    { key: 'transaction_id', title: 'TxID', render: (row: any) => row.transaction_id || '-' },
     { key: 'ticket_name', title: 'Ticket Tier' },
     {
       key: 'status',

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Form, Input, Button, Modal, Typography, message } from 'antd';
+import { Form, Input, Button, Modal, Typography, message, Select } from 'antd';
 import { 
   ClipboardList, 
   QrCode, 
@@ -27,6 +27,7 @@ import { fetchTicketTypes, initiatePayment } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 const { Text, Title, Paragraph } = Typography;
+const { Option } = Select;
 
 interface EventRegistrationFormProps {
   event: Event;
@@ -38,7 +39,11 @@ interface RegisterFormValues {
   fullName: string;
   email: string;
   phone?: string;
+  jobTitle?: string;
   organization?: string;
+  tshirtSize?: string;
+  reference?: string;
+  transactionId?: string;
 }
 
 type Step = 'auth' | 'ticket-select' | 'details' | 'review' | 'success';
@@ -144,6 +149,13 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
             email: registeredData.email,
             userId: activeUserId,
             ticketTypeId: selectedTicket.id,
+            fullName: registeredData.fullName,
+            phone: registeredData.phone,
+            jobTitle: registeredData.jobTitle,
+            organization: registeredData.organization,
+            tshirtSize: registeredData.tshirtSize,
+            reference: registeredData.reference,
+            transactionId: registeredData.transactionId,
           }),
         });
 
@@ -167,6 +179,11 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
           email: registeredData.email,
           customerName: registeredData.fullName,
           customerPhone: registeredData.phone,
+          jobTitle: registeredData.jobTitle,
+          organization: registeredData.organization,
+          tshirtSize: registeredData.tshirtSize,
+          reference: registeredData.reference,
+          transactionId: registeredData.transactionId,
         });
 
         // Redirect to SSLCommerz gateway
@@ -192,6 +209,13 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
         body: JSON.stringify({
           email: values.email,
           userId: activeUserId,
+          fullName: values.fullName,
+          phone: values.phone,
+          jobTitle: values.jobTitle,
+          organization: values.organization,
+          tshirtSize: values.tshirtSize,
+          reference: values.reference,
+          transactionId: values.transactionId,
         }),
       });
 
@@ -397,31 +421,82 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
           />
         </Form.Item>
 
-        {/* Show phone field for paid tickets (required by SSLCommerz) */}
-        {selectedTicket && !selectedTicket.isFree && (
+        <Form.Item
+          name="phone"
+          label={<span className="font-semibold text-slate-700 text-sm">Phone Number</span>}
+          rules={[{ required: true, message: 'Phone number is required' }]}
+        >
+          <Input 
+            prefix={<Phone className="text-slate-400 mr-2" size={16} />} 
+            placeholder="e.g. 01711-000000" 
+            className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="jobTitle"
+          label={<span className="font-semibold text-slate-700 text-sm">Job Title / Class</span>}
+          rules={[{ required: true, message: 'Job title / Class is required' }]}
+        >
+          <Input 
+            placeholder="e.g. Software Engineer / Student" 
+            className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="organization"
+          label={<span className="font-semibold text-slate-700 text-sm">Organization / Company / Institution Name</span>}
+          rules={[{ required: true, message: 'Organization name is required' }]}
+        >
+          <Input 
+            prefix={<Building2 className="text-slate-400 mr-2" size={16} />} 
+            placeholder="e.g. Acme Corp / Dhaka University" 
+            className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
+          />
+        </Form.Item>
+
+        {(event.form_tshirt_size === true) && (
           <Form.Item
-            name="phone"
-            label={<span className="font-semibold text-slate-700 text-sm">Phone Number</span>}
-            rules={[{ required: true, message: 'Phone number is required for paid tickets' }]}
+            name="tshirtSize"
+            label={<span className="font-semibold text-slate-700 text-sm">T-Shirt Size</span>}
+            rules={[{ required: true, message: 'Please select your T-shirt size' }]}
+          >
+            <Select placeholder="Select size" className="rounded-lg h-11 text-slate-800 transition-colors">
+              <Option value="XS">XS</Option>
+              <Option value="S">S</Option>
+              <Option value="M">M</Option>
+              <Option value="L">L</Option>
+              <Option value="XL">XL</Option>
+              <Option value="XXL">XXL</Option>
+            </Select>
+          </Form.Item>
+        )}
+
+        {(event.form_reference === true) && (
+          <Form.Item
+            name="reference"
+            label={<span className="font-semibold text-slate-700 text-sm">Reference <span className="text-slate-400 font-normal">(Optional)</span></span>}
           >
             <Input 
-              prefix={<Phone className="text-slate-400 mr-2" size={16} />} 
-              placeholder="e.g. 01711-000000" 
+              placeholder="e.g. Friend, Facebook ad, Website" 
               className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
             />
           </Form.Item>
         )}
 
-        <Form.Item
-          name="organization"
-          label={<span className="font-semibold text-slate-700 text-sm">Organization / Company <span className="text-slate-400 font-normal">(Optional)</span></span>}
-        >
-          <Input 
-            prefix={<Building2 className="text-slate-400 mr-2" size={16} />} 
-            placeholder="e.g. Acme Corp" 
-            className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
-          />
-        </Form.Item>
+        {(event.form_transaction_id === true) && (
+          <Form.Item
+            name="transactionId"
+            label={<span className="font-semibold text-slate-700 text-sm">Transaction ID</span>}
+            rules={[{ required: true, message: 'Transaction ID is required' }]}
+          >
+            <Input 
+              placeholder="e.g. TRX102938475" 
+              className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
+            />
+          </Form.Item>
+        )}
 
         <div className="flex gap-3 pt-2">
           {hasTicketTypes && (
@@ -496,10 +571,16 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
         {/* Attendee details */}
         <div className="flex items-start gap-3">
           <User size={16} className="text-slate-400 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider m-0">Attendee</p>
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider m-0">Attendee Info</p>
             <p className="text-sm font-bold text-slate-800 m-0">{registeredData?.fullName}</p>
             <p className="text-xs text-slate-500 m-0">{registeredData?.email}</p>
+            {registeredData?.phone && <p className="text-xs text-slate-600 m-0"><strong>Phone:</strong> {registeredData.phone}</p>}
+            {registeredData?.jobTitle && <p className="text-xs text-slate-600 m-0"><strong>Role:</strong> {registeredData.jobTitle}</p>}
+            {registeredData?.organization && <p className="text-xs text-slate-600 m-0"><strong>Organization:</strong> {registeredData.organization}</p>}
+            {registeredData?.tshirtSize && <p className="text-xs text-slate-600 m-0"><strong>T-Shirt:</strong> {registeredData.tshirtSize}</p>}
+            {registeredData?.reference && <p className="text-xs text-slate-600 m-0"><strong>Reference:</strong> {registeredData.reference}</p>}
+            {registeredData?.transactionId && <p className="text-xs text-slate-600 m-0"><strong>TxID:</strong> {registeredData.transactionId}</p>}
           </div>
         </div>
       </div>

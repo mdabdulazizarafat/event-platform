@@ -39,11 +39,12 @@ interface NavItem {
 // Host Navigation
 const hostNavItems: NavItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
-  { key: 'attendees', label: 'Attendees', icon: Users, href: '/dashboard/attendees' },
+  { key: 'events', label: 'Events Directory', icon: Globe, href: '/dashboard/events' },
   { key: 'scanner', label: 'QR Scanner', icon: Scan, href: '/dashboard/scanner' },
-  // { key: 'schedule', label: 'Schedule', icon: CalendarDays, href: '/dashboard/schedule' },
+  { key: 'schedule', label: 'My Schedule', icon: CalendarDays, href: '/dashboard/user/schedule' },
+  { key: 'my-tickets', label: 'My Tickets', icon: CalendarDays, href: '/dashboard/tickets' },
+  { key: 'certificates', label: 'Certificates', icon: Award, href: '/dashboard/user/certificates' },
   { key: 'account', label: 'My Account', icon: Users, href: '/dashboard/account' },
-  // { key: 'settings', label: 'Event Settings', icon: Settings, href: '/dashboard/settings' },
 ];
 
 // User Navigation
@@ -62,6 +63,9 @@ const superAdminNavItems: NavItem[] = [
   { key: 'events', label: 'Events Directory', icon: Globe, href: '/dashboard/admin/events' },
   { key: 'finance', label: 'Finance Operations', icon: DollarSign, href: '/dashboard/admin/finance' },
   { key: 'infrastructure', label: 'System Health', icon: Activity, href: '/dashboard/admin/infrastructure' },
+  { key: 'schedule', label: 'My Schedule', icon: CalendarDays, href: '/dashboard/user/schedule' },
+  { key: 'my-tickets', label: 'My Tickets', icon: CalendarDays, href: '/dashboard/tickets' },
+  { key: 'certificates', label: 'Certificates', icon: Award, href: '/dashboard/user/certificates' },
   { key: 'account', label: 'My Account', icon: Users, href: '/dashboard/account' },
   { key: 'settings', label: 'Platform Settings', icon: Settings, href: '/dashboard/admin/settings' },
 ];
@@ -72,6 +76,9 @@ const adminNavItems: NavItem[] = [
   { key: 'accounts', label: 'Accounts', icon: Users, href: '/dashboard/admin/accounts' },
   { key: 'events', label: 'Events Directory', icon: Globe, href: '/dashboard/admin/events' },
   { key: 'finance', label: 'Finance Operations', icon: DollarSign, href: '/dashboard/admin/finance' },
+  { key: 'schedule', label: 'My Schedule', icon: CalendarDays, href: '/dashboard/user/schedule' },
+  { key: 'my-tickets', label: 'My Tickets', icon: CalendarDays, href: '/dashboard/tickets' },
+  { key: 'certificates', label: 'Certificates', icon: Award, href: '/dashboard/user/certificates' },
   { key: 'account', label: 'My Account', icon: Users, href: '/dashboard/account' },
 ];
 

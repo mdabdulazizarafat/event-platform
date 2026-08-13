@@ -37,7 +37,10 @@ export class EventController {
       }
       
       const hostUsername = req.user.username;
-      const { slug, title, description, thumbnail, date, time, location, capacity, contactEmail, contactPhone, status } = req.body;
+      const { 
+        slug, title, description, thumbnail, date, time, location, capacity, contactEmail, contactPhone, status,
+        formPhone, formJobTitle, formOrganization, formTshirtSize, formReference, formTransactionId
+      } = req.body;
       
       if (!slug || !title || !date || !time || !location || !capacity) {
         return res.status(400).json({ error: 'Missing required fields' });
@@ -70,6 +73,12 @@ export class EventController {
         description: description || undefined,
         thumbnail: thumbnail || undefined,
         status: status || 'DRAFT',
+        formPhone: formPhone !== undefined ? !!formPhone : undefined,
+        formJobTitle: formJobTitle !== undefined ? !!formJobTitle : undefined,
+        formOrganization: formOrganization !== undefined ? !!formOrganization : undefined,
+        formTshirtSize: formTshirtSize !== undefined ? !!formTshirtSize : undefined,
+        formReference: formReference !== undefined ? !!formReference : undefined,
+        formTransactionId: formTransactionId !== undefined ? !!formTransactionId : undefined,
       });
 
       return res.status(201).json({ message: 'Event created and partition created successfully', eventId });
@@ -86,7 +95,10 @@ export class EventController {
       }
 
       const { slug } = req.params;
-      const { title, description, thumbnail, date, time, location, capacity, contactEmail, contactPhone, status } = req.body;
+      const { 
+        title, description, thumbnail, date, time, location, capacity, contactEmail, contactPhone, status,
+        formPhone, formJobTitle, formOrganization, formTshirtSize, formReference, formTransactionId
+      } = req.body;
 
       const updated = await EventService.updateEvent(slug, req.user.username, {
         title,
@@ -99,6 +111,12 @@ export class EventController {
         description,
         thumbnail,
         status,
+        formPhone: formPhone !== undefined ? !!formPhone : undefined,
+        formJobTitle: formJobTitle !== undefined ? !!formJobTitle : undefined,
+        formOrganization: formOrganization !== undefined ? !!formOrganization : undefined,
+        formTshirtSize: formTshirtSize !== undefined ? !!formTshirtSize : undefined,
+        formReference: formReference !== undefined ? !!formReference : undefined,
+        formTransactionId: formTransactionId !== undefined ? !!formTransactionId : undefined,
       });
 
       return res.status(200).json({ message: 'Event updated successfully', event: updated });
@@ -132,7 +150,10 @@ export class EventController {
   static async register(req: Request, res: Response) {
     try {
       const { slug } = req.params;
-      const { email, userId, ticketTypeId } = req.body;
+      const { 
+        email, userId, ticketTypeId, 
+        fullName, phone, jobTitle, organization, tshirtSize, reference, transactionId
+      } = req.body;
 
       if (!email || !userId) {
         return res.status(400).json({ error: 'Missing email or userId' });
@@ -141,6 +162,10 @@ export class EventController {
       const event = await EventService.getEventBySlug(slug);
       if (!event) {
         return res.status(404).json({ error: 'Event not found' });
+      }
+
+      if (event.status !== 'PUBLISHED') {
+        return res.status(400).json({ error: 'Registration is closed or not open for this event' });
       }
 
       if (event.registration_deadline && new Date(event.registration_deadline) < new Date()) {
@@ -166,7 +191,21 @@ export class EventController {
         }
       }
 
-      const result = await RegistrationService.registerForEvent(event.id, userId, email, ticketTypeId || null);
+      const result = await RegistrationService.registerForEvent(
+        event.id, 
+        userId, 
+        email, 
+        ticketTypeId || null,
+        {
+          fullName,
+          phone,
+          jobTitle,
+          organization,
+          tshirtSize,
+          reference,
+          transactionId,
+        }
+      );
       return res.status(201).json({
         message: 'Registration confirmed',
         registrationId: result.registrationId,

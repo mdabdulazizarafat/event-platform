@@ -49,6 +49,9 @@ export interface Event {
   sessions?: Session[];
   status?: string;
   capacity?: number;
+  form_tshirt_size?: boolean;
+  form_reference?: boolean;
+  form_transaction_id?: boolean;
 }
 
 export interface Host {
@@ -282,6 +285,11 @@ export async function initiatePayment(data: {
   email: string;
   customerName: string;
   customerPhone?: string;
+  jobTitle?: string;
+  organization?: string;
+  tshirtSize?: string;
+  reference?: string;
+  transactionId?: string;
 }): Promise<{ gatewayUrl: string; tranId: string }> {
   const response = await fetch('/api/v1/payments/initiate', {
     method: 'POST',

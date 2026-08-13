@@ -152,12 +152,12 @@ export default function DashboardOverviewPage() {
                       Control Panel
                     </Button>
                   </Link>
-                  <Link href={`/dashboard/events/${e.slug}/edit`} className="flex-1">
+                  <Link href={`/dashboard/events/${e.slug}?tab=3`} className="flex-1">
                     <Button variant="outline" size="sm" className="w-full justify-center">
                       Edit
                     </Button>
                   </Link>
-                  <Link href={`/dashboard/events/${e.slug}/team`} className="flex-1">
+                  <Link href={`/dashboard/events/${e.slug}?tab=5`} className="flex-1">
                     <Button variant="outline" size="sm" className="w-full justify-center">
                       Team
                     </Button>

@@ -225,17 +225,19 @@ export class AdminService {
 
       const updates: string[] = [];
       const values: any[] = [];
-      let idx = 1;
 
       // Handle simple fields
-      const fields = ['title', 'description', 'thumbnail', 'date', 'time', 'location', 'capacity', 'contact_email', 'contact_phone', 'status'];
+      const fields = [
+        'title', 'description', 'thumbnail', 'date', 'time', 'location', 'capacity', 'contact_email', 'contact_phone', 'status',
+        'form_phone', 'form_job_title', 'form_organization', 'form_tshirt_size', 'form_reference', 'form_transaction_id'
+      ];
       for (const field of fields) {
         // We use camelCase in input except when already snake_case. Let's handle both.
         const inputKey = field.replace(/_([a-z])/g, g => g[1].toUpperCase());
         const val = input[inputKey] !== undefined ? input[inputKey] : input[field];
         if (val !== undefined) {
-          updates.push(`${field} = $${idx++}`);
           values.push(val);
+          updates.push(`${field} = $${values.length}`);
         }
       }
 
@@ -246,8 +248,8 @@ export class AdminService {
         if (userCheck.rowCount === 0) {
           throw new Error(`User "${newHost}" not found.`);
         }
-        updates.push(`host_username = $${idx++}`);
         values.push(newHost);
+        updates.push(`host_username = $${values.length}`);
         
         // 1. Demote old host to MANAGER
         await client.query(`
@@ -269,7 +271,7 @@ export class AdminService {
         const query = `
           UPDATE events
           SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
-          WHERE id = $${idx}
+          WHERE id = $${values.length}
           RETURNING *;
         `;
         const updateRes = await client.query(query, values);
@@ -393,35 +395,25 @@ export class AdminService {
    * Update user details.
    */
   static async updateUser(username: string, input: any, adminUsername: string) {
-    const { name, email, role, status, mobile, org } = input;
-    
+    const fieldMap: Record<string, { col: string; transform?: (val: any) => any }> = {
+      name: { col: 'name', transform: (v) => v.trim() },
+      email: { col: 'email', transform: (v) => v.toLowerCase().trim() },
+      role: { col: 'role' },
+      status: { col: 'status' },
+      mobile: { col: 'mobile', transform: (v) => v || null },
+      org: { col: 'org', transform: (v) => v || null },
+    };
+
     const setClauses: string[] = [];
     const values: any[] = [];
-    let idx = 1;
 
-    if (name !== undefined) {
-      setClauses.push(`name = $${idx++}`);
-      values.push(name.trim());
-    }
-    if (email !== undefined) {
-      setClauses.push(`email = $${idx++}`);
-      values.push(email.toLowerCase().trim());
-    }
-    if (role !== undefined) {
-      setClauses.push(`role = $${idx++}`);
-      values.push(role);
-    }
-    if (status !== undefined) {
-      setClauses.push(`status = $${idx++}`);
-      values.push(status);
-    }
-    if (mobile !== undefined) {
-      setClauses.push(`mobile = $${idx++}`);
-      values.push(mobile || null);
-    }
-    if (org !== undefined) {
-      setClauses.push(`org = $${idx++}`);
-      values.push(org || null);
+    for (const [key, config] of Object.entries(fieldMap)) {
+      const rawVal = input[key];
+      if (rawVal !== undefined) {
+        const val = config.transform ? config.transform(rawVal) : rawVal;
+        values.push(val);
+        setClauses.push(`${config.col} = $${values.length}`);
+      }
     }
 
     if (setClauses.length === 0) {
@@ -432,7 +424,7 @@ export class AdminService {
     const query = `
       UPDATE users
       SET ${setClauses.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE username = $${idx}
+      WHERE username = $${values.length}
       RETURNING username, name, email, role, status, mobile, org;
     `;
     const res = await pool.query(query, values);

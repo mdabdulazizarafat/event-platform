@@ -16,6 +16,12 @@ export interface CreateEventInput {
   startDate?: string;
   endDate?: string;
   registrationDeadline?: string;
+  formPhone?: boolean;
+  formJobTitle?: boolean;
+  formOrganization?: boolean;
+  formTshirtSize?: boolean;
+  formReference?: boolean;
+  formTransactionId?: boolean;
 }
 
 export class EventService {
@@ -34,8 +40,13 @@ export class EventService {
 
       // 1. Insert Core Event Details
       const insertQuery = `
-        INSERT INTO events (slug, title, description, thumbnail, date, time, start_date, end_date, registration_deadline, location, capacity, contact_email, contact_phone, host_username, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        INSERT INTO events (
+          slug, title, description, thumbnail, date, time, start_date, end_date, 
+          registration_deadline, location, capacity, contact_email, contact_phone, 
+          host_username, status, form_phone, form_job_title, form_organization, 
+          form_tshirt_size, form_reference, form_transaction_id
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
         RETURNING id;
       `;
       const res = await client.query(insertQuery, [
@@ -54,6 +65,12 @@ export class EventService {
         input.contactPhone || null,
         input.hostUsername,
         input.status || 'DRAFT',
+        input.formPhone !== undefined ? input.formPhone : true,
+        input.formJobTitle !== undefined ? input.formJobTitle : true,
+        input.formOrganization !== undefined ? input.formOrganization : true,
+        input.formTshirtSize !== undefined ? input.formTshirtSize : false,
+        input.formReference !== undefined ? input.formReference : false,
+        input.formTransactionId !== undefined ? input.formTransactionId : false,
       ]);
       const eventId = res.rows[0].id;
 
@@ -67,12 +84,15 @@ export class EventService {
       `;
       await client.query(teamQuery, [eventId, input.hostUsername]);
 
-      // 4. Automatically create default Check-in activity
-      const defaultActivityQuery = `
-        INSERT INTO event_activities (event_id, name, scan_limit, sort_order)
-        VALUES ($1, 'Check-in', 1, 0);
-      `;
-      await client.query(defaultActivityQuery, [eventId]);
+      // 4. Automatically create default Check-in, Food, Gift, and Certificate activities
+      const defaultActivities = ['Check-in', 'Food', 'Gift', 'Certificate'];
+      for (let i = 0; i < defaultActivities.length; i++) {
+        const defaultActivityQuery = `
+          INSERT INTO event_activities (event_id, name, scan_limit, sort_order)
+          VALUES ($1, $2, 1, $3);
+        `;
+        await client.query(defaultActivityQuery, [eventId, defaultActivities[i], i]);
+      }
 
       await client.query('COMMIT');
       return eventId;
@@ -84,7 +104,27 @@ export class EventService {
     }
   }
 
-  static async updateEvent(slug: string, hostUsername: string, input: { title?: string; description?: string; thumbnail?: string; date?: string; time?: string; location?: string; capacity?: number; contactEmail?: string; contactPhone?: string; status?: string; startDate?: string; endDate?: string; registrationDeadline?: string }) {
+  static async updateEvent(slug: string, hostUsername: string, input: { 
+    title?: string; 
+    description?: string; 
+    thumbnail?: string; 
+    date?: string; 
+    time?: string; 
+    location?: string; 
+    capacity?: number; 
+    contactEmail?: string; 
+    contactPhone?: string; 
+    status?: string; 
+    startDate?: string; 
+    endDate?: string; 
+    registrationDeadline?: string;
+    formPhone?: boolean;
+    formJobTitle?: boolean;
+    formOrganization?: boolean;
+    formTshirtSize?: boolean;
+    formReference?: boolean;
+    formTransactionId?: boolean;
+  }) {
     const client = await pool.connect();
     try {
       const checkRes = await client.query('SELECT * FROM events WHERE slug = $1', [slug]);
@@ -96,61 +136,37 @@ export class EventService {
         throw new Error('Unauthorized: Only the event host can modify this event.');
       }
 
+      const fieldToColumnMap: Record<string, string> = {
+        title: 'title',
+        date: 'date',
+        time: 'time',
+        location: 'location',
+        capacity: 'capacity',
+        contactEmail: 'contact_email',
+        contactPhone: 'contact_phone',
+        description: 'description',
+        thumbnail: 'thumbnail',
+        status: 'status',
+        startDate: 'start_date',
+        endDate: 'end_date',
+        registrationDeadline: 'registration_deadline',
+        formPhone: 'form_phone',
+        formJobTitle: 'form_job_title',
+        formOrganization: 'form_organization',
+        formTshirtSize: 'form_tshirt_size',
+        formReference: 'form_reference',
+        formTransactionId: 'form_transaction_id',
+      };
+
       const updates: string[] = [];
       const values: any[] = [];
-      let idx = 1;
 
-      if (input.title !== undefined) {
-        updates.push(`title = $${idx++}`);
-        values.push(input.title);
-      }
-      if (input.date !== undefined) {
-        updates.push(`date = $${idx++}`);
-        values.push(input.date);
-      }
-      if (input.time !== undefined) {
-        updates.push(`time = $${idx++}`);
-        values.push(input.time);
-      }
-      if (input.location !== undefined) {
-        updates.push(`location = $${idx++}`);
-        values.push(input.location);
-      }
-      if (input.capacity !== undefined) {
-        updates.push(`capacity = $${idx++}`);
-        values.push(input.capacity);
-      }
-      if (input.contactEmail !== undefined) {
-        updates.push(`contact_email = $${idx++}`);
-        values.push(input.contactEmail);
-      }
-      if (input.contactPhone !== undefined) {
-        updates.push(`contact_phone = $${idx++}`);
-        values.push(input.contactPhone);
-      }
-      if (input.description !== undefined) {
-        updates.push(`description = $${idx++}`);
-        values.push(input.description);
-      }
-      if (input.thumbnail !== undefined) {
-        updates.push(`thumbnail = $${idx++}`);
-        values.push(input.thumbnail);
-      }
-      if (input.status !== undefined) {
-        updates.push(`status = $${idx++}`);
-        values.push(input.status);
-      }
-      if (input.startDate !== undefined) {
-        updates.push(`start_date = $${idx++}`);
-        values.push(input.startDate);
-      }
-      if (input.endDate !== undefined) {
-        updates.push(`end_date = $${idx++}`);
-        values.push(input.endDate);
-      }
-      if (input.registrationDeadline !== undefined) {
-        updates.push(`registration_deadline = $${idx++}`);
-        values.push(input.registrationDeadline);
+      for (const [key, columnName] of Object.entries(fieldToColumnMap)) {
+        const val = (input as Record<string, any>)[key];
+        if (val !== undefined) {
+          values.push(val);
+          updates.push(`${columnName} = $${values.length}`);
+        }
       }
 
       if (updates.length === 0) {
@@ -161,7 +177,7 @@ export class EventService {
       const query = `
         UPDATE events
         SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
-        WHERE slug = $${idx}
+        WHERE slug = $${values.length}
         RETURNING *;
       `;
       const updateRes = await client.query(query, values);
@@ -172,13 +188,20 @@ export class EventService {
   }
 
   static computeEventStatus(event: any) {
-    if (event.status === 'PUBLISHED') {
+    if (event.status === 'PUBLISHED' || event.status === 'REGISTRATION_CLOSED' || event.status === 'LIVE' || event.status === 'ENDED') {
       const now = new Date();
       if (event.end_date && new Date(event.end_date) < now) {
         return { ...event, status: 'ENDED' };
       }
       if (event.start_date && new Date(event.start_date) <= now) {
         return { ...event, status: 'LIVE' };
+      }
+      if (event.registration_deadline && new Date(event.registration_deadline) < now) {
+        return { ...event, status: 'REGISTRATION_CLOSED' };
+      }
+      // If deadline has not passed but status was REGISTRATION_CLOSED, restore to PUBLISHED
+      if (event.status === 'REGISTRATION_CLOSED') {
+        return { ...event, status: 'PUBLISHED' };
       }
     }
     return event;

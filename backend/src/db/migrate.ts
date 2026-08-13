@@ -70,6 +70,12 @@ export async function runMigrations() {
         contact_phone VARCHAR(50),
         host_username VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
         status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
+        form_phone BOOLEAN DEFAULT true,
+        form_job_title BOOLEAN DEFAULT true,
+        form_organization BOOLEAN DEFAULT true,
+        form_tshirt_size BOOLEAN DEFAULT false,
+        form_reference BOOLEAN DEFAULT false,
+        form_transaction_id BOOLEAN DEFAULT false,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
@@ -83,6 +89,12 @@ export async function runMigrations() {
     await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS start_date TIMESTAMP WITH TIME ZONE').catch(() => {});
     await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS end_date TIMESTAMP WITH TIME ZONE').catch(() => {});
     await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_deadline TIMESTAMP WITH TIME ZONE').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS form_phone BOOLEAN DEFAULT true').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS form_job_title BOOLEAN DEFAULT true').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS form_organization BOOLEAN DEFAULT true').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS form_tshirt_size BOOLEAN DEFAULT false').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS form_reference BOOLEAN DEFAULT false').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS form_transaction_id BOOLEAN DEFAULT false').catch(() => {});
 
     // 5. Ensure ticket_types table exists
     await client.query(`
@@ -121,9 +133,24 @@ export async function runMigrations() {
         status VARCHAR(50) NOT NULL DEFAULT 'CONFIRMED',
         payment_status VARCHAR(50) NOT NULL DEFAULT 'NOT_REQUIRED',
         qr_token VARCHAR(64) NOT NULL DEFAULT uuid_generate_v4()::text,
+        full_name VARCHAR(255),
+        phone VARCHAR(50),
+        job_title VARCHAR(255),
+        organization VARCHAR(255),
+        tshirt_size VARCHAR(10),
+        reference VARCHAR(255),
+        transaction_id VARCHAR(255),
         registered_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+
+    await client.query('ALTER TABLE registrations ADD COLUMN IF NOT EXISTS full_name VARCHAR(255)').catch(() => {});
+    await client.query('ALTER TABLE registrations ADD COLUMN IF NOT EXISTS phone VARCHAR(50)').catch(() => {});
+    await client.query('ALTER TABLE registrations ADD COLUMN IF NOT EXISTS job_title VARCHAR(255)').catch(() => {});
+    await client.query('ALTER TABLE registrations ADD COLUMN IF NOT EXISTS organization VARCHAR(255)').catch(() => {});
+    await client.query('ALTER TABLE registrations ADD COLUMN IF NOT EXISTS tshirt_size VARCHAR(10)').catch(() => {});
+    await client.query('ALTER TABLE registrations ADD COLUMN IF NOT EXISTS reference VARCHAR(255)').catch(() => {});
+    await client.query('ALTER TABLE registrations ADD COLUMN IF NOT EXISTS transaction_id VARCHAR(255)').catch(() => {});
 
     // 7. Ensure indexes exist
     await client.query(`

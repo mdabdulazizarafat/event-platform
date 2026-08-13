@@ -37,6 +37,11 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
   const [status, setStatus] = useState('DRAFT');
   const [isUploading, setIsUploading] = useState(false);
   
+  // Registration Form Options
+  const [formTshirtSize, setFormTshirtSize] = useState(false);
+  const [formReference, setFormReference] = useState(false);
+  const [formTransactionId, setFormTransactionId] = useState(false);
+  
   // Ticket State
   const [tickets, setTickets] = useState<EditableTicketType[]>([]);
 
@@ -96,6 +101,10 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
           setContactEmail(data.contact_email || data.contactEmail || '');
           setContactPhone(data.contact_phone || data.contactPhone || '');
           setStatus(data.status || 'DRAFT');
+
+          setFormTshirtSize(data.form_tshirt_size !== undefined ? data.form_tshirt_size : false);
+          setFormReference(data.form_reference !== undefined ? data.form_reference : false);
+          setFormTransactionId(data.form_transaction_id !== undefined ? data.form_transaction_id : false);
         } else {
           message.error('Failed to load event details');
           router.push(`/dashboard/events/${slug}`);
@@ -213,7 +222,8 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
           endDate: new Date(`${date}T${endTime}:00`).toISOString(),
           registrationDeadline: new Date(`${registrationDeadlineDate}T${registrationDeadlineTime}:00`).toISOString(),
           location,
-          capacity: parseInt(capacity), contactEmail, contactPhone, status
+          capacity: parseInt(capacity), contactEmail, contactPhone, status,
+          formPhone: true, formJobTitle: true, formOrganization: true, formTshirtSize, formReference, formTransactionId
         })
       });
 
@@ -421,6 +431,59 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
             <h4 className="text-sm font-bold text-error mb-2">Danger Zone</h4>
             <p className="text-xs text-on-surface-variant mb-4">Deleting this event is permanent and cannot be undone.</p>
             <Button variant="outline" className="text-error border-error hover:bg-error/10">Delete Event</Button>
+          </div>
+        </div>
+      )
+    },
+    {
+      key: '5',
+      label: 'Registration Form',
+      children: (
+        <div className="space-y-4 pt-2">
+          <h4 className="text-sm font-bold text-foreground mb-1 uppercase tracking-wider">
+            Registration Form Customization
+          </h4>
+          <p className="text-xs text-on-surface-variant mb-4">
+            Select which fields should be shown on the registration form. Name and Email are always required.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-surface-container-low p-4 rounded-xl">
+
+            <div className="flex items-center justify-between p-2 hover:bg-surface-container-high rounded-lg transition-colors">
+              <div>
+                <span className="text-xs font-bold text-foreground block">T-Shirt Size</span>
+                <span className="text-[10px] text-on-surface-variant">Collect size option (XS to XXL)</span>
+              </div>
+              <input 
+                type="checkbox" 
+                checked={formTshirtSize} 
+                onChange={(e) => setFormTshirtSize(e.target.checked)} 
+                className="w-4 h-4 text-primary rounded border-outline-variant focus:ring-primary cursor-pointer"
+              />
+            </div>
+            <div className="flex items-center justify-between p-2 hover:bg-surface-container-high rounded-lg transition-colors">
+              <div>
+                <span className="text-xs font-bold text-foreground block">Reference</span>
+                <span className="text-[10px] text-on-surface-variant">How did they hear about this event?</span>
+              </div>
+              <input 
+                type="checkbox" 
+                checked={formReference} 
+                onChange={(e) => setFormReference(e.target.checked)} 
+                className="w-4 h-4 text-primary rounded border-outline-variant focus:ring-primary cursor-pointer"
+              />
+            </div>
+            <div className="flex items-center justify-between p-2 hover:bg-surface-container-high rounded-lg transition-colors">
+              <div>
+                <span className="text-xs font-bold text-foreground block">Transaction ID</span>
+                <span className="text-[10px] text-on-surface-variant">For manual payment references</span>
+              </div>
+              <input 
+                type="checkbox" 
+                checked={formTransactionId} 
+                onChange={(e) => setFormTransactionId(e.target.checked)} 
+                className="w-4 h-4 text-primary rounded border-outline-variant focus:ring-primary cursor-pointer"
+              />
+            </div>
           </div>
         </div>
       )

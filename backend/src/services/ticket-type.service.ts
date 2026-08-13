@@ -95,41 +95,26 @@ export class TicketTypeService {
    * Update a ticket type.
    */
   static async updateTicketType(id: number, input: UpdateTicketTypeInput) {
+    const fieldToColumnMap: Record<string, string> = {
+      name: 'name',
+      description: 'description',
+      price: 'price',
+      capacity: 'capacity',
+      sortOrder: 'sort_order',
+      isActive: 'is_active',
+      saleStart: 'sale_start',
+      saleEnd: 'sale_end',
+    };
+
     const updates: string[] = [];
     const values: any[] = [];
-    let idx = 1;
 
-    if (input.name !== undefined) {
-      updates.push(`name = $${idx++}`);
-      values.push(input.name);
-    }
-    if (input.description !== undefined) {
-      updates.push(`description = $${idx++}`);
-      values.push(input.description);
-    }
-    if (input.price !== undefined) {
-      updates.push(`price = $${idx++}`);
-      values.push(input.price);
-    }
-    if (input.capacity !== undefined) {
-      updates.push(`capacity = $${idx++}`);
-      values.push(input.capacity);
-    }
-    if (input.sortOrder !== undefined) {
-      updates.push(`sort_order = $${idx++}`);
-      values.push(input.sortOrder);
-    }
-    if (input.isActive !== undefined) {
-      updates.push(`is_active = $${idx++}`);
-      values.push(input.isActive);
-    }
-    if (input.saleStart !== undefined) {
-      updates.push(`sale_start = $${idx++}`);
-      values.push(input.saleStart);
-    }
-    if (input.saleEnd !== undefined) {
-      updates.push(`sale_end = $${idx++}`);
-      values.push(input.saleEnd);
+    for (const [key, columnName] of Object.entries(fieldToColumnMap)) {
+      const val = (input as Record<string, any>)[key];
+      if (val !== undefined) {
+        values.push(val);
+        updates.push(`${columnName} = $${values.length}`);
+      }
     }
 
     if (updates.length === 0) {
@@ -140,7 +125,7 @@ export class TicketTypeService {
     const query = `
       UPDATE ticket_types
       SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $${idx}
+      WHERE id = $${values.length}
       RETURNING *;
     `;
     const res = await pool.query(query, values);

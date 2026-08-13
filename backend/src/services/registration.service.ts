@@ -48,7 +48,21 @@ export class RegistrationService {
    * Now supports ticket types with per-ticket-type capacity enforcement.
    * For free tickets only — paid tickets go through PaymentService.
    */
-  static async registerForEvent(eventId: number, userId: string, email: string, ticketTypeId: number | null = null) {
+  static async registerForEvent(
+    eventId: number, 
+    userId: string, 
+    email: string, 
+    ticketTypeId: number | null = null,
+    details?: {
+      fullName?: string;
+      phone?: string;
+      jobTitle?: string;
+      organization?: string;
+      tshirtSize?: string;
+      reference?: string;
+      transactionId?: string;
+    }
+  ) {
     const client = await pool.connect();
     try {
       // If a ticket type is specified, validate it
@@ -82,8 +96,11 @@ export class RegistrationService {
 
       // Atomic insert checking current count against global event capacity
       const registerQuery = `
-        INSERT INTO registrations (event_id, ticket_type_id, user_id, email, status, payment_status)
-        SELECT $1, $2, $3, $4, 'CONFIRMED', 'NOT_REQUIRED'
+        INSERT INTO registrations (
+          event_id, ticket_type_id, user_id, email, status, payment_status,
+          full_name, phone, job_title, organization, tshirt_size, reference, transaction_id
+        )
+        SELECT $1, $2, $3, $4, 'CONFIRMED', 'NOT_REQUIRED', $5, $6, $7, $8, $9, $10, $11
         WHERE (
           SELECT COUNT(*) FROM registrations WHERE event_id = $1 AND status != 'CANCELLED'
         ) < (
@@ -92,7 +109,19 @@ export class RegistrationService {
         RETURNING id, qr_token;
       `;
       
-      const res = await client.query(registerQuery, [eventId, ticketTypeId, userId, email]);
+      const res = await client.query(registerQuery, [
+        eventId, 
+        ticketTypeId, 
+        userId, 
+        email,
+        details?.fullName || null,
+        details?.phone || null,
+        details?.jobTitle || null,
+        details?.organization || null,
+        details?.tshirtSize || null,
+        details?.reference || null,
+        details?.transactionId || null,
+      ]);
 
       if (res.rowCount === 0) {
         throw new Error('Registration failed: Event is at capacity or does not exist.');

@@ -104,13 +104,13 @@ export default function EventInfrastructurePage({ params }: { params: Promise<{ 
           <div className="flex justify-between items-center text-xs">
             <span className="font-extrabold text-foreground">Venue Limits</span>
             <span className="text-on-surface-variant font-bold">
-              {scanStats ? scanStats.totalCheckedIn || 0 : 0} checked in / {event.capacity} Max Capacity
+              {scanStats ? scanStats.totalCheckedIn || 0 : 0} checked in / {event.capacity || 0} Max Capacity
             </span>
           </div>
           <div className="w-full bg-surface-container-high h-3 rounded-full overflow-hidden">
             <div
               className="bg-error h-full transition-all duration-300"
-              style={{ width: `${((scanStats?.totalCheckedIn || 0) / event.capacity) * 100}%` }}
+              style={{ width: `${((scanStats?.totalCheckedIn || 0) / (event.capacity || 1)) * 100}%` }}
             ></div>
           </div>
           <p className="text-[11px] text-on-surface-variant mt-2 mb-0">
