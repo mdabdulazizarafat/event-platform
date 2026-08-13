@@ -54,7 +54,7 @@ Ensure the VPS has the following installed:
 2. Go to **DNS settings** for `rongplan.com`.
 3. Add a new **A Record**:
    - **Name**: `ayojok` (resolving to `ayojok.rongplan.com`)
-   - **IPv4 Address**: `[Your VPS Public IP]`
+   - **IPv4 Address**: `187.127.102.17`
    - **Proxy status**: Proxied (Orange cloud enabled)
 
 ---

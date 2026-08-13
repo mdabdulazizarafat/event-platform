@@ -9,7 +9,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME:-ayojok_db}
       POSTGRES_USER: ${DB_USER:-ayojok_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_ayojok_password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-prod_ayojok_db_pass_92f8a1}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     # No port published to host for maximum database security
@@ -21,7 +21,7 @@ services:
     image: redis:7-alpine
     container_name: ayojok-redis
     restart: always
-    command: redis-server --requirepass ${REDIS_PASSWORD:-secure_redis_password}
+    command: redis-server --requirepass ${REDIS_PASSWORD:-prod_redis_pass_c2b19e}
     volumes:
       - redis_data:/data
     # No port published to host for security
@@ -30,9 +30,7 @@ services:
 
   # Express Backend API
   ayojok-backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    image: ghcr.io/mdabdulazizarafat/ayojok-backend:latest
     container_name: ayojok-backend
     restart: always
     depends_on:
@@ -44,10 +42,10 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - DATABASE_URL=postgresql://${DB_USER:-ayojok_user}:${DB_PASSWORD:-secure_ayojok_password}@ayojok-postgres:5432/${DB_NAME:-ayojok_db}?sslmode=disable
+      - DATABASE_URL=postgresql://${DB_USER:-ayojok_user}:${DB_PASSWORD:-prod_ayojok_db_pass_92f8a1}@ayojok-postgres:5432/${DB_NAME:-ayojok_db}?sslmode=disable
       - REDIS_HOST=ayojok-redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-secure_redis_password}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-prod_redis_pass_c2b19e}
       - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
       - FRONTEND_URL=${FRONTEND_URL:-https://ayojok.rongplan.com}
@@ -67,9 +65,7 @@ services:
 
   # Next.js Frontend
   ayojok-frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
+    image: ghcr.io/mdabdulazizarafat/ayojok-frontend:latest
     container_name: ayojok-frontend
     restart: always
     ports:
