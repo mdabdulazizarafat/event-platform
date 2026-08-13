@@ -16,8 +16,8 @@ const isRealPublicKey = process.env.JWT_PUBLIC_KEY &&
 
 if (isRealPrivateKey && isRealPublicKey) {
   // Production / configured keypair
-  privateKey = process.env.JWT_PRIVATE_KEY!.replace(/\\n/g, '\n');
-  publicKey = process.env.JWT_PUBLIC_KEY!.replace(/\\n/g, '\n');
+  privateKey = process.env.JWT_PRIVATE_KEY!.replace(/^"|"$/g, '').replace(/\\n/g, '\n');
+  publicKey = process.env.JWT_PUBLIC_KEY!.replace(/^"|"$/g, '').replace(/\\n/g, '\n');
   logger.info('Asymmetric JWT Keys loaded from environment configurations.');
 } else {
   // Local development fallback: dynamically generate a 2048-bit RSA key pair at startup
