@@ -12,6 +12,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-db_d579e08879c368fa3c4f71ab67788df6}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
     # No port published to host for maximum database security
     networks:
       - ayojok-network

@@ -88,15 +88,19 @@ Convert both keys into single-line strings replacing newlines with `\n` to pass 
 ---
 
 ### Step D: Build and Start Containers
-From the root folder containing `docker-compose.yml`, run:
-```bash
-# Build and run in detached (background) mode
-docker compose up -d --build
-```
-Verify all containers are up and running:
-```bash
-docker compose ps
-```
+1. Ensure the Neon database migration script at `database/init/01-init.sql` is present in the workspace.
+2. From the root folder containing `docker-compose.yml`, run:
+   ```bash
+   # Build and run in detached (background) mode
+   docker compose up -d --build
+   ```
+   > [!NOTE]
+   > On the first startup, the PostgreSQL container detects an empty volume and automatically executes the SQL initialization script at `database/init/01-init.sql` to recreate the schema and populate it with the migrated Neon database data.
+
+3. Verify all containers are up and running:
+   ```bash
+   docker compose ps
+   ```
 
 ---
 
