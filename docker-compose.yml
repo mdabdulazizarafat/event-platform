@@ -30,7 +30,7 @@ services:
 
   # Express Backend API
   ayojok-backend:
-    image: ghcr.io/mdabdulazizarafat/ayojok-backend:latest
+    image: ghcr.io/mdabdulazizarafat/ayojok-backend:main
     container_name: ayojok-backend
     restart: always
     depends_on:
@@ -65,7 +65,7 @@ services:
 
   # Next.js Frontend
   ayojok-frontend:
-    image: ghcr.io/mdabdulazizarafat/ayojok-frontend:latest
+    image: ghcr.io/mdabdulazizarafat/ayojok-frontend:main
     container_name: ayojok-frontend
     restart: always
     ports:
