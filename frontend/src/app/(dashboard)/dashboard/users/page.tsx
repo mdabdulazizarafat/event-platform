@@ -8,9 +8,11 @@ import StatusChip from '@/components/ui/StatusChip';
 import { Search, UserCheck, ShieldAlert, ArrowLeft, Plus, Edit, Trash2 } from 'lucide-react';
 import { Modal, Form, Input, Select, Pagination, message } from 'antd';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AdminAccountsPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,8 +39,8 @@ export default function AdminAccountsPage() {
     try {
       const res = await fetch('/api/v1/admin/users');
       if (res.ok) {
-        const data = await res.json();
-        setUsers(data);
+        const result = await res.json();
+        setUsers(result.data || []);
       } else {
         message.error('Failed to load users from registry.');
       }
@@ -222,6 +224,10 @@ export default function AdminAccountsPage() {
     }
   ];
 
+  if (user && user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
+    return <div className="text-center py-20 text-error">Unauthorized Access</div>;
+  }
+
   return (
     <div className="space-y-6">
       <section className="flex items-center justify-between border-b border-outline-variant/60 pb-5">
@@ -229,7 +235,7 @@ export default function AdminAccountsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.push('/dashboard/admin')}
+            onClick={() => router.push('/dashboard')}
             icon={<ArrowLeft className="w-4 h-4" />}
           >
             Back

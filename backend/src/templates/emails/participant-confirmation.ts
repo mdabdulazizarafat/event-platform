@@ -32,7 +32,7 @@ export const ParticipantConfirmationEmail = ({
   <title>You're confirmed for ${eventName}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
   <style>
-    body { margin: 0; padding: 0; background-color: #f0f3ff; }
+    body { margin: 0; padding: 0; background-color: #FAFAFA; }
     table { border-collapse: collapse; }
     @media only screen and (max-width: 480px) {
       .email-card  { border-radius: 0 !important; width: 100% !important; max-width: 100% !important; }
@@ -45,45 +45,45 @@ export const ParticipantConfirmationEmail = ({
     }
   </style>
 </head>
-<body style="margin:0; padding:0; background-color:#f0f3ff;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f0f3ff; padding:0;">
+<body style="margin:0; padding:0; background-color:#FAFAFA;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#FAFAFA; padding:0;">
     <tr>
       <td align="center" valign="top" style="padding: 40px 10px;">
         <!-- Email Card -->
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" class="email-card" width="100%" style="max-width: 480px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 48px rgba(53,37,205,0.10), 0 2px 12px rgba(0,0,0,0.05);">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" class="email-card" width="100%" style="max-width: 480px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 48px rgba(43,163,97,0.06), 0 2px 12px rgba(0,0,0,0.04);">
           
           <!-- HEADER -->
           <tr>
-            <td class="header-pad" style="padding: 24px 24px 18px 24px; background-color: #3525cd; text-align: center;">
+            <td class="header-pad" style="padding: 24px 24px 18px 24px; background-color: #2BA361; text-align: center;">
               <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 18px; font-weight: 800; color: #ffffff; margin: 0;">Ayojok</div>
-              <div style="font-family: 'Inter', Arial, sans-serif; font-size: 11px; color: #c3c0ff; margin-top: 4px;">Powered by Rong Plan</div>
+              <div style="font-family: 'Inter', Arial, sans-serif; font-size: 11px; color: #c5ebd5; margin-top: 4px;">Powered by Rong Plan</div>
             </td>
           </tr>
 
           <!-- BODY -->
           <tr>
             <td class="body-pad" style="padding: 28px 24px 8px 24px; background-color: #ffffff;">
-              <p style="font-family: 'Inter', Arial, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #00714d; margin: 0 0 10px 0;">✓ Registration confirmed</p>
+              <p style="font-family: 'Inter', Arial, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #2BA361; margin: 0 0 10px 0;">✓ Registration confirmed</p>
               
-              <h1 style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 22px; font-weight: 700; color: #111c2d; line-height: 1.3; letter-spacing: -0.3px; margin: 0 0 10px 0;">
-                You're <span style="color:#3525cd;">Going</span>, ${participantName}.
+              <h1 style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 22px; font-weight: 700; color: #0D1F15; line-height: 1.3; letter-spacing: -0.3px; margin: 0 0 10px 0;">
+                You're <span style="color:#2BA361;">Going</span>, ${participantName}.
               </h1>
               
-              <p style="font-family: 'Inter', Arial, sans-serif; font-size: 15px; color: #464555; line-height: 1.6; font-weight: 400; margin: 0 0 20px 0;">
+              <p style="font-family: 'Inter', Arial, sans-serif; font-size: 15px; color: #3D5647; line-height: 1.6; font-weight: 400; margin: 0 0 20px 0;">
                 You are confirmed for ${eventName}. Present the QR code below at the venue for quick check-in.
               </p>
 
               <!-- QR InfoCard -->
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f0f3ff; border-radius: 12px; border: 1px solid rgba(53,37,205,0.12); margin-bottom: 16px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #FAFAFA; border-radius: 12px; border: 1px solid rgba(43,163,97,0.15); margin-bottom: 16px;">
                 <tr>
                   <td align="center" style="padding: 24px 20px;">
-                    <div style="background-color: #ffffff; border-radius: 10px; padding: 12px; display: inline-block; border: 1px solid rgba(53,37,205,0.12);">
+                    <div style="background-color: #ffffff; border-radius: 10px; padding: 12px; display: inline-block; border: 1px solid rgba(43,163,97,0.15);">
                       <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${qrToken}" width="180" height="180" class="qr-img" style="display: block; width: 180px; height: 180px;" alt="QR Code" />
                     </div>
-                    <div style="font-family: 'Courier New', Courier, monospace; letter-spacing: 3px; font-size: 18px; font-weight: 700; color: #111c2d; margin-top: 16px; text-transform: uppercase;">
+                    <div style="font-family: 'Courier New', Courier, monospace; letter-spacing: 3px; font-size: 18px; font-weight: 700; color: #0D1F15; margin-top: 16px; text-transform: uppercase;">
                       ${qrToken.substring(0, 8)}
                     </div>
-                    <div style="font-family: 'Inter', Arial, sans-serif; font-size: 12px; color: #777587; margin-top: 6px;">
+                    <div style="font-family: 'Inter', Arial, sans-serif; font-size: 12px; color: #6B7F75; margin-top: 6px;">
                       Ticket #${ticketId} • ${ticketName}
                     </div>
                   </td>
@@ -91,23 +91,23 @@ export const ParticipantConfirmationEmail = ({
               </table>
 
               <!-- Details InfoCard -->
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f0f3ff; border-radius: 12px; border: 1px solid rgba(53,37,205,0.12); margin-bottom: 16px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #FAFAFA; border-radius: 12px; border: 1px solid rgba(43,163,97,0.15); margin-bottom: 16px;">
                 <tr>
                   <td style="padding: 18px 20px 6px 20px;">
-                    <div style="font-family: 'Inter', Arial, sans-serif; font-size: 11px; font-weight: 700; color: rgba(17,28,45,0.38); text-transform: uppercase; letter-spacing: 0.04em; padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px solid rgba(53,37,205,0.10);">
+                    <div style="font-family: 'Inter', Arial, sans-serif; font-size: 11px; font-weight: 700; color: rgba(13,31,21,0.38); text-transform: uppercase; letter-spacing: 0.04em; padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px solid rgba(43,163,97,0.09);">
                       Event Details
                     </div>
                     
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                       <tr>
-                        <td width="60" style="font-family: 'Inter', Arial, sans-serif; font-size: 13px; color: #777587; font-weight: 500; padding-bottom: 10px; vertical-align: top;">When</td>
-                        <td style="font-family: 'Inter', Arial, sans-serif; font-size: 13px; color: #111c2d; font-weight: 600; padding-bottom: 10px; vertical-align: top;">
+                        <td width="60" style="font-family: 'Inter', Arial, sans-serif; font-size: 13px; color: #6B7F75; font-weight: 500; padding-bottom: 10px; vertical-align: top;">When</td>
+                        <td style="font-family: 'Inter', Arial, sans-serif; font-size: 13px; color: #0D1F15; font-weight: 600; padding-bottom: 10px; vertical-align: top;">
                           ${eventDate}<br/>${eventTime}
                         </td>
                       </tr>
                       <tr>
-                        <td width="60" style="font-family: 'Inter', Arial, sans-serif; font-size: 13px; color: #777587; font-weight: 500; padding-bottom: 6px; vertical-align: top;">Where</td>
-                        <td style="font-family: 'Inter', Arial, sans-serif; font-size: 13px; color: #111c2d; font-weight: 600; padding-bottom: 6px; vertical-align: top;">
+                        <td width="60" style="font-family: 'Inter', Arial, sans-serif; font-size: 13px; color: #6B7F75; font-weight: 500; padding-bottom: 6px; vertical-align: top;">Where</td>
+                        <td style="font-family: 'Inter', Arial, sans-serif; font-size: 13px; color: #0D1F15; font-weight: 600; padding-bottom: 6px; vertical-align: top;">
                           ${eventLocation}
                         </td>
                       </tr>
@@ -123,11 +123,11 @@ export const ParticipantConfirmationEmail = ({
           <tr>
             <td class="cta-pad" align="center" style="padding: 4px 24px 28px 24px; background-color: #ffffff;">
               <!--[if mso]>
-                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${calendarUrl}" style="height:48px;v-text-anchor:middle;width:240px;" arcsize="16%" stroke="f" fillcolor="#3525cd">
+                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${calendarUrl}" style="height:48px;v-text-anchor:middle;width:240px;" arcsize="16%" stroke="f" fillcolor="#2BA361">
                   <w:anchorlock/>
                   <center>
                 <![endif]-->
-                    <a href="${calendarUrl}" class="cta-btn" style="display: inline-block; background: linear-gradient(135deg, #3525cd 0%, #4f46e5 100%); color: #ffffff; font-family: 'Inter', Arial, sans-serif; font-size: 14px; font-weight: 700; text-decoration: none; padding: 14px 32px; border-radius: 8px; letter-spacing: -0.1px;">
+                    <a href="${calendarUrl}" class="cta-btn" style="display: inline-block; background: linear-gradient(135deg, #2BA361 0%, #4dc487 100%); color: #ffffff; font-family: 'Inter', Arial, sans-serif; font-size: 14px; font-weight: 700; text-decoration: none; padding: 14px 32px; border-radius: 8px; letter-spacing: -0.1px;">
                       Add to Calendar
                     </a>
                 <!--[if mso]>
@@ -139,14 +139,14 @@ export const ParticipantConfirmationEmail = ({
 
           <!-- FOOTER -->
           <tr>
-            <td class="footer-pad" style="padding: 24px; background-color: #f9f9ff; border-top: 1px solid rgba(53,37,205,0.09);">
-              <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 14px; font-weight: 700; color: #111c2d; margin-bottom: 12px;">Ayojok</div>
+            <td class="footer-pad" style="padding: 24px; background-color: #FAFAFA; border-top: 1px solid rgba(43,163,97,0.09);">
+              <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 14px; font-weight: 700; color: #0D1F15; margin-bottom: 12px;">Ayojok</div>
               
-              <div style="font-family: 'Inter', Arial, sans-serif; font-size: 11px; color: rgba(17,28,45,0.35); line-height: 1.6; margin-bottom: 16px;">
-                Sent by Ayojok, powered by Rong Plan, on behalf of <strong style="color: rgba(17,28,45,0.55);">${organizerName}</strong>.<br/>
+              <div style="font-family: 'Inter', Arial, sans-serif; font-size: 11px; color: rgba(13,31,21,0.38); line-height: 1.6; margin-bottom: 16px;">
+                Sent by Ayojok, powered by Rong Plan, on behalf of <strong style="color: rgba(13,31,21,0.55);">${organizerName}</strong>.<br/>
                 ${organizerAddress}<br/><br/>
                 You received this because you registered for <strong>${eventName}</strong>.<br/>
-                <a href="{{unsubscribe_url}}" style="color: rgba(17,28,45,0.35); text-decoration: underline;">Unsubscribe</a>
+                <a href="{{unsubscribe_url}}" style="color: rgba(13,31,21,0.38); text-decoration: underline;">Unsubscribe</a>
               </div>
 
               <!-- Social row -->

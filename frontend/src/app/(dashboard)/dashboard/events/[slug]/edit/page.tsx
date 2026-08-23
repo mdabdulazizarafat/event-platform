@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import FormField from '@/components/ui/FormField';
 import type { Event, TicketType } from '@/lib/api';
 import { fetchTicketTypes } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 interface EditableTicketType extends Partial<TicketType> {
   isNew?: boolean;
@@ -16,6 +17,7 @@ interface EditableTicketType extends Partial<TicketType> {
 export default function EditEventPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = React.use(params);
   const router = useRouter();
+  const { user } = useAuth();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -181,7 +183,7 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
               const res = await fetch('/api/v1/events/upload-image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imageBase64: dataUrl })
+                body: JSON.stringify({ imageBase64: dataUrl, eventId: slug })
               });
               const data = await res.json();
               if (res.ok && data.url) {
@@ -295,6 +297,8 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
     setTickets([...tickets, { name: '', description: '', price: '0', capacity: 100, isNew: true }]);
   };
 
+  const isEndedAndLocked = status === 'ENDED' && user?.role !== 'SUPER_ADMIN' && user?.role !== 'ADMIN';
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -302,6 +306,7 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
       </div>
     );
   }
+
 
   const tabItems = [
     {
@@ -392,7 +397,7 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 mt-2">
                   <FormField label="Ticket Name" value={ticket.name || ''} onChange={(e) => handleTicketChange(index, 'name', e.target.value)} required />
-                  <FormField label="Price (BDT)" type="number" value={ticket.price?.toString() || ''} onChange={(e) => handleTicketChange(index, 'price', e.target.value)} required />
+                   <FormField label="Price (BDT) [Paid tickets are temporarily disabled]" type="number" value="0" onChange={() => {}} disabled required />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField label="Capacity" type="number" value={ticket.capacity?.toString() || ''} onChange={(e) => handleTicketChange(index, 'capacity', e.target.value)} required />
@@ -501,10 +506,22 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
             Edit Event Details
           </h2>
         </div>
-        <Button variant="primary" loading={saving} onClick={handleSave} icon={<Save className="w-4 h-4" />}>
-          Save Changes
+        <Button 
+          variant="primary" 
+          loading={saving} 
+          disabled={isEndedAndLocked}
+          onClick={handleSave} 
+          icon={<Save className="w-4 h-4" />}
+        >
+          {isEndedAndLocked ? 'Read-Only (Ended)' : 'Save Changes'}
         </Button>
       </div>
+
+      {isEndedAndLocked && (
+        <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-500 text-xs font-bold flex items-center gap-2">
+          <span>⚠️ This event has ended and is in read-only mode. Only platform super admins and admins can edit an ended event.</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 sm:p-8 shadow-xs">

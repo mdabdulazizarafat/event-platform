@@ -1,6 +1,6 @@
 -- =========================================================================
 -- RONG PLAN EVENT PLATFORM - DATABASE INITIALIZATION & DATA MIGRATION
--- Generated on 2026-08-14T06:20:37.066Z
+-- Generated on 2026-08-23T17:28:36.368Z
 -- =========================================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -8,6 +8,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- -------------------------------------------------------------------------
 -- DROP EXISTING TABLES (CLEAN SLATE)
 -- -------------------------------------------------------------------------
+DROP TABLE IF EXISTS schedules CASCADE;
 DROP TABLE IF EXISTS admin_permissions CASCADE;
 DROP TABLE IF EXISTS activity_scans CASCADE;
 DROP TABLE IF EXISTS event_activities CASCADE;
@@ -185,23 +186,38 @@ CREATE TABLE admin_permissions (
 );
 CREATE INDEX idx_admin_permissions_user ON admin_permissions (username);
 
+-- Schedules
+CREATE TABLE schedules (
+  id SERIAL PRIMARY KEY,
+  event_slug VARCHAR(255) NOT NULL REFERENCES events(slug) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  date VARCHAR(100) NOT NULL,
+  start_time VARCHAR(50) NOT NULL,
+  end_time VARCHAR(50) NOT NULL,
+  room VARCHAR(255),
+  speaker VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'CONFIRMED',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- -------------------------------------------------------------------------
 -- DATA FOR TABLE: users
 -- -------------------------------------------------------------------------
-INSERT INTO users (username, name, email, password_hash, avatar, bio, created_at, updated_at, role, mobile, org, status) VALUES ('abdulaziz', 'Md Abdul Aziz', 'abdulaziz@ayojok.rongplan.com', '$2a$10$ROju9ERTWOLGM6KaTUQiOeZA/6n4/2AeIGNSxEJWwQr09jr4m7lui', 'https://pub-210b74cd36d646bbbb826f533facbe35.r2.dev/avatars/abdulaziz.webp?v=1786522926414', 'Software Enginner at Rong Plan
-', '2026-08-06T17:55:13.971Z'::timestamptz, '2026-08-12T17:38:04.584Z'::timestamptz, 'SUPER_ADMIN', '01857517588', NULL, 'ACTIVE');
-INSERT INTO users (username, name, email, password_hash, avatar, bio, created_at, updated_at, role, mobile, org, status) VALUES ('testuser123', 'Test User', 'testuser123@example.com', '$2a$10$R63MgNvwyl7PMZNdHZrXj.S7dBPf40NKohfqeYi71h.OGNeEr.tVS', NULL, NULL, '2026-08-12T17:56:47.390Z'::timestamptz, '2026-08-13T02:44:51.344Z'::timestamptz, 'ORGANIZER', '+8801712345678', 'Test Org', 'ACTIVE');
-INSERT INTO users (username, name, email, password_hash, avatar, bio, created_at, updated_at, role, mobile, org, status) VALUES ('zobaerahmed', 'Zobaer Ahmed', 'zobaerahmed@ayojok.rongplan.com', '$2a$10$ROju9ERTWOLGM6KaTUQiOeZA/6n4/2AeIGNSxEJWwQr09jr4m7lui', 'https://pub-210b74cd36d646bbbb826f533facbe35.r2.dev/avatars/zobaerahmed.webp?v=1786554951584', 'VP', '2026-08-06T17:55:13.971Z'::timestamptz, '2026-08-12T17:38:25.014Z'::timestamptz, 'ADMIN', '+880 1783503006', NULL, 'ACTIVE');
-INSERT INTO users (username, name, email, password_hash, avatar, bio, created_at, updated_at, role, mobile, org, status) VALUES ('organizer', 'ICD Information Technology Club', 'organizer@ayojok.rongplan.com', '$2a$10$ROju9ERTWOLGM6KaTUQiOeZA/6n4/2AeIGNSxEJWwQr09jr4m7lui', 'https://pub-210b74cd36d646bbbb826f533facbe35.r2.dev/avatars/organizer.webp?v=1786554453782', 'ICDITC', '2026-08-06T17:55:13.971Z'::timestamptz, '2026-08-12T17:09:09.467Z'::timestamptz, 'ORGANIZER', NULL, 'Ayojok Events', 'ACTIVE');
-INSERT INTO users (username, name, email, password_hash, avatar, bio, created_at, updated_at, role, mobile, org, status) VALUES ('eventmanager', 'Event Manager', 'eventmanager@ayojok.rongplan.com', '$2a$10$g0mO.XAXHLdDIXmAAP9Wh.SDU2la7PAS7kRTZ3wlwxiWcunCA5FDe', NULL, NULL, '2026-08-12T18:40:37.068Z'::timestamptz, '2026-08-12T18:40:37.068Z'::timestamptz, 'USER', NULL, NULL, 'ACTIVE');
-INSERT INTO users (username, name, email, password_hash, avatar, bio, created_at, updated_at, role, mobile, org, status) VALUES ('participant', 'Participant', 'participant@ayojok.rongplan.com', '$2a$10$ROju9ERTWOLGM6KaTUQiOeZA/6n4/2AeIGNSxEJWwQr09jr4m7lui', 'https://pub-210b74cd36d646bbbb826f533facbe35.r2.dev/avatars/participant.webp?v=1786560782541', 'Want to participant the tech events', '2026-08-06T17:55:13.971Z'::timestamptz, '2026-08-13T02:50:42.444Z'::timestamptz, 'USER', '0173295038', NULL, 'ACTIVE');
+INSERT INTO users (username, name, email, password_hash, avatar, bio, created_at, updated_at, role, mobile, org, status, first_name, last_name, date_of_birth, gender, occupation_type, institution_name, class_level, position, district) VALUES ('zobaerahmed', 'Zobaer Ahmed', 'zobaerahmed@ayojok.rongplan.com', '$2a$10$ROju9ERTWOLGM6KaTUQiOeZA/6n4/2AeIGNSxEJWwQr09jr4m7lui', 'https://pub-210b74cd36d646bbbb826f533facbe35.r2.dev/avatars/zobaerahmed.webp?v=1786554951584', 'VP', '2026-08-06T17:55:13.971Z'::timestamptz, '2026-08-12T17:38:25.014Z'::timestamptz, 'ADMIN', '+880 1783503006', NULL, 'ACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO users (username, name, email, password_hash, avatar, bio, created_at, updated_at, role, mobile, org, status, first_name, last_name, date_of_birth, gender, occupation_type, institution_name, class_level, position, district) VALUES ('organizer', 'ICD Information Technology Club', 'organizer@ayojok.rongplan.com', '$2a$10$ROju9ERTWOLGM6KaTUQiOeZA/6n4/2AeIGNSxEJWwQr09jr4m7lui', 'https://pub-210b74cd36d646bbbb826f533facbe35.r2.dev/avatars/organizer.webp?v=1786554453782', 'ICDITC', '2026-08-06T17:55:13.971Z'::timestamptz, '2026-08-12T17:09:09.467Z'::timestamptz, 'ORGANIZER', NULL, 'Ayojok Events', 'ACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO users (username, name, email, password_hash, avatar, bio, created_at, updated_at, role, mobile, org, status, first_name, last_name, date_of_birth, gender, occupation_type, institution_name, class_level, position, district) VALUES ('eventmanager', 'Event Manager', 'eventmanager@ayojok.rongplan.com', '$2a$10$g0mO.XAXHLdDIXmAAP9Wh.SDU2la7PAS7kRTZ3wlwxiWcunCA5FDe', NULL, NULL, '2026-08-12T18:40:37.068Z'::timestamptz, '2026-08-12T18:40:37.068Z'::timestamptz, 'USER', NULL, NULL, 'ACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO users (username, name, email, password_hash, avatar, bio, created_at, updated_at, role, mobile, org, status, first_name, last_name, date_of_birth, gender, occupation_type, institution_name, class_level, position, district) VALUES ('participant', 'Participant', 'participant@ayojok.rongplan.com', '$2a$10$ROju9ERTWOLGM6KaTUQiOeZA/6n4/2AeIGNSxEJWwQr09jr4m7lui', 'https://pub-210b74cd36d646bbbb826f533facbe35.r2.dev/avatars/participant.webp?v=1786560782541', 'Want to participant the tech events', '2026-08-06T17:55:13.971Z'::timestamptz, '2026-08-13T02:50:42.444Z'::timestamptz, 'USER', '0173295038', NULL, 'ACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO users (username, name, email, password_hash, avatar, bio, created_at, updated_at, role, mobile, org, status, first_name, last_name, date_of_birth, gender, occupation_type, institution_name, class_level, position, district) VALUES ('abdulaziz', 'Md Abdul Aziz', 'abdulaziz@ayojok.rongplan.com', '$2a$10$ROju9ERTWOLGM6KaTUQiOeZA/6n4/2AeIGNSxEJWwQr09jr4m7lui', 'https://pub-210b74cd36d646bbbb826f533facbe35.r2.dev/avatars/abdulaziz.webp?v=1787171383958', 'Software Enginner at Rong Plan
+', '2026-08-06T17:55:13.971Z'::timestamptz, '2026-08-19T21:06:09.172Z'::timestamptz, 'SUPER_ADMIN', '01857517588', NULL, 'ACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- -------------------------------------------------------------------------
 -- DATA FOR TABLE: events
 -- -------------------------------------------------------------------------
-INSERT INTO events (id, slug, title, date, time, location, capacity, host_username, created_at, updated_at, contact_email, contact_phone, description, status, thumbnail, start_date, end_date, registration_deadline, form_phone, form_job_title, form_organization, form_tshirt_size, form_reference, form_transaction_id) VALUES (21, 'bnhgv', 'bnhgv', '2026-08-04', '09:53 AM - 02:51 AM', 'fgvchg', 500, 'abdulaziz', '2026-08-13T03:54:00.698Z'::timestamptz, '2026-08-13T04:39:12.538Z'::timestamptz, 'abdulaziz@ayojok.rongplan.com', '01857517588', 'fgh', 'DRAFT', 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&h=450&fit=crop', NULL, NULL, NULL, true, true, true, false, false, false);
-INSERT INTO events (id, slug, title, date, time, location, capacity, host_username, created_at, updated_at, contact_email, contact_phone, description, status, thumbnail, start_date, end_date, registration_deadline, form_phone, form_job_title, form_organization, form_tshirt_size, form_reference, form_transaction_id) VALUES (19, 'test2', 'test2', 'Aug 20, 2026', '11:52 AM - 02:52 AM', 'xczdc', 500, 'organizer', '2026-08-12T04:52:39.022Z'::timestamptz, '2026-08-12T04:52:39.022Z'::timestamptz, 'organizer@ayojok.rongplan.com', '01732959038', 'aSDf', 'PUBLISHED', 'https://pub-210b74cd36d646bbbb826f533facbe35.r2.dev/banners/temp-1786510330405-1786510330463.webp', NULL, NULL, NULL, true, true, true, false, false, false);
-INSERT INTO events (id, slug, title, date, time, location, capacity, host_username, created_at, updated_at, contact_email, contact_phone, description, status, thumbnail, start_date, end_date, registration_deadline, form_phone, form_job_title, form_organization, form_tshirt_size, form_reference, form_transaction_id) VALUES (20, 'test3', 'test3', 'Aug 29, 2026', '01:52 AM - 04:57 AM', 'sdfc', 500, 'organizer', '2026-08-12T04:53:12.757Z'::timestamptz, '2026-08-13T07:29:57.117Z'::timestamptz, 'organizer@ayojok.rongplan.com', '01732959038', 'adfsc', 'PUBLISHED', 'https://pub-210b74cd36d646bbbb826f533facbe35.r2.dev/banners/temp-1786510387025-1786510387059.webp', NULL, NULL, NULL, true, true, true, true, true, true);
+INSERT INTO events (id, slug, title, date, time, location, capacity, host_username, created_at, updated_at, contact_email, contact_phone, description, status, thumbnail, start_date, end_date, registration_deadline, form_phone, form_job_title, form_organization, form_tshirt_size, form_reference, form_transaction_id, is_private, event_for, student_category) VALUES (21, 'bnhgv', 'bnhgv', '2026-08-04', '09:53 AM - 02:51 AM', 'fgvchg', 500, 'abdulaziz', '2026-08-13T03:54:00.698Z'::timestamptz, '2026-08-13T04:39:12.538Z'::timestamptz, 'abdulaziz@ayojok.rongplan.com', '01857517588', 'fgh', 'DRAFT', 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&h=450&fit=crop', NULL, NULL, NULL, true, true, true, false, false, false, false, 'BOTH', NULL);
+INSERT INTO events (id, slug, title, date, time, location, capacity, host_username, created_at, updated_at, contact_email, contact_phone, description, status, thumbnail, start_date, end_date, registration_deadline, form_phone, form_job_title, form_organization, form_tshirt_size, form_reference, form_transaction_id, is_private, event_for, student_category) VALUES (19, 'test2', 'test2', 'Aug 20, 2026', '11:52 AM - 02:52 AM', 'xczdc', 500, 'organizer', '2026-08-12T04:52:39.022Z'::timestamptz, '2026-08-12T04:52:39.022Z'::timestamptz, 'organizer@ayojok.rongplan.com', '01732959038', 'aSDf', 'PUBLISHED', 'https://pub-210b74cd36d646bbbb826f533facbe35.r2.dev/banners/temp-1786510330405-1786510330463.webp', NULL, NULL, NULL, true, true, true, false, false, false, false, 'BOTH', NULL);
+INSERT INTO events (id, slug, title, date, time, location, capacity, host_username, created_at, updated_at, contact_email, contact_phone, description, status, thumbnail, start_date, end_date, registration_deadline, form_phone, form_job_title, form_organization, form_tshirt_size, form_reference, form_transaction_id, is_private, event_for, student_category) VALUES (20, 'test3', 'test3', 'Aug 29, 2026', '01:52 AM - 04:57 AM', 'sdfc', 500, 'organizer', '2026-08-12T04:53:12.757Z'::timestamptz, '2026-08-13T07:29:57.117Z'::timestamptz, 'organizer@ayojok.rongplan.com', '01732959038', 'adfsc', 'PUBLISHED', 'https://pub-210b74cd36d646bbbb826f533facbe35.r2.dev/banners/temp-1786510387025-1786510387059.webp', NULL, NULL, NULL, true, true, true, true, true, true, false, 'BOTH', NULL);
+INSERT INTO events (id, slug, title, date, time, location, capacity, host_username, created_at, updated_at, contact_email, contact_phone, description, status, thumbnail, start_date, end_date, registration_deadline, form_phone, form_job_title, form_organization, form_tshirt_size, form_reference, form_transaction_id, is_private, event_for, student_category) VALUES (22, 'rfgt', 'rfgt', 'Aug 10, 2026', '05:20 AM - 07:17 AM', 'rfdg', 500, 'abdulaziz', '2026-08-19T21:21:09.258Z'::timestamptz, '2026-08-23T16:41:13.219Z'::timestamptz, 'abdulaziz@ayojok.rongplan.com', '01857517588', 'edrf', 'PUBLISHED', 'https://pub-210b74cd36d646bbbb826f533facbe35.r2.dev/banners/temp-1787503270772.webp?v=1787503271220', NULL, NULL, NULL, true, true, true, false, false, false, false, 'BOTH', NULL);
 
 -- Reset sequence for events
 SELECT setval(pg_get_serial_sequence('events', 'id'), COALESCE(MAX(id), 1)) FROM events;
@@ -209,9 +225,9 @@ SELECT setval(pg_get_serial_sequence('events', 'id'), COALESCE(MAX(id), 1)) FROM
 -- -------------------------------------------------------------------------
 -- DATA FOR TABLE: ticket_types
 -- -------------------------------------------------------------------------
-INSERT INTO ticket_types (id, event_id, name, description, price, currency, capacity, sort_order, is_active, sale_start, sale_end, created_at, updated_at) VALUES (2, 19, 'Standard Pass', 'General Access to the event.', '0.00', 'BDT', 500, 0, true, NULL, NULL, '2026-08-12T04:52:39.480Z'::timestamptz, '2026-08-12T04:52:39.480Z'::timestamptz);
-INSERT INTO ticket_types (id, event_id, name, description, price, currency, capacity, sort_order, is_active, sale_start, sale_end, created_at, updated_at) VALUES (3, 20, 'Standard Pass', 'General Access to the event.', '0.00', 'BDT', 400, 0, true, NULL, NULL, '2026-08-12T04:53:13.192Z'::timestamptz, '2026-08-13T04:41:33.636Z'::timestamptz);
-INSERT INTO ticket_types (id, event_id, name, description, price, currency, capacity, sort_order, is_active, sale_start, sale_end, created_at, updated_at) VALUES (4, 20, 'VIP', 'dsfc', '0.00', 'BDT', 100, 0, true, NULL, NULL, '2026-08-12T04:55:42.057Z'::timestamptz, '2026-08-13T04:41:33.805Z'::timestamptz);
+INSERT INTO ticket_types (id, event_id, name, description, price, currency, capacity, sort_order, is_active, sale_start, sale_end, created_at, updated_at, is_team, max_team_size) VALUES (2, 19, 'Standard Pass', 'General Access to the event.', '0.00', 'BDT', 500, 0, true, NULL, NULL, '2026-08-12T04:52:39.480Z'::timestamptz, '2026-08-12T04:52:39.480Z'::timestamptz, false, 1);
+INSERT INTO ticket_types (id, event_id, name, description, price, currency, capacity, sort_order, is_active, sale_start, sale_end, created_at, updated_at, is_team, max_team_size) VALUES (3, 20, 'Standard Pass', 'General Access to the event.', '0.00', 'BDT', 400, 0, true, NULL, NULL, '2026-08-12T04:53:13.192Z'::timestamptz, '2026-08-13T04:41:33.636Z'::timestamptz, false, 1);
+INSERT INTO ticket_types (id, event_id, name, description, price, currency, capacity, sort_order, is_active, sale_start, sale_end, created_at, updated_at, is_team, max_team_size) VALUES (4, 20, 'VIP', 'dsfc', '0.00', 'BDT', 100, 0, true, NULL, NULL, '2026-08-12T04:55:42.057Z'::timestamptz, '2026-08-13T04:41:33.805Z'::timestamptz, false, 1);
 
 -- Reset sequence for ticket_types
 SELECT setval(pg_get_serial_sequence('ticket_types', 'id'), COALESCE(MAX(id), 1)) FROM ticket_types;
@@ -263,6 +279,7 @@ INSERT INTO admin_logs (id, admin_username, action, target_type, target_id, deta
 INSERT INTO admin_logs (id, admin_username, action, target_type, target_id, details, created_at) VALUES (32, 'abdulaziz', 'ADMIN_REMOVE_EVENT_TEAM', 'EVENT', '21', '{"username":"abdulaziz"}'::jsonb, '2026-08-13T03:54:26.930Z'::timestamptz);
 INSERT INTO admin_logs (id, admin_username, action, target_type, target_id, details, created_at) VALUES (33, 'abdulaziz', 'ADMIN_ADD_EVENT_TEAM', 'EVENT', '21', '{"role":"ORGANIZER","username":"abdulaziz"}'::jsonb, '2026-08-13T03:54:49.132Z'::timestamptz);
 INSERT INTO admin_logs (id, admin_username, action, target_type, target_id, details, created_at) VALUES (34, 'abdulaziz', 'ADMIN_UPDATE_EVENT', 'EVENT', '21', '{"date":"2026-08-04","slug":"bnhgv","time":"09:53 AM - 02:51 AM","title":"bnhgv","status":"DRAFT","capacity":500,"location":"fgvchg","description":"fgh","contactEmail":"abdulaziz@ayojok.rongplan.com","contactPhone":"01857517588","hostUsername":"abdulaziz"}'::jsonb, '2026-08-13T04:39:13.050Z'::timestamptz);
+INSERT INTO admin_logs (id, admin_username, action, target_type, target_id, details, created_at) VALUES (35, 'abdulaziz', 'DELETE_USER', 'USER', 'testuser123', NULL, '2026-08-19T20:28:27.968Z'::timestamptz);
 
 -- Reset sequence for admin_logs
 SELECT setval(pg_get_serial_sequence('admin_logs', 'id'), COALESCE(MAX(id), 1)) FROM admin_logs;
@@ -272,10 +289,10 @@ SELECT setval(pg_get_serial_sequence('admin_logs', 'id'), COALESCE(MAX(id), 1)) 
 -- -------------------------------------------------------------------------
 INSERT INTO event_team (id, event_id, username, role, invited_by, joined_at) VALUES (15, 19, 'organizer', 'ORGANIZER', NULL, '2026-08-12T04:52:39.022Z'::timestamptz);
 INSERT INTO event_team (id, event_id, username, role, invited_by, joined_at) VALUES (16, 20, 'organizer', 'ORGANIZER', NULL, '2026-08-12T04:53:12.757Z'::timestamptz);
-INSERT INTO event_team (id, event_id, username, role, invited_by, joined_at) VALUES (23, 19, 'testuser123', 'ORGANIZER', 'organizer', '2026-08-13T02:46:50.479Z'::timestamptz);
 INSERT INTO event_team (id, event_id, username, role, invited_by, joined_at) VALUES (25, 19, 'participant', 'SCANNER', 'organizer', '2026-08-13T02:47:26.915Z'::timestamptz);
 INSERT INTO event_team (id, event_id, username, role, invited_by, joined_at) VALUES (27, 21, 'organizer', 'ORGANIZER', 'abdulaziz', '2026-08-13T03:54:23.698Z'::timestamptz);
 INSERT INTO event_team (id, event_id, username, role, invited_by, joined_at) VALUES (28, 21, 'abdulaziz', 'ORGANIZER', 'abdulaziz', '2026-08-13T03:54:49.080Z'::timestamptz);
+INSERT INTO event_team (id, event_id, username, role, invited_by, joined_at) VALUES (29, 22, 'abdulaziz', 'ORGANIZER', NULL, '2026-08-19T21:21:09.258Z'::timestamptz);
 
 -- Reset sequence for event_team
 SELECT setval(pg_get_serial_sequence('event_team', 'id'), COALESCE(MAX(id), 1)) FROM event_team;
@@ -287,6 +304,10 @@ INSERT INTO event_activities (id, event_id, name, scan_limit, is_active, sort_or
 INSERT INTO event_activities (id, event_id, name, scan_limit, is_active, sort_order, created_at) VALUES (16, 20, 'Check-in', 1, true, 0, '2026-08-12T04:53:12.757Z'::timestamptz);
 INSERT INTO event_activities (id, event_id, name, scan_limit, is_active, sort_order, created_at) VALUES (17, 21, 'Check-in', 1, true, 0, '2026-08-13T03:54:00.698Z'::timestamptz);
 INSERT INTO event_activities (id, event_id, name, scan_limit, is_active, sort_order, created_at) VALUES (18, 20, 'Food', 1, true, 0, '2026-08-13T07:25:06.787Z'::timestamptz);
+INSERT INTO event_activities (id, event_id, name, scan_limit, is_active, sort_order, created_at) VALUES (19, 22, 'Check-in', 1, true, 0, '2026-08-19T21:21:09.258Z'::timestamptz);
+INSERT INTO event_activities (id, event_id, name, scan_limit, is_active, sort_order, created_at) VALUES (20, 22, 'Food', 1, true, 1, '2026-08-19T21:21:09.258Z'::timestamptz);
+INSERT INTO event_activities (id, event_id, name, scan_limit, is_active, sort_order, created_at) VALUES (21, 22, 'Gift', 1, true, 2, '2026-08-19T21:21:09.258Z'::timestamptz);
+INSERT INTO event_activities (id, event_id, name, scan_limit, is_active, sort_order, created_at) VALUES (22, 22, 'Certificate', 1, true, 3, '2026-08-19T21:21:09.258Z'::timestamptz);
 
 -- Reset sequence for event_activities
 SELECT setval(pg_get_serial_sequence('event_activities', 'id'), COALESCE(MAX(id), 1)) FROM event_activities;
@@ -298,6 +319,11 @@ SELECT setval(pg_get_serial_sequence('event_activities', 'id'), COALESCE(MAX(id)
 
 -- -------------------------------------------------------------------------
 -- DATA FOR TABLE: admin_permissions
+-- -------------------------------------------------------------------------
+-- (No rows)
+
+-- -------------------------------------------------------------------------
+-- DATA FOR TABLE: schedules
 -- -------------------------------------------------------------------------
 -- (No rows)
 

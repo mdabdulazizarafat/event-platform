@@ -18,15 +18,12 @@ import {
   BookOpen
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useSearchParams } from 'next/navigation';
 import { fetchEventActivities, scanTicket, EventActivity } from '@/lib/api';
-import Button from '@/components/ui/Button';
-import FormField from '@/components/ui/FormField';
 
 const { Title, Paragraph, Text } = Typography;
 
-// =========================================================================
-// Cryptographic Helpers (Web Crypto API - AES-GCM 256-bit Encryption)
-// =========================================================================
+// ... (keep cryptography and indexedDB as is)
 
 // Generate ephemeral key kept purely in-memory
 async function generateEncryptionKey(): Promise<CryptoKey> {
@@ -83,6 +80,8 @@ function openDatabase(): Promise<IDBDatabase> {
 
 export default function QRScannerPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const queryEventSlug = searchParams.get('event');
   
   // App states
   const [events, setEvents] = useState<any[]>([]);
@@ -162,10 +161,18 @@ export default function QRScannerPage() {
         const res = await fetch('/api/v1/events');
         if (res.ok) {
           const data = await res.json();
+          const list = Array.isArray(data) ? data : (data.data || []);
           // Filter events hosted by this user or where they are in the team
-          const hostEvents = data.filter((e: any) => e.host_username === user?.username || e.is_team_member);
+          const hostEvents = list.filter((e: any) => e.host_username === user?.username || e.is_team_member);
           setEvents(hostEvents);
-          if (hostEvents.length > 0) {
+          
+          if (queryEventSlug) {
+            const ev = hostEvents.find((e: any) => e.slug === queryEventSlug);
+            if (ev) {
+              setSelectedEventSlug(ev.slug);
+              setSelectedEventId(ev.id);
+            }
+          } else if (hostEvents.length > 0) {
             setSelectedEventSlug(hostEvents[0].slug);
             setSelectedEventId(hostEvents[0].id);
           }
@@ -599,20 +606,22 @@ export default function QRScannerPage() {
           <Card className="rounded-2xl border-outline-variant bg-surface-container-lowest shadow-sm animate-fade-in" title={<span className="font-heading font-extrabold text-sm">Scanner Control Center</span>}>
             <div className="space-y-4">
               {/* Event selection */}
-              <div>
-                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Selected Event</label>
-                <select
-                  value={selectedEventSlug}
-                  onChange={(e) => handleEventChange(e.target.value)}
-                  className="w-full px-4 py-2.2 text-sm bg-surface-container-lowest border border-outline-variant rounded-lg text-foreground cursor-pointer focus-ring"
-                >
-                  {events.map((e) => (
-                    <option key={e.id} value={e.slug}>
-                      {e.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!queryEventSlug && (
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Selected Event</label>
+                  <select
+                    value={selectedEventSlug}
+                    onChange={(e) => handleEventChange(e.target.value)}
+                    className="w-full px-4 py-2.2 text-sm bg-surface-container-lowest border border-outline-variant rounded-lg text-foreground cursor-pointer focus-ring"
+                  >
+                    {events.map((e) => (
+                      <option key={e.id} value={e.slug}>
+                        {e.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Activity selection */}
               <div>

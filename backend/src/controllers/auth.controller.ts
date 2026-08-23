@@ -14,16 +14,22 @@ export class AuthController {
    */
   static async register(req: Request, res: Response) {
     try {
-      let { username, name, email, password, role, mobile, org } = req.body;
+      let { username, name, firstName, lastName, email, password, role, mobile, org } = req.body;
 
-      if (!name || !email || !password) {
-        return res.status(400).json({ error: 'Name, email, and password are required' });
+      if (!firstName || !email || !password) {
+        return res.status(400).json({ error: 'First Name, email, and password are required' });
       }
+
+      if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+      }
+
+      const derivedName = name || `${firstName} ${lastName || ''}`.trim();
 
       if (!username) {
         const baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
         let attempt = baseUsername;
-        let count = 1;
+        let count = 12;
         while (true) {
           const check = await pool.query('SELECT 1 FROM users WHERE username = $1', [attempt]);
           if (check.rowCount === 0) {
@@ -36,7 +42,7 @@ export class AuthController {
       }
 
       // Enforce valid roles for public registration
-      const targetRole = role === 'ORGANIZER' ? 'ORGANIZER' : 'PARTICIPANT';
+      const targetRole = role === 'ORGANIZER' ? 'ORGANIZER' : 'USER';
       const targetStatus = targetRole === 'ORGANIZER' ? 'PENDING_APPROVAL' : 'ACTIVE';
 
       // Check if username or email is already taken
@@ -59,13 +65,15 @@ export class AuthController {
 
       // Insert new user into users table
       const insertQuery = `
-        INSERT INTO users (username, name, email, password_hash, role, mobile, org, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING username, name, email, mobile, org, role, status, created_at;
+        INSERT INTO users (username, name, first_name, last_name, email, password_hash, role, mobile, org, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING username, name, first_name, last_name, email, mobile, org, role, status, created_at;
       `;
       const insertRes = await pool.query(insertQuery, [
         username.toLowerCase().trim(),
-        name.trim(),
+        derivedName,
+        firstName.trim(),
+        lastName ? lastName.trim() : null,
         email.toLowerCase().trim(),
         hashedPassword,
         targetRole,
@@ -121,7 +129,7 @@ export class AuthController {
       const tokenPayload = {
         username: user.username,
         email: user.email,
-        role: user.role || 'PARTICIPANT',
+        role: user.role || 'USER',
         mobile: user.mobile,
         org: user.org,
         status: user.status || 'ACTIVE'
@@ -147,7 +155,7 @@ export class AuthController {
           name: user.name,
           email: user.email,
           avatar: user.avatar,
-          role: user.role || 'PARTICIPANT',
+          role: user.role || 'USER',
           mobile: user.mobile,
           org: user.org,
           status: user.status || 'ACTIVE'
@@ -180,7 +188,7 @@ export class AuthController {
     }
     
     try {
-      const userRes = await pool.query('SELECT username, name, email, avatar, bio, role, mobile, org, status FROM users WHERE username = $1', [req.user.username]);
+      const userRes = await pool.query('SELECT username, name, first_name as "firstName", last_name as "lastName", email, avatar, bio, role, mobile, org, status, date_of_birth as "dateOfBirth", gender, occupation_type as "occupationType", institution_name as "institutionName", class_level as "classLevel", position, district FROM users WHERE username = $1', [req.user.username]);
       if (userRes.rowCount === 0) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -200,16 +208,34 @@ export class AuthController {
     }
 
     try {
-      const { name, email, mobile, avatar, bio, org, role, status } = req.body;
+      const { 
+        name, firstName, lastName, email, mobile, avatar, bio, org, role, status,
+        dateOfBirth, gender, occupationType, institutionName, classLevel, position, district
+      } = req.body;
       const username = req.user.username;
 
-      // Check if user is organizer or manager in any event to allow updating org
-      const userRes = await pool.query('SELECT role FROM users WHERE username = $1', [username]);
+      // Check if user exists
+      const userRes = await pool.query('SELECT role, email FROM users WHERE username = $1', [username]);
       if (userRes.rowCount === 0) {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // Build dynamic update query to properly handle empty strings and avoid COALESCE issues
+      if (email !== undefined && email !== userRes.rows[0].email) {
+        return res.status(400).json({ error: 'Email address cannot be changed.' });
+      }
+
+      if (dateOfBirth) {
+        const dob = new Date(dateOfBirth);
+        const today = new Date();
+        const age = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        const effectiveAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate()) ? age - 1 : age;
+        if (effectiveAge < 8) {
+          return res.status(400).json({ error: 'Date of birth must indicate an age of at least 8 years.' });
+        }
+      }
+
+      // Build dynamic update query
       const setClauses: string[] = [];
       const values: any[] = [];
       let paramIndex = 1;
@@ -222,14 +248,23 @@ export class AuthController {
         }
       };
 
-      addField('name', name);
+      const derivedName = name || (firstName !== undefined ? `${firstName} ${lastName || ''}`.trim() : undefined);
+
+      addField('name', derivedName);
+      addField('first_name', firstName);
+      addField('last_name', lastName);
       addField('email', email);
       addField('mobile', mobile);
       addField('avatar', avatar);
       addField('bio', bio);
       addField('org', org);
-      addField('role', role);
-      addField('status', status);
+      addField('date_of_birth', dateOfBirth);
+      addField('gender', gender);
+      addField('occupation_type', occupationType);
+      addField('institution_name', institutionName);
+      addField('class_level', classLevel);
+      addField('position', position);
+      addField('district', district);
 
       if (setClauses.length === 0) {
         return res.status(200).json({ message: 'No changes', user: userRes.rows[0] });
@@ -242,7 +277,7 @@ export class AuthController {
         UPDATE users
         SET ${setClauses.join(', ')}
         WHERE username = $${paramIndex}
-        RETURNING username, name, email, avatar, bio, mobile, org, role, status;
+        RETURNING username, name, first_name as "firstName", last_name as "lastName", email, avatar, bio, mobile, org, role, status, date_of_birth as "dateOfBirth", gender, occupation_type as "occupationType", institution_name as "institutionName", class_level as "classLevel", position, district;
       `;
       
       const updateRes = await pool.query(query, values);

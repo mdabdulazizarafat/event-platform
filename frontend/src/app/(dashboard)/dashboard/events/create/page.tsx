@@ -21,7 +21,7 @@ import {
   FileText,
   DollarSign
 } from 'lucide-react';
-import { message } from 'antd';
+import { App } from 'antd';
 import { useAuth } from '@/context/AuthContext';
 
 interface TicketTypeInput {
@@ -29,9 +29,12 @@ interface TicketTypeInput {
   description: string;
   price: string;
   capacity: string;
+  isTeam: boolean;
+  maxTeamSize: string;
 }
 
 export default function CreateEventWizardPage() {
+  const { message } = App.useApp();
   const router = useRouter();
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
@@ -48,6 +51,9 @@ export default function CreateEventWizardPage() {
   const [location, setLocation] = useState('');
   const [capacity, setCapacity] = useState('500');
   const [description, setDescription] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [eventFor, setEventFor] = useState('BOTH'); // 'BOTH', 'STUDENT', 'JOB_HOLDER'
+  const [studentCategory, setStudentCategory] = useState(''); // e.g. 'Class 6 to 10', 'Class 11 to 12'
 
   // Step 2: Branding State
   const [thumbnail, setThumbnail] = useState('https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&h=450&fit=crop');
@@ -64,7 +70,7 @@ export default function CreateEventWizardPage() {
 
   // Step 3: Ticket Types State
   const [tickets, setTickets] = useState<TicketTypeInput[]>([
-    { name: 'Standard Pass', description: 'General Access to the event.', price: '0', capacity: '500' }
+    { name: 'Standard Pass', description: 'General Access to the event.', price: '0', capacity: '500', isTeam: false, maxTeamSize: '2' }
   ]);
 
   // Set default values from logged-in user profile
@@ -91,7 +97,7 @@ export default function CreateEventWizardPage() {
   };
 
   const addTicket = () => {
-    setTickets([...tickets, { name: '', description: '', price: '0', capacity: '100' }]);
+    setTickets([...tickets, { name: '', description: '', price: '0', capacity: '100', isTeam: false, maxTeamSize: '2' }]);
   };
 
   const removeTicket = (index: number) => {
@@ -99,9 +105,12 @@ export default function CreateEventWizardPage() {
     setTickets(tickets.filter((_, i) => i !== index));
   };
 
-  const handleTicketChange = (index: number, field: keyof TicketTypeInput, value: string) => {
+  const handleTicketChange = (index: number, field: keyof TicketTypeInput, value: any) => {
     const updated = [...tickets];
-    updated[index][field] = value;
+    updated[index] = {
+      ...updated[index],
+      [field]: value
+    };
     setTickets(updated);
   };
 
@@ -143,7 +152,7 @@ export default function CreateEventWizardPage() {
               const res = await fetch('/api/v1/events/upload-image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imageBase64: dataUrl })
+                body: JSON.stringify({ imageBase64: dataUrl, eventId: slug || undefined })
               });
               const data = await res.json();
               if (res.ok && data.url) {
@@ -259,6 +268,9 @@ export default function CreateEventWizardPage() {
           formTshirtSize,
           formReference,
           formTransactionId,
+          isPrivate,
+          eventFor,
+          studentCategory: eventFor === 'STUDENT' ? studentCategory : null,
         })
       });
 
@@ -279,6 +291,8 @@ export default function CreateEventWizardPage() {
             capacity: parseInt(ticket.capacity),
             currency: 'BDT',
             isActive: true,
+            isTeam: ticket.isTeam,
+            maxTeamSize: ticket.isTeam ? parseInt(ticket.maxTeamSize) : 1,
           })
         });
 
@@ -353,6 +367,47 @@ export default function CreateEventWizardPage() {
                 className="font-mono text-xs"
                 required
               />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-foreground uppercase tracking-wider block">
+                    Event Type / Privacy
+                  </label>
+                  <select 
+                    value={isPrivate ? 'private' : 'public'} 
+                    onChange={(e) => setIsPrivate(e.target.value === 'private')} 
+                    className="w-full h-12 bg-surface-container-low border border-outline-variant/50 rounded-xl px-4 text-sm focus:outline-none focus:border-primary transition-colors text-foreground"
+                  >
+                    <option value="public">Public (visible on events page)</option>
+                    <option value="private">Private (only accessible via URL slug link)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-foreground uppercase tracking-wider block">
+                    Event For (Target Audience)
+                  </label>
+                  <select 
+                    value={eventFor} 
+                    onChange={(e) => setEventFor(e.target.value)} 
+                    className="w-full h-12 bg-surface-container-low border border-outline-variant/50 rounded-xl px-4 text-sm focus:outline-none focus:border-primary transition-colors text-foreground"
+                  >
+                    <option value="BOTH">Both (Students & Job Holders)</option>
+                    <option value="STUDENT">Students Only</option>
+                    <option value="JOB_HOLDER">Job Holders Only</option>
+                  </select>
+                </div>
+              </div>
+
+              {eventFor === 'STUDENT' && (
+                <FormField
+                  label="Student Category"
+                  value={studentCategory}
+                  onChange={(e) => setStudentCategory(e.target.value)}
+                  placeholder="e.g. Class 6-8, Class 9-12, University"
+                  required
+                />
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
@@ -571,12 +626,12 @@ export default function CreateEventWizardPage() {
                         placeholder="e.g. Early Bird, VIP Pass"
                         required
                       />
-                      <FormField
-                        label="Price (BDT)"
+                       <FormField
+                        label="Price (BDT) [Paid tickets are temporarily disabled]"
                         type="number"
-                        value={ticket.price}
-                        onChange={(e) => handleTicketChange(index, 'price', e.target.value)}
-                        placeholder="0"
+                        value="0"
+                        onChange={() => {}}
+                        disabled
                         required
                       />
                     </div>
@@ -596,6 +651,31 @@ export default function CreateEventWizardPage() {
                         onChange={(e) => handleTicketChange(index, 'description', e.target.value)}
                         placeholder="Describe what's included in this category..."
                       />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-surface-container-low p-4 rounded-xl border border-outline-variant/40">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-bold text-foreground block">Team Registration</span>
+                          <span className="text-[10px] text-on-surface-variant">Enable team segment for this category</span>
+                        </div>
+                        <input 
+                          type="checkbox" 
+                          checked={ticket.isTeam} 
+                          onChange={(e) => handleTicketChange(index, 'isTeam', e.target.checked)} 
+                          className="w-4 h-4 text-primary rounded border-outline-variant focus:ring-primary cursor-pointer"
+                        />
+                      </div>
+                      {ticket.isTeam && (
+                        <FormField
+                          label="Max Team Size"
+                          type="number"
+                          value={ticket.maxTeamSize}
+                          onChange={(e) => handleTicketChange(index, 'maxTeamSize', e.target.value)}
+                          placeholder="e.g. 4"
+                          required
+                        />
+                      )}
                     </div>
                   </div>
                 ))}

@@ -28,11 +28,16 @@ export interface TicketType {
   remaining: number | null;
   available: boolean;
   isFree: boolean;
+  is_team?: boolean;
+  max_team_size?: number;
 }
 
 export interface Event {
+  id?: number;
   slug: string;
   title: string;
+  is_registered?: boolean;
+  is_team_member?: boolean;
   date: string;
   time: string;
   location: string;
@@ -52,6 +57,9 @@ export interface Event {
   form_tshirt_size?: boolean;
   form_reference?: boolean;
   form_transaction_id?: boolean;
+  is_private?: boolean;
+  event_for?: string;
+  student_category?: string;
 }
 
 export interface Host {
@@ -61,100 +69,6 @@ export interface Host {
   bio: string;
 }
 
-const mockHosts: Record<string, Host> = {
-  'tech-hub': {
-    username: 'tech-hub',
-    name: 'Tech Hub Community',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&h=200&fit=crop',
-    bio: 'Fostering tech innovation and developer growth. Host of the annual Global Tech Summit, DevCon, and monthly workshops.',
-  },
-  'creative-studio': {
-    username: 'creative-studio',
-    name: 'Creative Studio Co.',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&h=200&fit=crop',
-    bio: 'A collective of designers, writers, and product builders designing the future. Sharing design systems and product knowledge.',
-  },
-  'gregorian-quiz-club': {
-    username: 'gregorian-quiz-club',
-    name: 'Gregorian Quiz Club',
-    avatar: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=200&h=200&fit=crop',
-    bio: 'One of the oldest and most prestigious quiz clubs in the country, fostering general knowledge, debate, and intellectual growth.',
-  }
-};
-
-const mockEvents: Event[] = [
-  {
-    slug: '6th-gregorian-knowledge-fiesta-2026',
-    title: '6th Gregorian Knowledge Fiesta 2026',
-    date: '28 Aug, 2026 - 29 Aug, 2026',
-    time: '12:00 PM - 06:00 PM',
-    location: "St. Gregory's High School & College",
-    locationShort: "St. Gregory's, Dhaka",
-    attendeesCount: '1.2k+',
-    description: 'Learning Today, Leading Tomorrow. Behold, intellectual voyagers and paragons of erudition! The long-anticipated 6th Gregorian Knowledge Fiesta 2026 has dawned—a sophisticated crucible where pedagogy, tactical acumen, and synergistic cooperation converge.',
-    thumbnail: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=800&h=450&fit=crop',
-    hostUsername: 'gregorian-quiz-club',
-    contactEmail: 'gqc@stgregorys.edu',
-    contactPhone: '+880-1835-099555',
-    passType: 'Standard Access',
-    gate: 'Main Gate'
-  },
-  {
-    slug: 'global-tech-summit',
-    title: 'Global Tech Summit 2026',
-    date: 'Oct 24-26, 2026',
-    time: '09:00 AM - 05:00 PM',
-    location: 'Convention Center, San Francisco',
-    locationShort: 'SF North Conv.',
-    attendeesCount: '2.5k+',
-    description: 'The Global Tech Summit is the premier gathering for software engineers, product managers, and tech executives. Join us for 3 days of inspiring keynotes, deep-dive technical sessions, and unmatched networking opportunities as we explore the future of AI, cloud architecture, and open-source ecosystems.',
-    thumbnail: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&h=450&fit=crop',
-    hostUsername: 'tech-hub',
-    contactEmail: 'info@globaltechsummit.com',
-    contactPhone: '+880-1711-000000',
-    passType: 'VIP Access',
-    gate: 'South Hall • B2',
-    speakers: [
-      { name: 'Dr. Elena Rodriguez', role: 'Director of AI Design @ TechCore', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=300&h=375&fit=crop' },
-      { name: 'Marcus Thorne', role: 'VP of Product, FutureFoundry', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=300&h=375&fit=crop' }
-    ],
-    sessions: [
-      { time: '09:00 AM', room: 'Grand Hall', title: 'Opening Keynote: The Generative Era', description: 'Exploring how generative tools redefine the creative process.', speakerAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=100&h=100&fit=crop' }
-    ]
-  },
-  {
-    slug: 'react-advanced-workshop',
-    title: 'React 19 & Next.js 16 Masterclass',
-    date: 'Nov 12, 2026',
-    time: '01:00 PM - 06:00 PM',
-    location: 'Tech Hub Headquarters, Boston',
-    locationShort: 'Tech Hub HQ',
-    attendeesCount: '150+',
-    description: 'Master React Server Components, Server Actions, the new React Compiler, and advanced state management techniques.',
-    thumbnail: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?q=80&w=800&h=450&fit=crop',
-    hostUsername: 'tech-hub',
-    contactEmail: 'workshops@techhub.io',
-    contactPhone: '+880-1711-111111',
-    passType: 'General Admission',
-    gate: 'Main Entrance • Gate A'
-  },
-  {
-    slug: 'ui-ux-design-forum',
-    title: 'UI/UX Design Systems Forum 2026',
-    date: 'Dec 05, 2026',
-    time: '10:00 AM - 04:00 PM',
-    location: 'Creative Studio HQ, New York',
-    locationShort: 'Creative HQ, NY',
-    attendeesCount: '300+',
-    description: 'A gathering of design leaders to discuss design systems, scaling UI, and modern branding aesthetics.',
-    thumbnail: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800&h=450&fit=crop',
-    hostUsername: 'creative-studio',
-    contactEmail: 'design@creativestudio.com',
-    contactPhone: '+880-1711-222222',
-    passType: 'Standard Access',
-    gate: 'Hall C • Level 2'
-  }
-];
 
 function mapBackendEventToFrontend(e: any): Event {
   return {
@@ -174,6 +88,9 @@ function mapBackendEventToFrontend(e: any): Event {
     capacity: e.capacity || 100,
     passType: 'Standard Access',
     gate: 'Main Gate',
+    id: e.id,
+    is_registered: e.is_registered,
+    is_team_member: e.is_team_member,
   };
 }
 
@@ -182,13 +99,14 @@ export async function getUpcomingEvents(): Promise<Event[]> {
     const response = await fetch('/api/v1/events');
     if (!response.ok) throw new Error('Backend response not ok');
     const data = await response.json();
-    if (Array.isArray(data) && data.length > 0) {
-      return data.map(mapBackendEventToFrontend);
+    const eventsArray = Array.isArray(data) ? data : (data.data || data.events || []);
+    if (eventsArray.length > 0) {
+      return eventsArray.map(mapBackendEventToFrontend);
     }
   } catch {
-    // Fallback to mockEvents if backend offline in static preview
+    // Return empty on error
   }
-  return mockEvents;
+  return [];
 }
 
 export async function getEventBySlug(slug: string): Promise<Event | null> {
@@ -201,10 +119,9 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
       }
     }
   } catch {
-    // Fallback to mockEvents
+    // Error fetching event
   }
-  const event = mockEvents.find((e) => e.slug === slug);
-  return event || null;
+  return null;
 }
 
 export async function getHostByUsername(username: string): Promise<Host | null> {
@@ -222,9 +139,9 @@ export async function getHostByUsername(username: string): Promise<Host | null> 
       }
     }
   } catch {
-    // Fallback to mockHosts
+    // Error fetching host
   }
-  return mockHosts[username] || null;
+  return null;
 }
 
 export async function getEventsByHost(hostUsername: string): Promise<Event[]> {
@@ -232,17 +149,18 @@ export async function getEventsByHost(hostUsername: string): Promise<Event[]> {
     const response = await fetch('/api/v1/events');
     if (response.ok) {
       const data = await response.json();
-      if (Array.isArray(data) && data.length > 0) {
-        const filtered = data.filter((e: any) => (e.host_username || e.hostUsername) === hostUsername);
+      const eventsArray = Array.isArray(data) ? data : (data.data || data.events || []);
+      if (eventsArray.length > 0) {
+        const filtered = eventsArray.filter((e: any) => (e.host_username || e.hostUsername) === hostUsername);
         if (filtered.length > 0) {
           return filtered.map(mapBackendEventToFrontend);
         }
       }
     }
   } catch {
-    // Fallback to mockEvents
+    // Error fetching events
   }
-  return mockEvents.filter((e) => e.hostUsername === hostUsername);
+  return [];
 }
 
 /**
@@ -290,6 +208,8 @@ export async function initiatePayment(data: {
   tshirtSize?: string;
   reference?: string;
   transactionId?: string;
+  teamName?: string;
+  teamMembers?: string[];
 }): Promise<{ gatewayUrl: string; tranId: string }> {
   const response = await fetch('/api/v1/payments/initiate', {
     method: 'POST',
@@ -547,5 +467,95 @@ export async function fetchMyManagedEvents() {
   return await response.json();
 }
 
+/**
+ * Schedule API client functions.
+ */
+export interface ScheduleItem {
+  id: number;
+  event_slug: string;
+  title: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  room: string;
+  speaker: string;
+  status: string;
+}
 
+export async function fetchSchedules(slug: string): Promise<ScheduleItem[]> {
+  const response = await fetch(`/api/v1/events/${slug}/schedules`);
+  if (!response.ok) {
+    return [];
+  }
+  return await response.json();
+}
 
+export async function createSchedule(slug: string, data: Omit<ScheduleItem, 'id' | 'event_slug' | 'status'>): Promise<ScheduleItem> {
+  const response = await fetch(`/api/v1/events/${slug}/schedules`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'Failed to create schedule');
+  }
+  return await response.json();
+}
+
+export async function deleteSchedule(slug: string, id: number): Promise<void> {
+  const response = await fetch(`/api/v1/events/${slug}/schedules/${id}`, {
+    method: 'DELETE'
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'Failed to delete schedule');
+  }
+}
+
+// --- Certificate API ---
+
+export async function fetchCertificateTemplate(slug: string) {
+  const response = await fetch(`/api/v1/certificates/${slug}/template`);
+  if (!response.ok) {
+    if (response.status === 404) return null;
+    const err = await response.json();
+    throw new Error(err.error || 'Failed to fetch certificate template');
+  }
+  return await response.json();
+}
+
+export async function upsertCertificateTemplate(slug: string, data: { template_url: string, sending_time?: string }) {
+  const response = await fetch(`/api/v1/certificates/${slug}/template`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'Failed to save certificate template');
+  }
+  return await response.json();
+}
+
+export async function fetchEventCertificates(slug: string) {
+  const response = await fetch(`/api/v1/certificates/${slug}`);
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'Failed to fetch event certificates');
+  }
+  return await response.json();
+}
+
+export async function issueCertificate(slug: string, data: any) {
+  const response = await fetch(`/api/v1/certificates/${slug}/issue`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'Failed to issue certificate');
+  }
+  return await response.json();
+}

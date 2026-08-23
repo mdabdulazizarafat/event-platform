@@ -2,7 +2,11 @@ import { Client } from 'pg';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const NEON_DATABASE_URL = 'postgresql://neondb_owner:npg_NTmahUg4pq5W@ep-purple-water-aons69qy-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+const NEON_DATABASE_URL = process.env.DATABASE_URL || '';
+if (!NEON_DATABASE_URL) {
+  console.error('Error: DATABASE_URL environment variable is required.');
+  process.exit(1);
+}
 
 const tables = [
   'users',
@@ -14,7 +18,8 @@ const tables = [
   'event_team',
   'event_activities',
   'activity_scans',
-  'admin_permissions'
+  'admin_permissions',
+  'schedules'
 ];
 
 async function main() {
@@ -213,6 +218,21 @@ CREATE TABLE admin_permissions (
   UNIQUE(username, permission)
 );
 CREATE INDEX idx_admin_permissions_user ON admin_permissions (username);
+
+-- Schedules
+CREATE TABLE schedules (
+  id SERIAL PRIMARY KEY,
+  event_slug VARCHAR(255) NOT NULL REFERENCES events(slug) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  date VARCHAR(100) NOT NULL,
+  start_time VARCHAR(50) NOT NULL,
+  end_time VARCHAR(50) NOT NULL,
+  room VARCHAR(255),
+  speaker VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'CONFIRMED',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 \n`;
 
     // 3. Export data table by table

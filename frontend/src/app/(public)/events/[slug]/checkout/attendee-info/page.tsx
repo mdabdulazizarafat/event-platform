@@ -31,14 +31,40 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [institution, setInstitution] = useState('');
+  const [classOrPosition, setClassOrPosition] = useState('');
+  const [teamName, setTeamName] = useState('');
+  const [teamMembers, setTeamMembers] = useState<string[]>([]);
 
+  // Custom Fields State
+  const [tshirtSize, setTshirtSize] = useState('');
+  const [reference, setReference] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+
+  // Auto-populate from user profile and map dynamically
   useEffect(() => {
-    if (user) {
+    if (user && event) {
       setName(user.name || '');
       setEmail(user.email || '');
       setPhone(user.mobile || '');
+      if (event.event_for === 'STUDENT') {
+        setClassOrPosition(user.classLevel || '');
+        setInstitution(user.institutionName || user.university || '');
+      } else if (event.event_for === 'JOB_HOLDER') {
+        setClassOrPosition(user.position || '');
+        setInstitution(user.institutionName || user.org || '');
+      } else {
+        setClassOrPosition(user.position || user.classLevel || '');
+        setInstitution(user.institutionName || user.org || user.university || '');
+      }
     }
-  }, [user]);
+  }, [user, event]);
+
+  useEffect(() => {
+    if (ticket && ticket.is_team && ticket.max_team_size) {
+      const extraSize = ticket.max_team_size - 1;
+      setTeamMembers(Array(extraSize).fill(''));
+    }
+  }, [ticket]);
 
   useEffect(() => {
     async function loadData() {
@@ -59,7 +85,19 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
     loadData();
   }, [slug, ticketId]);
 
+  // Check if profile is complete based on event target audience
+  const isProfileIncomplete = !user || !user.name || !user.email || !user.mobile ||
+    !(user.institutionName || user.org || user.university) ||
+    !user.occupationType ||
+    (event?.event_for === 'STUDENT' && !user.classLevel) ||
+    (event?.event_for === 'JOB_HOLDER' && !user.position) ||
+    (event?.event_for === 'BOTH' && !user.classLevel && !user.position);
+
   const handleNext = async () => {
+    if (isProfileIncomplete) {
+      message.error('Please complete your profile to register.');
+      return;
+    }
     if (!name || !email || !phone) {
       message.error('Please fill in required attendee fields');
       return;
@@ -67,6 +105,32 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
     if (!user) {
       message.error('You must be logged in to register');
       return;
+    }
+
+    // Validate custom fields
+    if (event?.form_tshirt_size && !tshirtSize) {
+      message.error('Please select your T-Shirt size');
+      return;
+    }
+    if (event?.form_reference && !reference.trim()) {
+      message.error('Please enter reference details');
+      return;
+    }
+    if (event?.form_transaction_id && !transactionId.trim()) {
+      message.error('Please enter manual transaction ID');
+      return;
+    }
+
+    if (ticket?.is_team) {
+      if (!teamName.trim()) {
+        message.error('Team name is required for team registration');
+        return;
+      }
+      const filledMembers = teamMembers.filter(m => m.trim());
+      if (filledMembers.length === 0) {
+        message.error('Please add at least one team member email');
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -77,7 +141,16 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
         // Route to payment page with details in query params
         const qs = new URLSearchParams({
           ticketId: ticketId.toString(),
-          name, email, phone, institution
+          name, 
+          email, 
+          phone, 
+          institution,
+          jobTitle: classOrPosition,
+          tshirtSize,
+          reference,
+          transactionId,
+          teamName: ticket.is_team ? teamName : '',
+          teamMembers: ticket.is_team ? JSON.stringify(teamMembers.filter(m => m.trim())) : '',
         });
         router.push(`/events/${slug}/checkout/payment?${qs.toString()}`);
       } else {
@@ -88,7 +161,16 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
           body: JSON.stringify({
             userId: user.username,
             email: email,
-            ticketTypeId: ticketId
+            ticketTypeId: ticketId,
+            fullName: name,
+            phone: phone,
+            organization: institution,
+            jobTitle: classOrPosition,
+            tshirtSize: event?.form_tshirt_size ? tshirtSize : undefined,
+            reference: event?.form_reference ? reference : undefined,
+            transactionId: event?.form_transaction_id ? transactionId : undefined,
+            teamName: ticket?.is_team ? teamName : undefined,
+            teamMembers: ticket?.is_team ? teamMembers.filter(m => m.trim()) : undefined,
           })
         });
 
@@ -100,8 +182,8 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
           message.error(err.error || 'Registration failed');
         }
       }
-    } catch (err) {
-      message.error('An error occurred during registration');
+    } catch (err: any) {
+      message.error(err.message || 'An error occurred during registration');
     } finally {
       setSubmitting(false);
     }
@@ -136,6 +218,18 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
           </p>
         </section>
 
+        {isProfileIncomplete && (
+          <div className="bg-destructive/10 border border-destructive/20 text-on-surface rounded-2xl p-6 mb-8 shadow-xs">
+            <h3 className="font-heading text-lg font-bold text-destructive m-0 mb-2">Incomplete Profile Details</h3>
+            <p className="text-sm text-on-surface-variant m-0 mb-4">
+              To register for this event, your profile must contain your **Full Name, Phone Number, Institution/Company**, and **Class Level/Position**. Please complete your profile to register.
+            </p>
+            <Button variant="primary" onClick={() => router.push(`/dashboard/account?redirect=${encodeURIComponent(window.location.href)}`)}>
+              Complete Profile
+            </Button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-xs">
@@ -145,19 +239,116 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
                 </div>
                 <div>
                   <h3 className="font-heading text-lg font-bold text-foreground m-0">Contact Details</h3>
-                  <p className="text-xs text-on-surface-variant m-0">Your ticket and updates will be sent here.</p>
+                  <p className="text-xs text-on-surface-variant m-0">Your profile details are loaded automatically.</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <FormField label="Full Name" value={name} onChange={e => setName(e.target.value)} required />
-                <FormField label="Email Address" type="email" value={email} onChange={e => setEmail(e.target.value)} disabled required />
+                <FormField label="Full Name" value={name} disabled required />
+                <FormField label="Email Address" type="email" value={email} disabled required />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField label="Phone Number" value={phone} onChange={e => setPhone(e.target.value)} required />
-                  <FormField label="Institution / Company" value={institution} onChange={e => setInstitution(e.target.value)} />
+                  <FormField label="Phone Number" value={phone} disabled required />
+                  <FormField 
+                    label={
+                      event?.event_for === 'STUDENT' 
+                        ? 'Institution Name' 
+                        : event?.event_for === 'JOB_HOLDER' 
+                        ? 'Company Name' 
+                        : 'Institution / Company'
+                    } 
+                    value={institution} 
+                    disabled
+                  />
                 </div>
+                <FormField 
+                  label={
+                    event?.event_for === 'STUDENT' 
+                      ? 'Student Category (Class / Level)' 
+                      : event?.event_for === 'JOB_HOLDER' 
+                      ? 'Position' 
+                      : 'Class / Level / Position'
+                  } 
+                  value={classOrPosition} 
+                  disabled
+                />
+
+                {/* Custom Fields Options */}
+                {event?.form_tshirt_size && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-foreground uppercase tracking-wider block">
+                      T-Shirt Size <span className="text-destructive">*</span>
+                    </label>
+                    <select 
+                      value={tshirtSize} 
+                      onChange={(e) => setTshirtSize(e.target.value)} 
+                      className="w-full h-12 bg-surface-container-low border border-outline-variant/50 rounded-xl px-4 text-sm focus:outline-none focus:border-primary transition-colors text-foreground"
+                    >
+                      <option value="">Select T-Shirt Size</option>
+                      <option value="XS">XS (Extra Small)</option>
+                      <option value="S">S (Small)</option>
+                      <option value="M">M (Medium)</option>
+                      <option value="L">L (Large)</option>
+                      <option value="XL">XL (Extra Large)</option>
+                      <option value="XXL">XXL (Double Extra Large)</option>
+                    </select>
+                  </div>
+                )}
+
+                {event?.form_reference && (
+                  <FormField 
+                    label="Reference" 
+                    value={reference} 
+                    onChange={e => setReference(e.target.value)} 
+                    placeholder="Enter Reference"
+                    required 
+                  />
+                )}
+
+                {event?.form_transaction_id && (
+                  <FormField 
+                    label="Transaction ID" 
+                    value={transactionId} 
+                    onChange={e => setTransactionId(e.target.value)} 
+                    placeholder="Enter Transaction ID"
+                    required 
+                  />
+                )}
               </div>
             </div>
+
+            {ticket?.is_team && (
+              <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-xs">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-outline-variant/60">
+                  <div>
+                    <h3 className="font-heading text-lg font-bold text-foreground m-0">Team Details</h3>
+                    <p className="text-xs text-on-surface-variant m-0">Enter your team name and add other team members by email (they must have accounts on Ayojok).</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <FormField 
+                    label="Team Name" 
+                    value={teamName} 
+                    onChange={e => setTeamName(e.target.value)} 
+                    placeholder="Enter your team name" 
+                    required 
+                  />
+                  {teamMembers.map((member, index) => (
+                    <FormField 
+                      key={index}
+                      label={`Team Member ${index + 2} Email`}
+                      value={member}
+                      onChange={e => {
+                        const updated = [...teamMembers];
+                        updated[index] = e.target.value;
+                        setTeamMembers(updated);
+                      }}
+                      placeholder="e.g. member@example.com"
+                      type="email"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bento-card p-6 bg-surface-container-lowest border border-outline-variant h-fit space-y-4">
@@ -183,9 +374,15 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
             </div>
 
             <div className="flex flex-col gap-3 mt-6 pt-4 border-t border-outline-variant/60">
-              <Button variant="primary" loading={submitting} onClick={handleNext} icon={<ArrowRight className="w-4 h-4" />}>
-                {ticket && parseFloat(ticket.price) > 0 ? 'Proceed to Payment' : 'Complete Registration'}
-              </Button>
+              {isProfileIncomplete ? (
+                <Button variant="primary" onClick={() => router.push(`/dashboard/account?redirect=${encodeURIComponent(window.location.href)}`)} icon={<ArrowRight className="w-4 h-4" />}>
+                  Complete Profile to Register
+                </Button>
+              ) : (
+                <Button variant="primary" loading={submitting} onClick={handleNext} icon={<ArrowRight className="w-4 h-4" />}>
+                  {ticket && parseFloat(ticket.price) > 0 ? 'Proceed to Payment' : 'Complete Registration'}
+                </Button>
+              )}
               <Button variant="outline" onClick={() => router.back()} icon={<ArrowLeft className="w-4 h-4" />}>
                 Back to Tickets
               </Button>

@@ -22,16 +22,51 @@ export class AdminService {
   }
 
   /**
-   * List all users (hosts) on the platform.
+   * List all users (hosts) on the platform with pagination.
    */
-  static async listUsers() {
-    const query = `
+  static async listUsers(options: { page?: number; limit?: number; search?: string; role?: string } = {}) {
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(100, Math.max(1, options.limit || 10));
+    const offset = (page - 1) * limit;
+
+    const values: any[] = [];
+    const whereConditions: string[] = [];
+
+    if (options.role) {
+      values.push(options.role);
+      whereConditions.push(`role = $${values.length}`);
+    }
+
+    if (options.search) {
+      values.push(`%${options.search}%`);
+      const sIdx = values.length;
+      whereConditions.push(`(name ILIKE $${sIdx} OR email ILIKE $${sIdx} OR username ILIKE $${sIdx} OR mobile ILIKE $${sIdx})`);
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    const countRes = await pool.query(`SELECT COUNT(*) as total FROM users ${whereClause}`, values);
+    const total = parseInt(countRes.rows[0]?.total || '0');
+
+    const dataQuery = `
       SELECT username, name, email, avatar, bio, mobile, org, role, status, created_at 
       FROM users 
-      ORDER BY created_at DESC;
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT $${values.length + 1} OFFSET $${values.length + 2}
     `;
-    const res = await pool.query(query);
-    return res.rows;
+    values.push(limit, offset);
+
+    const res = await pool.query(dataQuery, values);
+    return {
+      data: res.rows,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   /**
@@ -60,18 +95,59 @@ export class AdminService {
   }
 
   /**
-   * List all events on the platform for moderation.
+   * List all events on the platform for moderation with pagination.
    */
-  static async listEvents() {
-    const query = `
+  static async listEvents(options: { page?: number; limit?: number; search?: string; status?: string } = {}) {
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(100, Math.max(1, options.limit || 10));
+    const offset = (page - 1) * limit;
+
+    const values: any[] = [];
+    const whereConditions: string[] = [];
+
+    if (options.status) {
+      values.push(options.status);
+      whereConditions.push(`e.status = $${values.length}`);
+    }
+
+    if (options.search) {
+      values.push(`%${options.search}%`);
+      const sIdx = values.length;
+      whereConditions.push(`(e.title ILIKE $${sIdx} OR e.location ILIKE $${sIdx} OR h.name ILIKE $${sIdx} OR h.username ILIKE $${sIdx})`);
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    const countQuery = `
+      SELECT COUNT(*) as total 
+      FROM events e
+      JOIN users h ON e.host_username = h.username
+      ${whereClause}
+    `;
+    const countRes = await pool.query(countQuery, values);
+    const total = parseInt(countRes.rows[0]?.total || '0');
+
+    const dataQuery = `
       SELECT e.*, h.name as host_name, h.email as host_email,
         (SELECT COUNT(*) FROM registrations r WHERE r.event_id = e.id AND r.status != 'CANCELLED')::INTEGER as attendee_count
       FROM events e
       JOIN users h ON e.host_username = h.username
-      ORDER BY e.created_at DESC;
+      ${whereClause}
+      ORDER BY e.created_at DESC
+      LIMIT $${values.length + 1} OFFSET $${values.length + 2}
     `;
-    const res = await pool.query(query);
-    return res.rows;
+    values.push(limit, offset);
+
+    const res = await pool.query(dataQuery, values);
+    return {
+      data: res.rows,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   /**
@@ -97,18 +173,53 @@ export class AdminService {
   }
 
   /**
-   * Fetch platform audit logs.
+   * Fetch platform audit logs with pagination.
    */
-  static async getAdminLogs() {
-    const query = `
+  static async getAdminLogs(options: { page?: number; limit?: number; search?: string } = {}) {
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(100, Math.max(1, options.limit || 10));
+    const offset = (page - 1) * limit;
+
+    const values: any[] = [];
+    const whereConditions: string[] = [];
+
+    if (options.search) {
+      values.push(`%${options.search}%`);
+      const sIdx = values.length;
+      whereConditions.push(`(l.action ILIKE $${sIdx} OR l.admin_username ILIKE $${sIdx} OR h.name ILIKE $${sIdx})`);
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    const countQuery = `
+      SELECT COUNT(*) as total 
+      FROM admin_logs l
+      JOIN users h ON l.admin_username = h.username
+      ${whereClause}
+    `;
+    const countRes = await pool.query(countQuery, values);
+    const total = parseInt(countRes.rows[0]?.total || '0');
+
+    const dataQuery = `
       SELECT l.*, h.name as admin_name, h.email as admin_email
       FROM admin_logs l
       JOIN users h ON l.admin_username = h.username
+      ${whereClause}
       ORDER BY l.created_at DESC
-      LIMIT 100;
+      LIMIT $${values.length + 1} OFFSET $${values.length + 2}
     `;
-    const res = await pool.query(query);
-    return res.rows;
+    values.push(limit, offset);
+
+    const res = await pool.query(dataQuery, values);
+    return {
+      data: res.rows,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   /**

@@ -27,9 +27,11 @@ COPY --from=builder /app/backend/package.json ./backend/
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/backend/dist ./backend/dist
 
-# Expose backend API port
-EXPOSE 3001
-ENV PORT=3001
+# Run as non-root user for container hardening
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 expressjs
+RUN chown -R expressjs:nodejs /app
+
+USER expressjs
 
 WORKDIR /app/backend
 

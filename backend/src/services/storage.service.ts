@@ -17,6 +17,7 @@ function getR2Client(): S3Client {
     r2Client = new S3Client({
       region: 'auto',
       endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+      forcePathStyle: true,
       credentials: {
         accessKeyId,
         secretAccessKey,
@@ -31,15 +32,32 @@ export class StorageService {
   private static publicUrl = process.env.R2_PUBLIC_URL || 'https://mock-public-bucket.r2.dev';
 
   /**
+   * Dynamic WebP compression utility to ensure output buffer is strictly under 100KB.
+   */
+  private static async compressToWebPUnder100kb(imageBuffer: Buffer, width: number, height: number): Promise<Buffer> {
+    let quality = 80;
+    let processed = await sharp(imageBuffer)
+      .resize(width, height, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality })
+      .toBuffer();
+
+    while (processed.length > 100 * 1024 && quality > 10) {
+      quality -= 10;
+      processed = await sharp(imageBuffer)
+        .resize(width, height, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality })
+        .toBuffer();
+    }
+    return processed;
+  }
+
+  /**
    * Process and upload a user avatar to R2.
    * Converts to WebP format, resizes to max 500x500, ensuring size stays under 100kb.
    */
   static async uploadAvatar(userId: string, imageBuffer: Buffer): Promise<string> {
     try {
-      const processedBuffer = await sharp(imageBuffer)
-        .resize(500, 500, { fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 80 })
-        .toBuffer();
+      const processedBuffer = await this.compressToWebPUnder100kb(imageBuffer, 500, 500);
 
       const key = `avatars/${userId}.webp`;
       const url = await this.uploadAsset(key, processedBuffer, 'image/webp');
@@ -56,13 +74,11 @@ export class StorageService {
    */
   static async uploadEventBanner(eventId: string, imageBuffer: Buffer): Promise<string> {
     try {
-      const processedBuffer = await sharp(imageBuffer)
-        .resize(1200, 630, { fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 80 })
-        .toBuffer();
+      const processedBuffer = await this.compressToWebPUnder100kb(imageBuffer, 1200, 630);
 
-      const key = `banners/${eventId}-${Date.now()}.webp`;
-      return await this.uploadAsset(key, processedBuffer, 'image/webp');
+      const key = `event_banners/${eventId}.webp`;
+      const url = await this.uploadAsset(key, processedBuffer, 'image/webp');
+      return `${url}?v=${Date.now()}`;
     } catch (err: any) {
       logger.error({ err, eventId }, 'Failed to process and upload event banner');
       throw new Error('Event banner upload failed');

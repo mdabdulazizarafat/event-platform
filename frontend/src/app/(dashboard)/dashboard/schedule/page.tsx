@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Typography, Card, Avatar, Input, Tag } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Typography, Card, Avatar, Input, Tag, Modal, Form, DatePicker, TimePicker, Select, message } from 'antd';
+import dayjs from 'dayjs';
 import { 
   Plus, 
   Search, 
@@ -13,28 +14,238 @@ import {
   Tv,
   Users,
   Compass,
-  UserPlus
+  UserPlus,
+  CalendarDays,
+  Clock,
+  Inbox
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import { useAuth } from '@/context/AuthContext';
+import { fetchMyManagedEvents, fetchSchedules, createSchedule, ScheduleItem } from '@/lib/api';
 
 const { Title, Paragraph } = Typography;
 
 export default function SchedulePage() {
+  const { user } = useAuth();
+  
+  if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'ORGANIZER' || user?.role === 'EVENT_MANAGER') {
+    return <OrganizerSchedule />;
+  }
+  
+  return <MySchedule />;
+}
+
+function MySchedule() {
+  const scheduleItems = [
+    {
+      id: 1,
+      time: '09:00 AM - 10:30 AM',
+      title: 'Opening Keynote: The Generative Era',
+      room: 'Grand Hall',
+      event: 'Global Tech Summit 2026',
+    }
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none">
+          My Personal Schedule
+        </h2>
+        <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
+          Stay on top of keynotes, sessions, and workshop schedules you signed up for.
+        </p>
+      </div>
+
+      {scheduleItems.length > 0 ? (
+        <div className="space-y-4">
+          {scheduleItems.map((item) => (
+            <div key={item.id} className="bento-card p-6 bg-surface-container-lowest border border-outline-variant/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-2">
+                <span className="inline-block px-2.5 py-1 bg-primary-container/10 text-primary text-[10px] font-bold rounded-lg uppercase tracking-wide">
+                  {item.event}
+                </span>
+                <h3 className="font-heading text-lg font-bold text-foreground m-0 mt-1">
+                  {item.title}
+                </h3>
+                
+                <div className="flex flex-wrap items-center gap-4 text-xs text-on-surface-variant font-medium">
+                  <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{item.time}</span>
+                  <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{item.room}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-20 bg-surface-container-low border border-outline-variant/60 rounded-2xl">
+          <Inbox className="w-12 h-12 text-on-surface-variant/40 mx-auto mb-4" />
+          <h3 className="text-headline-md font-bold text-foreground m-0">Schedule Empty</h3>
+          <p className="text-body-sm text-on-surface-variant mt-2">
+            You haven't added any session items to your personal itinerary.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OrganizerSchedule() {
   const [activeDay, setActiveDay] = useState('Day 1');
+  const [events, setEvents] = useState<any[]>([]);
+  const [selectedEventSlug, setSelectedEventSlug] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'LIST' | 'BUILDER'>('LIST');
+  const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [eventsLoading, setEventsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadEvents() {
+      try {
+        const res = await fetchMyManagedEvents();
+        if (res && res.length > 0) {
+          setEvents(res);
+        }
+      } catch (err) {
+        console.error('Failed to load events:', err);
+      } finally {
+        setEventsLoading(false);
+      }
+    }
+    loadEvents();
+  }, []);
+
+  useEffect(() => {
+    async function loadSchedules() {
+      if (selectedEventSlug) {
+        try {
+          const res = await fetchSchedules(selectedEventSlug);
+          setSchedules(res);
+        } catch (err) {
+          console.error('Failed to load schedules:', err);
+        }
+      }
+    }
+    loadSchedules();
+  }, [selectedEventSlug]);
+
+  const handleAddSchedule = async (values: any) => {
+    if (!selectedEventSlug) {
+      message.error('No event selected.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = {
+        title: values.title,
+        date: values.date.format('YYYY-MM-DD'),
+        start_time: values.timeRange[0].format('hh:mm A'),
+        end_time: values.timeRange[1].format('hh:mm A'),
+        room: values.room,
+        speaker: values.speaker,
+      };
+      const newSchedule = await createSchedule(selectedEventSlug, data);
+      setSchedules([...schedules, newSchedule]);
+      message.success('Schedule added successfully');
+      setIsModalOpen(false);
+      form.resetFields();
+    } catch (err: any) {
+      message.error(err.message || 'Failed to add schedule');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const days = [
-    { key: 'Day 1', label: 'Day 1 - Oct 12' },
-    { key: 'Day 2', label: 'Day 2 - Oct 13' },
-    { key: 'Day 3', label: 'Day 3 - Oct 14' }
+    { key: 'Day 1', label: 'Day 1' },
+    { key: 'Day 2', label: 'Day 2' },
+    { key: 'Day 3', label: 'Day 3' }
   ];
+
+  if (viewMode === 'LIST') {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none">
+            Schedule Builder
+          </h2>
+          <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
+            Select an event to manage its schedule and sessions.
+          </p>
+        </div>
+
+        {eventsLoading ? (
+           <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>
+        ) : events.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {events.map(event => (
+              <div 
+                key={event.slug} 
+                onClick={() => {
+                  setSelectedEventSlug(event.slug);
+                  setViewMode('BUILDER');
+                }}
+                className="bento-card group cursor-pointer overflow-hidden flex flex-col h-full bg-white border border-outline-variant/60 hover:border-primary/50 hover:shadow-lg transition-all"
+              >
+                <div className="h-32 bg-slate-100 relative overflow-hidden">
+                  {event.thumbnail ? (
+                    <img src={event.thumbnail} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <CalendarDays className="w-10 h-10 text-primary/40" />
+                    </div>
+                  )}
+                  <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-slate-700 shadow-sm border border-slate-200/50">
+                    {event.date}
+                  </div>
+                </div>
+                <div className="p-5 flex-1 flex flex-col">
+                  <h3 className="font-heading font-bold text-lg text-foreground line-clamp-1 m-0">{event.title}</h3>
+                  <div className="flex items-center gap-1.5 mt-2 text-xs text-on-surface-variant font-medium">
+                    <MapPin size={14} className="text-primary/70 shrink-0" />
+                    <span className="truncate">{event.location}</span>
+                  </div>
+                  <div className="mt-auto pt-5">
+                    <Button variant="outline" size="sm" className="w-full">
+                      Manage Schedule
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-20 bg-surface-container-low border border-outline-variant/60 rounded-2xl">
+            <Inbox className="w-12 h-12 text-on-surface-variant/40 mx-auto mb-4" />
+            <h3 className="text-headline-md font-bold text-foreground m-0">No Events Found</h3>
+            <p className="text-body-sm text-on-surface-variant mt-2">
+              You haven't created or been assigned to manage any events yet.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col h-[calc(100vh-140px)] overflow-hidden">
       {/* Builder Header Options */}
       <div className="pb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
+          <button 
+            onClick={() => setViewMode('LIST')}
+            className="flex items-center gap-1.5 text-xs font-bold text-primary mb-2 hover:underline cursor-pointer border-none bg-transparent p-0"
+          >
+            ← Back to Events
+          </button>
           <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none mb-1">Schedule Builder</h2>
-          <p className="text-on-surface-variant text-sm mt-1 mb-0">Global Tech Summit 2026 • San Francisco</p>
+          <div className="mt-1">
+             <span className="text-on-surface-variant font-medium text-sm">Managing: </span>
+             <span className="font-bold text-foreground text-sm">{events.find(e => e.slug === selectedEventSlug)?.title}</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 bg-surface-container-low p-1 rounded-lg border border-outline-variant/30">
@@ -57,6 +268,7 @@ export default function SchedulePage() {
           variant="primary"
           size="md"
           icon={<PlusCircle size={16} />}
+          onClick={() => setIsModalOpen(true)}
         >
           Add Session
         </Button>
@@ -93,160 +305,86 @@ export default function SchedulePage() {
             </div>
 
             {/* Time Slot Rows */}
-            {/* 09:00 AM Slot */}
-            <div className="grid grid-cols-4 border-b border-outline-variant/40">
-              <div className="h-32 bg-surface-container-lowest/30 flex items-start justify-center pt-4 border-r border-outline-variant/50 font-bold text-xs text-on-surface-variant/70">
-                09:00 AM
+            {/* Real DB Schedule Items */}
+            {schedules.length === 0 && (
+              <div className="p-8 text-center text-on-surface-variant font-medium">
+                No schedules found. Click "Add Session" or the Plus icon to add one.
               </div>
-              <div className="h-32 border-r border-outline-variant/50 p-2 relative bg-surface-container-lowest/10">
-                <div className="absolute inset-2 bg-primary-container/5 border-l-4 border-primary rounded-lg p-3 flex flex-col justify-between hover:shadow-md transition-shadow group cursor-pointer">
-                  <div className="flex justify-between items-start">
-                    <h4 className="font-bold text-xs text-foreground leading-tight m-0">Opening Keynote</h4>
-                    <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">Confirmed</span>
+            )}
+            {schedules.map((item, idx) => (
+              <div key={idx} className="grid grid-cols-4 border-b border-outline-variant/40">
+                <div className="h-32 bg-surface-container-lowest/30 flex items-start justify-center pt-4 border-r border-outline-variant/50 font-bold text-xs text-on-surface-variant/70">
+                  {item.start_time}
+                </div>
+                <div className="h-32 border-r border-outline-variant/50 p-2 relative bg-surface-container-lowest/10">
+                  <div className="absolute inset-2 bg-primary-container/5 border-l-4 border-primary rounded-lg p-3 flex flex-col justify-between hover:shadow-md transition-shadow group cursor-pointer">
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-bold text-xs text-foreground leading-tight m-0">{item.title}</h4>
+                      <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">{item.status}</span>
+                    </div>
+                    <p className="text-[10px] text-on-surface-variant/80 m-0">{item.speaker} • {item.start_time} - {item.end_time}</p>
+                    <p className="text-[10px] font-bold text-primary m-0 mt-1">{item.room}</p>
                   </div>
-                  <p className="text-[10px] text-on-surface-variant/80 m-0">Sarah Jenkins • 09:00 - 10:00</p>
+                </div>
+                <div 
+                  className="h-32 border-r border-outline-variant/50 p-2 flex items-center justify-center bg-surface-container-low/20 hover:bg-primary-container/5 cursor-pointer transition-colors group"
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  <Plus size={16} className="text-on-surface-variant/40 group-hover:text-primary transition-colors" />
+                </div>
+                <div 
+                  className="h-32 p-2 flex items-center justify-center bg-surface-container-low/20 hover:bg-primary-container/5 cursor-pointer transition-colors group"
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  <Plus size={16} className="text-on-surface-variant/40 group-hover:text-primary transition-colors" />
                 </div>
               </div>
-              <div className="h-32 border-r border-outline-variant/50 p-2 flex items-center justify-center bg-surface-container-low/20 hover:bg-primary-container/5 cursor-pointer transition-colors group">
-                <Plus size={16} className="text-on-surface-variant/40 group-hover:text-primary transition-colors" />
-              </div>
-              <div className="h-32 p-2 flex items-center justify-center bg-surface-container-low/20 hover:bg-primary-container/5 cursor-pointer transition-colors group">
-                <Plus size={16} className="text-on-surface-variant/40 group-hover:text-primary transition-colors" />
-              </div>
-            </div>
+            ))}
 
-            {/* 10:00 AM Slot */}
-            <div className="grid grid-cols-4 border-b border-outline-variant/40">
-              <div className="h-32 bg-surface-container-lowest/30 flex items-start justify-center pt-4 border-r border-outline-variant/50 font-bold text-xs text-on-surface-variant/70">
-                10:00 AM
-              </div>
-              <div className="h-32 border-r border-outline-variant/50 p-2 relative bg-surface-container-lowest/10">
-                <div className="absolute inset-2 bg-surface-container/50 border border-outline-variant border-dashed rounded-lg p-3 flex items-center justify-center">
-                  <span className="text-on-surface-variant/70 font-bold text-xs">Coffee Break</span>
-                </div>
-              </div>
-              <div className="h-32 border-r border-outline-variant/50 p-2 relative bg-surface-container-lowest/10">
-                <div className="absolute inset-2 bg-primary-container/5 border-l-4 border-tertiary rounded-lg p-3 flex flex-col justify-between hover:shadow-md transition-shadow group cursor-pointer">
-                  <div className="flex justify-between items-start">
-                    <h4 className="font-bold text-xs text-foreground leading-tight m-0">Cloud Native Patterns</h4>
-                    <span className="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">Draft</span>
-                  </div>
-                  <p className="text-[10px] text-on-surface-variant/80 m-0">David K. • 10:15 - 11:15</p>
-                </div>
-              </div>
-              <div className="h-32 p-2 relative bg-surface-container-lowest/10">
-                <div className="absolute inset-2 bg-primary-container/5 border-l-4 border-secondary rounded-lg p-3 flex flex-col justify-between hover:shadow-md transition-shadow group cursor-pointer">
-                  <div className="flex justify-between items-start">
-                    <h4 className="font-bold text-xs text-foreground leading-tight m-0">Founder Mixer</h4>
-                    <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">Confirmed</span>
-                  </div>
-                  <p className="text-[10px] text-on-surface-variant/80 m-0">Open • 10:00 - 11:30</p>
-                </div>
-              </div>
-            </div>
 
-            {/* 11:00 AM Slot */}
-            <div className="grid grid-cols-4">
-              <div className="h-32 bg-surface-container-lowest/30 flex items-start justify-center pt-4 border-r border-outline-variant/50 font-bold text-xs text-on-surface-variant/70">
-                11:00 AM
-              </div>
-              <div className="h-32 border-r border-outline-variant/50 p-2 relative bg-surface-container-lowest/10">
-                <div className="absolute inset-2 bg-primary-container/5 border-l-4 border-primary rounded-lg p-3 flex flex-col justify-between hover:shadow-md transition-shadow group cursor-pointer">
-                  <div className="flex justify-between items-start">
-                    <h4 className="font-bold text-xs text-foreground leading-tight m-0">The Future of AI UX</h4>
-                    <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">Confirmed</span>
-                  </div>
-                  <p className="text-[10px] text-on-surface-variant/80 m-0">Jordan Lee • 11:00 - 12:00</p>
-                </div>
-              </div>
-              <div className="h-32 border-r border-outline-variant/50 p-2 flex items-center justify-center bg-surface-container-low/20 hover:bg-primary-container/5 cursor-pointer transition-colors group">
-                <Plus size={16} className="text-on-surface-variant/40 group-hover:text-primary transition-colors" />
-              </div>
-              <div className="h-32 p-2 flex items-center justify-center bg-surface-container-low/20 hover:bg-primary-container/5 cursor-pointer transition-colors group">
-                <Plus size={16} className="text-on-surface-variant/40 group-hover:text-primary transition-colors" />
-              </div>
-            </div>
 
           </div>
         </div>
-
-        {/* Right Session Library Panel */}
-        <aside className="w-[340px] border-l border-outline-variant/80 flex flex-col bg-white">
-          <div className="p-4 border-b border-outline-variant/80">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-heading text-sm font-bold text-foreground m-0">Session Library</h3>
-              <button className="p-1.5 hover:bg-surface-container rounded-lg transition-colors border-0 bg-transparent text-on-surface-variant cursor-pointer">
-                <Grid size={16} />
-              </button>
-            </div>
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
-              <Input placeholder="Search library..." className="w-full bg-surface-container-low border-none rounded-lg pl-8 py-1.5 text-xs h-9" />
-            </div>
-          </div>
-
-          <div className="flex-grow overflow-auto p-4 space-y-4 custom-scrollbar">
-            {/* Unscheduled Sessions list */}
-            <div>
-              <h4 className="text-[10px] font-bold text-on-surface-variant/80 mb-3 uppercase tracking-widest">Unscheduled (2)</h4>
-              <div className="space-y-3">
-                {[
-                  { title: 'Scaling Web3 Architecture', type: 'Workshop', time: '60 Min', speaker: 'Mark T.', initial: 'MT', bg: '#e2dfff', text: '#3525cd' },
-                  { title: 'Ethical Design in the AI Era', type: 'Keynote', time: '45 Min', speaker: 'Anna V.', initial: 'AV', bg: '#6ffbbe', text: '#006c49' },
-                ].map((item, index) => (
-                  <div key={index} className="p-3 bg-surface-container-low border border-outline-variant/50 rounded-lg hover:bg-surface-container transition-colors group cursor-grab">
-                    <div className="flex justify-between items-start">
-                      <span className="text-xs font-bold text-foreground leading-tight">{item.title}</span>
-                      <GripVertical size={14} className="text-on-surface-variant/40 group-hover:text-primary transition-opacity" />
-                    </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: item.bg, color: item.text }}>
-                        {item.initial}
-                      </div>
-                      <span className="text-[11px] text-on-surface-variant/80">{item.speaker}</span>
-                    </div>
-                    <div className="mt-2 flex gap-1.5">
-                      <span className="px-1.5 py-0.5 bg-white text-on-surface-variant/80 rounded text-[9px] border border-outline-variant/20 font-bold">{item.type}</span>
-                      <span className="px-1.5 py-0.5 bg-white text-on-surface-variant/80 rounded text-[9px] border border-outline-variant/20 font-bold">{item.time}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Recent Speakers Section */}
-            <div>
-              <h4 className="text-[10px] font-bold text-on-surface-variant/80 mb-3 uppercase tracking-widest">Recent Speakers</h4>
-              <div className="space-y-2">
-                {[
-                  { name: 'Sarah Jenkins', role: 'VP Engineering @ WebScale', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAaefnOw132N4pOqID3OmNh04hJ_S7nBei1GvwiDmZVMofOuFU7CWirp-MANto-D1SiFWlvOPry1Av1uEDXKw3wFFGnfkydJ7ZcC5N7HGN7kucP9MdsfncqwrFJ1d2XykSoEkSkAZZZHavPWc-pGSCxMbuVi33kGEj4xQZDVykcJMdoGPfiiqqXTq3rI_leGWnUTV1pPfQslwzbD4HONoelw0aEHdCZNxDv3tI2rnTsdHoIk1YpPKRr0Tbjs5DKR_-jl4GeXO1OuA' },
-                  { name: 'Jordan Lee', role: 'Lead Designer @ AI Flow', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuABlnZHX2HANAckNaDwS9hC8n82XPix_2Y2-oXfGeKn8mwVzQwImULP_aOkQKR-XcIN-8KyjQMQdc8kEIVqNlmmhCHqV6tHBAQ-A_YKQ5iLi6XG-cDlROUBQh6yJPqev2Ae_o6ls9LFnZDYbLMWe-2Ls17lm9g0SpiY1SvAE8n4wvA0QAAJfrqVT_6P1miPSw-bMaKESjbuO1sFbsgK4rAer9moLU9zDVptA0i_NgpSTbwsdNqBD4XpHALxXdclVmgsNGHNIHpnfQ' }
-                ].map((speaker, index) => (
-                  <div key={index} className="flex items-center gap-3 p-1.5 rounded-lg hover:bg-surface-container transition-colors cursor-pointer">
-                    <Avatar size={32} src={speaker.avatar} className="border border-outline-variant/40" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-foreground m-0 truncate">{speaker.name}</p>
-                      <p className="text-[10px] text-on-surface-variant m-0 truncate leading-none mt-0.5">{speaker.role}</p>
-                    </div>
-                    <Plus size={14} className="text-primary flex-shrink-0" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 bg-surface-container-low border-t border-outline-variant/80">
-            <Button 
-              variant="outline"
-              size="md"
-              className="w-full"
-              icon={<UserPlus size={14} />}
-            >
-              Add New Speaker
-            </Button>
-          </div>
-        </aside>
       </div>
+      
+      {/* Add Session Modal */}
+      <Modal
+        title={<span className="font-heading font-bold text-lg">Add New Session</span>}
+        open={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        footer={null}
+        destroyOnHidden
+      >
+        <Form layout="vertical" form={form} onFinish={handleAddSchedule} className="mt-4">
+          <Form.Item name="title" label="Session/Segment Name" rules={[{ required: true, message: 'Please enter a title' }]}>
+            <Input placeholder="e.g. Opening Keynote" />
+          </Form.Item>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item name="date" label="Date" rules={[{ required: true, message: 'Please select date' }]}>
+              <DatePicker className="w-full" />
+            </Form.Item>
+            <Form.Item name="timeRange" label="Start & End Time" rules={[{ required: true, message: 'Please select time range' }]}>
+              <TimePicker.RangePicker format="hh:mm A" use12Hours className="w-full" />
+            </Form.Item>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item name="room" label="Room Number/Name" rules={[{ required: true, message: 'Please enter room' }]}>
+              <Input placeholder="e.g. Main Stage" />
+            </Form.Item>
+            <Form.Item name="speaker" label="Speaker Name" rules={[{ required: true, message: 'Please enter speaker' }]}>
+              <Input placeholder="e.g. Sarah Jenkins" />
+            </Form.Item>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button variant="primary" type="submit" loading={loading}>Save Session</Button>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }
+

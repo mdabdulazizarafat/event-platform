@@ -162,7 +162,7 @@ export default function AvatarCropper({ open, imageSrc, onClose, onSave }: Avata
       onCancel={onClose}
       footer={null}
       width={480}
-      destroyOnClose
+      destroyOnHidden
       centered
       title={
         <div>

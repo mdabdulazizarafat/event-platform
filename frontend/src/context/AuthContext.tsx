@@ -6,13 +6,24 @@ import { App } from 'antd';
 export interface User {
   username: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   avatar?: string;
   bio?: string;
   role?: string;
   mobile?: string;
+  phoneNumber?: string;
   org?: string;
   status?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  university?: string;
+  classLevel?: string;
+  district?: string;
+  occupationType?: 'student' | 'job';
+  institutionName?: string;
+  position?: string;
 }
 
 interface AuthContextType {
@@ -22,7 +33,9 @@ interface AuthContextType {
   login: (emailOrUsername: string, password: string) => Promise<boolean>;
   registerUser: (data: {
     username?: string;
-    name: string;
+    name?: string;
+    firstName: string;
+    lastName?: string;
     email: string;
     password: string;
     role?: 'USER' | 'ORGANIZER';
@@ -39,6 +52,7 @@ interface AuthContextType {
     role?: string;
     status?: string;
   }) => Promise<boolean>;
+  refetchUser: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -49,24 +63,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const checkSession = async () => {
+    try {
+      const response = await fetch('/api/v1/auth/me');
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('Session validation error:', error);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Validate session on load
   useEffect(() => {
-    async function checkSession() {
-      try {
-        const response = await fetch('/api/v1/auth/me');
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Session validation error:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    }
     checkSession();
   }, []);
 
@@ -128,7 +143,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const registerUser = async (data: {
     username?: string;
-    name: string;
+    name?: string;
+    firstName: string;
+    lastName?: string;
     email: string;
     password: string;
     role?: 'USER' | 'ORGANIZER';
@@ -193,7 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, registerUser, updateUserProfile, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, registerUser, updateUserProfile, refetchUser: checkSession, logout }}>
       {children}
     </AuthContext.Provider>
   );

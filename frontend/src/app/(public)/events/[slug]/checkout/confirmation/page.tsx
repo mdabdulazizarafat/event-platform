@@ -68,7 +68,7 @@ export default function ConfirmationPage() {
           <Button variant="primary" icon={<Download className="w-4 h-4" />}>
             Download Ticket
           </Button>
-          <Button variant="outline" onClick={() => router.push('/dashboard/user')}>
+          <Button variant="outline" onClick={() => router.push('/dashboard')}>
             Go to My Dashboard
           </Button>
         </div>

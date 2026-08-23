@@ -346,15 +346,19 @@ export class TicketController {
     try {
       const username = req.user.username;
 
-      // 1. Fetch all registrations for this user
+      // 1. Fetch all registrations for this user (both as leader and team member)
       const query = `
-        SELECT r.id, r.event_id, r.email, r.status, r.payment_status, r.qr_token, r.registered_at,
+        SELECT DISTINCT r.id, r.event_id, r.email, r.status, r.payment_status, r.qr_token, r.registered_at,
           e.title as event_title, e.date as event_date, e.time as event_time, e.location as event_location, e.slug as event_slug, e.contact_email, e.contact_phone,
-          tt.name as ticket_name, tt.price as ticket_price, tt.currency as ticket_currency
+          tt.name as ticket_name, tt.price as ticket_price, tt.currency as ticket_currency,
+          rt.team_name,
+          (r.user_id = $1) as is_leader
         FROM registrations r
         JOIN events e ON r.event_id = e.id
         LEFT JOIN ticket_types tt ON r.ticket_type_id = tt.id
-        WHERE r.user_id = $1
+        LEFT JOIN registration_teams rt ON rt.leader_registration_id = r.id
+        LEFT JOIN registration_team_members rtm ON rtm.team_id = rt.id
+        WHERE r.user_id = $1 OR rtm.username = $1
         ORDER BY r.registered_at DESC;
       `;
       const regRes = await pool.query(query, [username]);

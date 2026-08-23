@@ -10,7 +10,7 @@ const logger = createChildLogger('event.controller');
 export class EventController {
   static async uploadImage(req: Request, res: Response) {
     try {
-      const { imageBase64 } = req.body;
+      const { imageBase64, eventId } = req.body;
       if (!imageBase64) {
         return res.status(400).json({ error: 'Missing imageBase64' });
       }
@@ -21,8 +21,8 @@ export class EventController {
       }
 
       const buffer = Buffer.from(matches[2], 'base64');
-      const tempId = `temp-${Date.now()}`;
-      const url = await StorageService.uploadEventBanner(tempId, buffer);
+      const targetId = eventId || `temp-${Date.now()}`;
+      const url = await StorageService.uploadEventBanner(targetId, buffer);
       
       return res.status(200).json({ url });
     } catch (error: any) {
@@ -35,11 +35,16 @@ export class EventController {
       if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
+      if (req.user.role === 'USER') {
+        return res.status(403).json({ error: 'Users cannot create events. Please upgrade to Organizer.' });
+      }
       
       const hostUsername = req.user.username;
       const { 
         slug, title, description, thumbnail, date, time, location, capacity, contactEmail, contactPhone, status,
-        formPhone, formJobTitle, formOrganization, formTshirtSize, formReference, formTransactionId
+        formPhone, formJobTitle, formOrganization, formTshirtSize, formReference, formTransactionId,
+        isPrivate, eventFor, studentCategory,
+        startDate, endDate, registrationDeadline
       } = req.body;
       
       if (!slug || !title || !date || !time || !location || !capacity) {
@@ -79,6 +84,12 @@ export class EventController {
         formTshirtSize: formTshirtSize !== undefined ? !!formTshirtSize : undefined,
         formReference: formReference !== undefined ? !!formReference : undefined,
         formTransactionId: formTransactionId !== undefined ? !!formTransactionId : undefined,
+        isPrivate: isPrivate !== undefined ? !!isPrivate : undefined,
+        eventFor,
+        studentCategory,
+        startDate,
+        endDate,
+        registrationDeadline,
       });
 
       return res.status(201).json({ message: 'Event created and partition created successfully', eventId });
@@ -97,7 +108,9 @@ export class EventController {
       const { slug } = req.params;
       const { 
         title, description, thumbnail, date, time, location, capacity, contactEmail, contactPhone, status,
-        formPhone, formJobTitle, formOrganization, formTshirtSize, formReference, formTransactionId
+        formPhone, formJobTitle, formOrganization, formTshirtSize, formReference, formTransactionId,
+        isPrivate, eventFor, studentCategory,
+        startDate, endDate, registrationDeadline
       } = req.body;
 
       const updated = await EventService.updateEvent(slug, req.user.username, {
@@ -117,7 +130,13 @@ export class EventController {
         formTshirtSize: formTshirtSize !== undefined ? !!formTshirtSize : undefined,
         formReference: formReference !== undefined ? !!formReference : undefined,
         formTransactionId: formTransactionId !== undefined ? !!formTransactionId : undefined,
-      });
+        isPrivate: isPrivate !== undefined ? !!isPrivate : undefined,
+        eventFor,
+        studentCategory,
+        startDate,
+        endDate,
+        registrationDeadline,
+      }, req.user.role);
 
       return res.status(200).json({ message: 'Event updated successfully', event: updated });
     } catch (error: any) {
@@ -128,8 +147,23 @@ export class EventController {
 
   static async list(req: Request, res: Response) {
     try {
-      const events = await EventService.getEvents(req.user?.username, req.user?.role);
-      return res.status(200).json(events);
+      const page = req.query.page ? parseInt(req.query.page as string) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const search = req.query.search as string;
+      const status = req.query.status as string;
+
+      const result = await EventService.getEvents({
+        username: req.user?.username,
+        role: req.user?.role,
+        page,
+        limit,
+        search,
+        status,
+      });
+      if (page === undefined && limit === undefined) {
+        return res.status(200).json(result.data);
+      }
+      return res.status(200).json(result);
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
     }
@@ -152,7 +186,8 @@ export class EventController {
       const { slug } = req.params;
       const { 
         email, userId, ticketTypeId, 
-        fullName, phone, jobTitle, organization, tshirtSize, reference, transactionId
+        fullName, phone, jobTitle, organization, tshirtSize, reference, transactionId,
+        teamName, teamMembers
       } = req.body;
 
       if (!email || !userId) {
@@ -204,6 +239,8 @@ export class EventController {
           tshirtSize,
           reference,
           transactionId,
+          teamName,
+          teamMembers,
         }
       );
       return res.status(201).json({
@@ -232,7 +269,12 @@ export class EventController {
         return res.status(403).json({ error: 'Unauthorized: Only the event host can retrieve registrations.' });
       }
 
-      const registrations = await RegistrationService.getRegistrationsByEvent(event.id);
+      const page = req.query.page ? parseInt(req.query.page as string) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const search = req.query.search as string;
+      const status = req.query.status as string;
+
+      const registrations = await RegistrationService.getRegistrationsByEvent(event.id, { page, limit, search, status });
       return res.status(200).json(registrations);
     } catch (error: any) {
       logger.error({ err: error }, 'Error fetching registrations');
@@ -257,6 +299,70 @@ export class EventController {
       return res.status(200).json(result.rows);
     } catch (error: any) {
       logger.error({ err: error }, 'Error fetching my managed events');
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  static async getDashboardStats(req: Request, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      const username = req.user.username;
+      
+      // Get events the user hosts or manages
+      const eventsQuery = `
+        SELECT e.id 
+        FROM events e
+        LEFT JOIN event_team et ON e.id = et.event_id AND et.username = $1
+        WHERE e.host_username = $1 OR (et.username = $1 AND et.role = 'ORGANIZER')
+      `;
+      const eventsRes = await pool.query(eventsQuery, [username]);
+      const eventIds = eventsRes.rows.map(r => r.id);
+
+      if (eventIds.length === 0) {
+        return res.status(200).json({
+          totalRegistrations: 0,
+          totalRevenue: 0,
+          activeSessions: 0,
+          checkInRate: 0
+        });
+      }
+
+      const idsString = eventIds.join(',');
+
+      // Total Registrations
+      const regQuery = `SELECT COUNT(*) as count FROM registrations WHERE event_id IN (${idsString}) AND status != 'CANCELLED'`;
+      const regRes = await pool.query(regQuery);
+      const totalRegistrations = parseInt(regRes.rows[0].count);
+
+      // Total Revenue
+      const revQuery = `SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE event_id IN (${idsString}) AND status = 'SUCCESS'`;
+      const revRes = await pool.query(revQuery);
+      const totalRevenue = parseFloat(revRes.rows[0].total);
+
+      // Active Sessions (Live Events)
+      const liveQuery = `SELECT COUNT(*) as count FROM events WHERE id IN (${idsString}) AND status = 'LIVE'`;
+      const liveRes = await pool.query(liveQuery);
+      const activeSessions = parseInt(liveRes.rows[0].count);
+
+      // Check-in rate (Scans vs Total Registrations)
+      let checkInRate = 0;
+      if (totalRegistrations > 0) {
+        const scansQuery = `SELECT COUNT(DISTINCT registration_id) as count FROM activity_scans WHERE event_id IN (${idsString})`;
+        const scansRes = await pool.query(scansQuery);
+        const totalScans = parseInt(scansRes.rows[0].count);
+        checkInRate = Math.round((totalScans / totalRegistrations) * 100);
+      }
+
+      return res.status(200).json({
+        totalRegistrations,
+        totalRevenue,
+        activeSessions,
+        checkInRate
+      });
+    } catch (error: any) {
+      logger.error({ err: error }, 'Error fetching dashboard stats');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

@@ -6,9 +6,15 @@ import DataTable from '@/components/ui/DataTable';
 import Button from '@/components/ui/Button';
 import { DollarSign, ArrowLeft, TrendingUp, Landmark } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AdminFinanceOperationsPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  
+  if (user && user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
+    return <div className="text-center py-20 text-error">Unauthorized Access</div>;
+  }
 
   const [payouts, setPayouts] = useState([
     { id: 1, host: 'tech-hub', amount: 48000, fee: 2400, netPayout: 45600, status: 'SETTLED', date: '2026-08-01' },
@@ -40,7 +46,7 @@ export default function AdminFinanceOperationsPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => router.push('/dashboard/admin')}
+          onClick={() => router.push('/dashboard')}
           icon={<ArrowLeft className="w-4 h-4" />}
         >
           Back

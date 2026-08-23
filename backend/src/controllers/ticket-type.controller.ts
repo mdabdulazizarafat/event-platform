@@ -26,7 +26,7 @@ export class TicketTypeController {
         return res.status(403).json({ error: 'Unauthorized: Only the event host can manage ticket types.' });
       }
 
-      const { name, description, price, capacity, sortOrder, saleStart, saleEnd } = req.body;
+      const { name, description, price, capacity, sortOrder, saleStart, saleEnd, isTeam, maxTeamSize } = req.body;
       if (!name || price === undefined) {
         return res.status(400).json({ error: 'Missing required fields: name and price are required.' });
       }
@@ -40,6 +40,8 @@ export class TicketTypeController {
         sortOrder: sortOrder ? parseInt(sortOrder) : undefined,
         saleStart,
         saleEnd,
+        isTeam: isTeam !== undefined ? !!isTeam : undefined,
+        maxTeamSize: maxTeamSize ? parseInt(maxTeamSize) : undefined,
       });
 
       return res.status(201).json({ message: 'Ticket type created successfully', ticketType });
@@ -106,7 +108,7 @@ export class TicketTypeController {
         return res.status(404).json({ error: 'Ticket type not found for this event.' });
       }
 
-      const { name, description, price, capacity, sortOrder, isActive, saleStart, saleEnd } = req.body;
+      const { name, description, price, capacity, sortOrder, isActive, saleStart, saleEnd, isTeam, maxTeamSize } = req.body;
 
       const updated = await TicketTypeService.updateTicketType(parseInt(id), {
         name,
@@ -117,6 +119,8 @@ export class TicketTypeController {
         isActive,
         saleStart,
         saleEnd,
+        isTeam: isTeam !== undefined ? !!isTeam : undefined,
+        maxTeamSize: maxTeamSize !== undefined ? parseInt(maxTeamSize) : undefined,
       });
 
       return res.status(200).json({ message: 'Ticket type updated successfully', ticketType: updated });

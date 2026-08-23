@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Typography, message, Tag, Tabs, Modal, Select, Table } from 'antd';
+import { Typography, Tag, Tabs, Select, Table, App, Modal } from 'antd';
 import {
   Users,
   DollarSign,
@@ -25,7 +25,8 @@ import {
   ExternalLink,
   Shield,
   Ticket,
-  Image as ImageIcon
+  Image as ImageIcon,
+  QrCode
 } from 'lucide-react';
 import StatCard from '@/components/ui/StatCard';
 import Button from '@/components/ui/Button';
@@ -45,15 +46,24 @@ import {
   fetchEventActivities,
   createEventActivity,
   updateEventActivity,
-  deactivateEventActivity
+  deactivateEventActivity,
+  fetchCertificateTemplate,
+  upsertCertificateTemplate,
+  fetchEventCertificates,
+  issueCertificate,
+  fetchMyRegistrations
 } from '@/lib/api';
+
+import { useAuth } from '@/context/AuthContext';
 
 export default function EventControlCenterPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = React.use(params);
   const router = useRouter();
+  const { message, modal } = App.useApp();
+  const { user } = useAuth();
 
   // Root Data State
-  const [event, setEvent] = useState<Event | null>(null);
+  const [event, setEvent] = useState<(Event & { id?: number; is_team_member?: boolean; is_registered?: boolean }) | null>(null);
   const [tickets, setTickets] = useState<TicketType[]>([]);
   const [scanStats, setScanStats] = useState<any>(null);
   const [scanLogs, setScanLogs] = useState<any[]>([]);
@@ -92,6 +102,11 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
   const [regReference, setRegReference] = useState('');
   const [regTransactionId, setRegTransactionId] = useState('');
   const [regTicketTypeId, setRegTicketTypeId] = useState<string>('');
+
+  // ----------------------------------------------------
+  // Tab 8: My Ticket (Participant)
+  // ----------------------------------------------------
+  const [myTicket, setMyTicket] = useState<any | null>(null);
 
   // ----------------------------------------------------
   // Tab 3: Edit Form State
@@ -224,6 +239,16 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
 
         // Fetch Activities
         loadActivities();
+
+        // Fetch Certificates
+        loadCertificates();
+
+        // If USER role, fetch registration ticket
+        if (user?.role === 'USER') {
+          const myRegs = await fetchMyRegistrations();
+          const thisEventReg = myRegs.find((r: any) => r.event_id === eventData.id || r.event_slug === slug);
+          setMyTicket(thisEventReg || null);
+        }
       }
     } catch (err) {
       console.error('Failed to load control center data:', err);
@@ -297,7 +322,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
       const res = await fetch(`/api/v1/events/${slug}/registrations`);
       if (res.ok) {
         const data = await res.json();
-        setRegistrations(data);
+        setRegistrations(Array.isArray(data) ? data : (data.data || []));
       }
     } catch (err) {
       console.error(err);
@@ -307,7 +332,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
   };
 
   const handleCancelRegistration = async (regId: number) => {
-    Modal.confirm({
+    modal.confirm({
       title: 'Cancel Registration?',
       content: 'Are you sure you want to cancel this participant\'s registration? A cancellation email will be enqueued.',
       okText: 'Yes, Cancel',
@@ -485,7 +510,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
               const res = await fetch('/api/v1/events/upload-image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imageBase64: dataUrl })
+                body: JSON.stringify({ imageBase64: dataUrl, eventId: slug })
               });
               const data = await res.json();
               if (res.ok && data.url) {
@@ -613,7 +638,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
   };
 
   const handleRemoveTeam = async (username: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: 'Remove Team Member?',
       content: `Are you sure you want to remove ${username} from the event team?`,
       okText: 'Remove',
@@ -667,7 +692,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
   };
 
   const handleDeactivateActivity = async (actId: number) => {
-    Modal.confirm({
+    modal.confirm({
       title: 'Deactivate Activity?',
       content: 'Deactivating this activity prevents scanners from registering scans. This action cannot be undone.',
       okText: 'Deactivate',
@@ -684,6 +709,54 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
     });
   };
 
+
+  // ----------------------------------------------------
+  // Tab 7: Certificates State
+  // ----------------------------------------------------
+  const [certTemplateUrl, setCertTemplateUrl] = useState('');
+  const [certSendingTime, setCertSendingTime] = useState('');
+  const [loadingCertTemplate, setLoadingCertTemplate] = useState(false);
+  const [savingCertTemplate, setSavingCertTemplate] = useState(false);
+  const [issuedCerts, setIssuedCerts] = useState<any[]>([]);
+  const [loadingIssuedCerts, setLoadingIssuedCerts] = useState(false);
+
+  const loadCertificates = async () => {
+    setLoadingCertTemplate(true);
+    setLoadingIssuedCerts(true);
+    try {
+      const template = await fetchCertificateTemplate(slug);
+      if (template) {
+        setCertTemplateUrl(template.template_url || '');
+        if (template.sending_time) {
+          const date = new Date(template.sending_time);
+          setCertSendingTime(date.toISOString().slice(0, 16));
+        }
+      }
+      const certs = await fetchEventCertificates(slug);
+      setIssuedCerts(certs || []);
+    } catch (err) {
+      console.warn('Failed to load certificates');
+    } finally {
+      setLoadingCertTemplate(false);
+      setLoadingIssuedCerts(false);
+    }
+  };
+
+  const handleSaveCertTemplate = async () => {
+    setSavingCertTemplate(true);
+    try {
+      const payload: any = { template_url: certTemplateUrl };
+      if (certSendingTime) {
+        payload.sending_time = new Date(certSendingTime).toISOString();
+      }
+      await upsertCertificateTemplate(slug, payload);
+      message.success('Certificate template saved');
+    } catch (err: any) {
+      message.error(err.message || 'Failed to save certificate template');
+    } finally {
+      setSavingCertTemplate(false);
+    }
+  };
 
   // ----------------------------------------------------
   // Rendering Helpers
@@ -721,7 +794,9 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
       (reg.full_name && reg.full_name.toLowerCase().includes(query)) ||
       (reg.phone && reg.phone.toLowerCase().includes(query)) ||
       (reg.organization && reg.organization.toLowerCase().includes(query)) ||
-      (reg.transaction_id && reg.transaction_id.toLowerCase().includes(query));
+      (reg.transaction_id && reg.transaction_id.toLowerCase().includes(query)) ||
+      (reg.job_title && reg.job_title.toLowerCase().includes(query)) ||
+      (reg.jobTitle && reg.jobTitle.toLowerCase().includes(query));
     
     const matchesStatus = registrationStatusFilter === 'All' || reg.status === registrationStatusFilter;
     return matchesSearch && matchesStatus;
@@ -1264,8 +1339,98 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
                 </div>
               </div>
             )
+          },
+          // ==========================================
+          // Tab 7: Certificates
+          // ==========================================
+          {
+            key: '7',
+            label: 'Certificates',
+            children: (
+              <div className="space-y-6 pt-4 max-w-4xl">
+                <div className="flex justify-between items-center border-b border-outline-variant/40 pb-3">
+                  <div>
+                    <h4 className="font-bold text-base text-foreground m-0">Event Certificates</h4>
+                    <p className="text-xs text-on-surface-variant m-0 mt-0.5">Configure automated certificate issuing for participants.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4 p-5 border border-outline-variant/60 rounded-xl bg-surface-container-low/30">
+                    <FormField label="Certificate Template URL" value={certTemplateUrl} onChange={(e) => setCertTemplateUrl(e.target.value)} placeholder="https://example.com/template.png" required />
+                    <FormField label="Automated Issuing Time" type="datetime-local" value={certSendingTime} onChange={(e) => setCertSendingTime(e.target.value)} />
+                    <Button variant="primary" loading={savingCertTemplate} onClick={handleSaveCertTemplate} icon={<Save className="w-4 h-4" />}>
+                      Save Template Config
+                    </Button>
+                  </div>
+                  <div className="border border-outline-variant/60 rounded-xl p-5">
+                    <h4 className="font-bold text-sm text-foreground m-0 mb-3 border-b border-outline-variant/40 pb-2">Issued Certificates History</h4>
+                    {loadingIssuedCerts ? (
+                      <div className="text-center text-xs py-4">Loading...</div>
+                    ) : (
+                      <DataTable
+                        columns={[
+                          { key: 'participant_name', title: 'Participant', render: (row: any) => row.participant_name || row.issued_to },
+                          { key: 'certificate_type', title: 'Type' },
+                          { key: 'issued_at', title: 'Issued On', render: (row: any) => new Date(row.issued_at).toLocaleDateString() },
+                        ]}
+                        data={issuedCerts}
+                        emptyText="No certificates issued yet."
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          },
+          // ==========================================
+          // Tab 8: My Ticket (Participant)
+          // ==========================================
+          {
+            key: '8',
+            label: 'My Ticket',
+            children: (
+              <div className="pt-4 max-w-xl">
+                {myTicket ? (
+                  <div className="bento-card p-6 flex flex-col items-center text-center space-y-4">
+                    <h4 className="font-bold text-xl text-foreground m-0">{myTicket.ticket_name}</h4>
+                    <Tag color={myTicket.status === 'CHECKED_IN' ? 'success' : 'blue'} className="font-bold uppercase mb-2">
+                      {myTicket.status}
+                    </Tag>
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-outline-variant/40 inline-block">
+                      {myTicket.qr_token ? (
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(myTicket.qr_token)}`} 
+                          alt="Ticket QR Code" 
+                          width={200} 
+                          height={200} 
+                        />
+                      ) : (
+                        <div className="w-[200px] h-[200px] flex items-center justify-center bg-surface-container-low text-on-surface-variant text-sm">
+                          QR Not Available
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-on-surface-variant">Present this QR code at the event entrance for scanning.</p>
+                  </div>
+                ) : (
+                  <div className="py-10 text-center">
+                    <p className="text-on-surface-variant">No ticket found for this event.</p>
+                  </div>
+                )}
+              </div>
+            )
           }
-        ]} />
+        ].filter(tab => {
+          if (user?.role === 'USER') {
+            if (event?.is_team_member && tab.key === '6') return true;
+            if (event?.is_registered && (tab.key === '1' || tab.key === '8')) return true;
+            // If they are not registered and not team member, maybe they shouldn't be here, but let's let them see Overview
+            if (tab.key === '1') return true;
+            return false;
+          }
+          return true;
+        })} />
       </div>
 
       {/* MODALS */}

@@ -32,38 +32,38 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'ADMIN';
-    const isUser = user.role === 'USER';
-
-    // Redirect role-specific users accessing the root dashboard route
-    if (pathname === '/dashboard') {
-      if (isUser) {
-        return NextResponse.redirect(new URL('/dashboard/user', request.url));
-      }
-      if (isAdmin) {
-        return NextResponse.redirect(new URL('/dashboard/admin', request.url));
-      }
+    const role = user.role as string;
+    
+    // Redirect legacy overview subroutes to unified dashboard
+    if (pathname === '/dashboard/admin' || pathname === '/dashboard/user' || pathname === '/dashboard/participant') {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
-    // 1. Guard admin routes
-    if (pathname.startsWith('/dashboard/admin') && !isAdmin) {
-      const fallbackUrl = new URL(isUser ? '/dashboard/user' : '/dashboard', request.url);
-      return NextResponse.redirect(fallbackUrl);
-    }
+    const ROUTE_PERMISSIONS: Record<string, string[]> = {
+      '/dashboard':              ['USER', 'ORGANIZER', 'ADMIN', 'SUPER_ADMIN'],
+      '/dashboard/events':       ['USER', 'ORGANIZER', 'ADMIN', 'SUPER_ADMIN'],
+      '/dashboard/scanner':      ['USER', 'ORGANIZER', 'ADMIN', 'SUPER_ADMIN'],
+      '/dashboard/schedule':     ['USER', 'ORGANIZER', 'ADMIN', 'SUPER_ADMIN'],
+      '/dashboard/certificates': ['USER', 'ORGANIZER', 'ADMIN', 'SUPER_ADMIN'],
+      '/dashboard/profile':      ['USER', 'ORGANIZER', 'ADMIN', 'SUPER_ADMIN'],
+      '/dashboard/users':        ['ADMIN', 'SUPER_ADMIN'],
+      '/dashboard/finance':      ['ADMIN', 'SUPER_ADMIN'],
+      '/dashboard/infrastructure': ['SUPER_ADMIN'],
+      '/dashboard/settings':     ['SUPER_ADMIN'],
+    };
 
-    // 2. Guard organizer host routes (default dashboard paths)
-    const hostOnlyPaths = [
-      '/dashboard/attendees',
-      '/dashboard/schedule',
-      '/dashboard/events'
-    ];
-    
-    const isAccessingHostPath = hostOnlyPaths.some(path => pathname.startsWith(path));
-    
-    // Allow /dashboard/account to be accessible to everyone
-    if (isAccessingHostPath && isUser && !pathname.startsWith('/dashboard/account')) {
-      const fallbackUrl = new URL('/dashboard/user', request.url);
-      return NextResponse.redirect(fallbackUrl);
+    if (role !== 'SUPER_ADMIN') {
+      // Find the most specific matching route rule
+      const matchedRoute = Object.keys(ROUTE_PERMISSIONS)
+        .sort((a, b) => b.length - a.length)
+        .find(route => pathname === route || pathname.startsWith(route + '/'));
+
+      if (matchedRoute) {
+        const allowedRoles = ROUTE_PERMISSIONS[matchedRoute];
+        if (!allowedRoles.includes(role)) {
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+      }
     }
   }
 

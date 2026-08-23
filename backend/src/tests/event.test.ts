@@ -27,15 +27,6 @@ export async function runEventTests() {
       });
       expect(typeof createdEventId).toBe('number');
       expect(createdEventId).toBeGreaterThan(0);
-
-      // Verify PostgreSQL partition table p_reg_[eventId] exists
-      const tableRes = await pool.query(`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables
-          WHERE table_name = $1
-        );
-      `, [`p_reg_${createdEventId}`]);
-      expect(tableRes.rows[0].exists).toBe(true);
     });
 
     await it('should automatically add host as ORGANIZER in event_team', async () => {

@@ -33,11 +33,10 @@ export default function SignUpPage() {
     setSuccessMsg(null);
     try {
       const payload: any = {
-        username: values.username,
-        name: values.name,
+        firstName: values.firstName,
+        lastName: values.lastName,
         email: values.email,
         password: values.password,
-        mobile: values.mobile,
         role: 'USER',
       };
 
@@ -101,32 +100,30 @@ export default function SignUpPage() {
             requiredMark={false}
             className="space-y-4"
           >
-            <Form.Item
-              label={<span className="text-xs font-bold text-foreground uppercase tracking-wider">Full Name</span>}
-              name="name"
-              className="mb-0"
-              rules={[{ required: true, message: 'Enter your full name' }]}
-            >
-              <Input
-                placeholder="John Doe"
-                className="h-12 rounded-xl bg-surface-container-low border-outline-variant/50 focus:bg-white"
-              />
-            </Form.Item>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Item
+                label={<span className="text-xs font-bold text-foreground uppercase tracking-wider">First Name</span>}
+                name="firstName"
+                className="mb-0"
+                rules={[{ required: true, message: 'Enter first name' }]}
+              >
+                <Input
+                  placeholder="John"
+                  className="h-12 rounded-xl bg-surface-container-low border-outline-variant/50 focus:bg-white"
+                />
+              </Form.Item>
 
-            <Form.Item
-              label={<span className="text-xs font-bold text-foreground uppercase tracking-wider">Username</span>}
-              name="username"
-              className="mb-0"
-              rules={[
-                { required: true, message: 'Enter a username' },
-                { pattern: /^[a-zA-Z0-9_-]+$/, message: 'Alphanumeric, underscores, and hyphens only' }
-              ]}
-            >
-              <Input
-                placeholder="johndoe"
-                className="h-12 rounded-xl bg-surface-container-low border-outline-variant/50 focus:bg-white"
-              />
-            </Form.Item>
+              <Form.Item
+                label={<span className="text-xs font-bold text-foreground uppercase tracking-wider">Last Name</span>}
+                name="lastName"
+                className="mb-0"
+              >
+                <Input
+                  placeholder="Doe"
+                  className="h-12 rounded-xl bg-surface-container-low border-outline-variant/50 focus:bg-white"
+                />
+              </Form.Item>
+            </div>
 
             <Form.Item
               label={<span className="text-xs font-bold text-foreground uppercase tracking-wider">E-mail Address</span>}
@@ -139,24 +136,6 @@ export default function SignUpPage() {
             >
               <Input
                 placeholder="hello@email.com"
-                className="h-12 rounded-xl bg-surface-container-low border-outline-variant/50 focus:bg-white"
-              />
-            </Form.Item>
-
-            <Form.Item
-              label={<span className="text-xs font-bold text-foreground uppercase tracking-wider">Mobile Number</span>}
-              name="mobile"
-              className="mb-0"
-              rules={[
-                { required: true, message: 'Enter mobile number' },
-                {
-                  pattern: /^(\+88)?01[3-9]\d{8}$|^(\+\d{1,4})?\d{8,14}$/,
-                  message: 'Enter a valid mobile number',
-                },
-              ]}
-            >
-              <Input
-                placeholder="+8801XXXXXXXXX"
                 className="h-12 rounded-xl bg-surface-container-low border-outline-variant/50 focus:bg-white"
               />
             </Form.Item>

@@ -47,6 +47,15 @@ export async function runMigrations() {
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS mobile VARCHAR(20)').catch(() => {});
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS org VARCHAR(255)').catch(() => {});
     await client.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'").catch(() => {});
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100)').catch(() => {});
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100)').catch(() => {});
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth VARCHAR(50)').catch(() => {});
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(20)').catch(() => {});
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS occupation_type VARCHAR(20)').catch(() => {});
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS institution_name VARCHAR(255)').catch(() => {});
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS class_level VARCHAR(100)').catch(() => {});
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS position VARCHAR(100)').catch(() => {});
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS district VARCHAR(100)').catch(() => {});
 
     // Data migration: update existing participants to user role
     await client.query("UPDATE users SET role = 'USER' WHERE role = 'PARTICIPANT'").catch(() => {});
@@ -254,71 +263,101 @@ export async function runMigrations() {
     `);
     await client.query('CREATE INDEX IF NOT EXISTS idx_admin_permissions_user ON admin_permissions (username)').catch(() => {});
 
-    // 14. Inject 5 secure seed/test accounts
-    logger.info('Seeding test/live accounts...');
-    const defaultPasswordHash = bcrypt.hashSync('RongPlan2026!@#', 10);
-    const seeds = [
-      {
-        username: 'abdulaziz',
-        name: 'Abdul Aziz',
-        email: 'abdulaziz@ayojok.rongplan.com',
-        password_hash: defaultPasswordHash,
-        role: 'SUPER_ADMIN',
-        status: 'ACTIVE'
-      },
-      {
-        username: 'zobaerahmed',
-        name: 'Zobaer Ahmed',
-        email: 'zobaerahmed@ayojok.rongplan.com',
-        password_hash: defaultPasswordHash,
-        role: 'ADMIN',
-        status: 'ACTIVE'
-      },
-      {
-        username: 'organizer',
-        name: 'Event Organizer',
-        email: 'organizer@ayojok.rongplan.com',
-        password_hash: defaultPasswordHash,
-        role: 'ORGANIZER',
-        status: 'ACTIVE',
-        org: 'Ayojok Events'
-      },
-      {
-        username: 'eventmanager',
-        name: 'Event Manager',
-        email: 'eventmanager@ayojok.rongplan.com',
-        password_hash: defaultPasswordHash,
-        role: 'USER', // Managers/Scanners are registered as users platform-wide and added to event teams locally
-        status: 'ACTIVE'
-      },
-      {
-        username: 'participant',
-        name: 'Test Participant',
-        email: 'participant@ayojok.rongplan.com',
-        password_hash: defaultPasswordHash,
-        role: 'USER',
-        status: 'ACTIVE'
-      }
-    ];
+    // 14. Target Audience, Event Type and Team Registration Schema Updates
+    logger.info('Applying Target Audience, Event Type and Team Registration migrations...');
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS is_private BOOLEAN NOT NULL DEFAULT false').catch(() => {});
+    await client.query("ALTER TABLE events ADD COLUMN IF NOT EXISTS event_for VARCHAR(20) NOT NULL DEFAULT 'BOTH'").catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS student_category VARCHAR(100) DEFAULT NULL').catch(() => {});
 
-    for (const seed of seeds) {
+    await client.query('ALTER TABLE ticket_types ADD COLUMN IF NOT EXISTS is_team BOOLEAN NOT NULL DEFAULT false').catch(() => {});
+    await client.query('ALTER TABLE ticket_types ADD COLUMN IF NOT EXISTS max_team_size INTEGER NOT NULL DEFAULT 1').catch(() => {});
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS registration_teams (
+        id SERIAL PRIMARY KEY,
+        event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        ticket_type_id INTEGER NOT NULL REFERENCES ticket_types(id) ON DELETE CASCADE,
+        leader_registration_id BIGINT NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
+        team_name VARCHAR(255) NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS registration_team_members (
+        id SERIAL PRIMARY KEY,
+        team_id INTEGER NOT NULL REFERENCES registration_teams(id) ON DELETE CASCADE,
+        username VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(team_id, username)
+      )
+    `).catch(() => {});
+
+    // 15. Create schedules table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS schedules (
+        id SERIAL PRIMARY KEY,
+        event_slug VARCHAR(255) NOT NULL REFERENCES events(slug) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        date VARCHAR(100) NOT NULL,
+        start_time VARCHAR(50) NOT NULL,
+        end_time VARCHAR(50) NOT NULL,
+        room VARCHAR(255),
+        speaker VARCHAR(255),
+        status VARCHAR(50) DEFAULT 'CONFIRMED',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `).catch(() => {});
+
+    // 16. Create Certificates schema
+    logger.info('Applying Certificates migrations...');
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS certificate_templates (
+        id SERIAL PRIMARY KEY,
+        event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        template_url VARCHAR(512) NOT NULL,
+        sending_time TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(event_id)
+      )
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS certificates (
+        id SERIAL PRIMARY KEY,
+        event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        registration_id BIGINT NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
+        issued_to VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+        issued_by VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE SET NULL,
+        certificate_type VARCHAR(50) NOT NULL DEFAULT 'PARTICIPATION',
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        certificate_url VARCHAR(512),
+        issued_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(registration_id, certificate_type)
+      )
+    `).catch(() => {});
+
+    // 17. Optional environment-driven initial super admin provisioning
+    if (process.env.INITIAL_ADMIN_USERNAME && process.env.INITIAL_ADMIN_EMAIL && process.env.INITIAL_ADMIN_PASSWORD) {
+      logger.info('Provisioning initial super admin from environment configuration...');
+      const adminPasswordHash = bcrypt.hashSync(process.env.INITIAL_ADMIN_PASSWORD, 10);
       await client.query(`
-        INSERT INTO users (username, name, email, password_hash, role, status, org)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        ON CONFLICT (username) DO UPDATE 
-        SET email = EXCLUDED.email, role = EXCLUDED.role, status = EXCLUDED.status, org = EXCLUDED.org
+        INSERT INTO users (username, name, email, password_hash, role, status)
+        VALUES ($1, $2, $3, $4, 'SUPER_ADMIN', 'ACTIVE')
+        ON CONFLICT (username) DO NOTHING
       `, [
-        seed.username,
-        seed.name,
-        seed.email,
-        seed.password_hash,
-        seed.role,
-        seed.status,
-        seed.org || null
+        process.env.INITIAL_ADMIN_USERNAME.toLowerCase().trim(),
+        process.env.INITIAL_ADMIN_NAME || 'Platform Admin',
+        process.env.INITIAL_ADMIN_EMAIL.toLowerCase().trim(),
+        adminPasswordHash
       ]);
+    } else {
+      logger.info('No INITIAL_ADMIN_* environment variables specified. Skipping seed user creation.');
     }
 
-    logger.info('Database migrations and seeding completed successfully.');
+    logger.info('Database migrations completed successfully.');
   } catch (error) {
     logger.error({ err: error }, 'Migration/Seed failed');
     throw error;

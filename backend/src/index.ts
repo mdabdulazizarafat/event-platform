@@ -9,8 +9,8 @@ import ticketRoutes from './routes/ticket.routes';
 import paymentRoutes from './routes/payment.routes';
 import adminRoutes from './routes/admin.routes';
 import queueRoutes from './routes/queue-monitor';
+import certificateRoutes from './routes/certificate.routes';
 import { runMigrations } from './db/migrate';
-import { startWorkers } from './workers/worker';
 import { startStatusScheduler } from './workers/status-scheduler';
 import logger from './lib/logger';
 import { requestLogger } from './middleware/request-logger.middleware';
@@ -33,6 +33,7 @@ app.use('/api/v1/tickets', ticketRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/admin/queues', queueRoutes);
+app.use('/api/v1/certificates', certificateRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -42,13 +43,14 @@ app.get('/health', (req, res) => {
 // Global JSON Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   logger.error({ err }, 'Unhandled error');
-  res.status(500).json({ error: err.message || 'Internal server error' });
+  const isProd = process.env.NODE_ENV === 'production';
+  res.status(500).json({ error: isProd ? 'Internal server error' : (err.message || 'Internal server error') });
 });
 
 // Run Migrations then Start Server
 async function startServer() {
   await runMigrations();
-  startWorkers(); // Boot BullMQ workers
+  // startWorkers(); // Boot BullMQ workers (Disabled to prevent Redis connection crash)
   startStatusScheduler(); // Start background event status transitions scheduler
   app.listen(port, () => {
     logger.info(`Backend Express server listening on port ${port}`);

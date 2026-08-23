@@ -10,10 +10,10 @@ router.use(authMiddleware);
 
 // User administration routes
 router.get('/users', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.listUsers);
-router.post('/users', requireGlobalRole(['SUPER_ADMIN']), AdminController.createUser);
-router.put('/users/:username', requireGlobalRole(['SUPER_ADMIN']), AdminController.updateUser);
-router.delete('/users/:username', requireGlobalRole(['SUPER_ADMIN']), AdminController.deleteUser);
-router.put('/users/:username/role', requireGlobalRole(['SUPER_ADMIN']), AdminController.updateUserRole);
+router.post('/users', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.createUser);
+router.put('/users/:username', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.updateUser);
+router.delete('/users/:username', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.deleteUser);
+router.put('/users/:username/role', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.updateUserRole);
 
 // Event moderation/administration routes
 router.get('/events', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.listEvents);
@@ -29,8 +29,8 @@ router.get('/logs', requireGlobalRole(['SUPER_ADMIN']), AdminController.listLogs
 
 // Organizer Applications moderation routes
 router.get('/organizer-applications', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.listOrganizerApplications);
-router.put('/organizer-applications/:username/approve', requireGlobalRole(['SUPER_ADMIN']), AdminController.approveOrganizer);
-router.put('/organizer-applications/:username/reject', requireGlobalRole(['SUPER_ADMIN']), AdminController.rejectOrganizer);
+router.put('/organizer-applications/:username/approve', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.approveOrganizer);
+router.put('/organizer-applications/:username/reject', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.rejectOrganizer);
 
 
 // Granular admin permissions routes

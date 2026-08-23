@@ -2,10 +2,10 @@ import type { ThemeConfig } from 'antd';
 
 export const theme: ThemeConfig = {
   token: {
-    colorPrimary: '#4F46E5',
-    colorSuccess: '#10B981',
-    colorWarning: '#F59E0B',
-    colorError: '#E11D48',
+    colorPrimary: '#2BA361',
+    colorSuccess: '#2BA361',
+    colorWarning: '#f7bb16',
+    colorError: '#D32F2F',
     borderRadius: 8,
     fontFamily: 'var(--font-inter), sans-serif',
     controlHeight: 40,

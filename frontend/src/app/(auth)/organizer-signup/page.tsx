@@ -45,9 +45,15 @@ export default function OrganizerSignupPage() {
           setError('Failed to submit application.');
         }
       } else {
+        const nameParts = (values.name || '').trim().split(/\s+/);
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ');
+
         const res = await registerUser({
           username: values.username,
           name: values.name,
+          firstName,
+          lastName,
           email: values.email,
           password: values.password,
           mobile: values.mobile,

@@ -14,7 +14,8 @@ export class PaymentController {
     try {
       const { 
         eventSlug, ticketTypeId, userId, email, customerName, customerPhone,
-        jobTitle, organization, tshirtSize, reference, transactionId
+        jobTitle, organization, tshirtSize, reference, transactionId,
+        teamName, teamMembers
       } = req.body;
 
       if (!eventSlug || !ticketTypeId || !userId || !email || !customerName) {
@@ -44,6 +45,8 @@ export class PaymentController {
         tshirtSize,
         reference,
         transactionId,
+        teamName,
+        teamMembers,
       });
 
       return res.status(200).json({

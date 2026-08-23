@@ -22,6 +22,9 @@ export interface CreateEventInput {
   formTshirtSize?: boolean;
   formReference?: boolean;
   formTransactionId?: boolean;
+  isPrivate?: boolean;
+  eventFor?: string;
+  studentCategory?: string;
 }
 
 export class EventService {
@@ -44,9 +47,9 @@ export class EventService {
           slug, title, description, thumbnail, date, time, start_date, end_date, 
           registration_deadline, location, capacity, contact_email, contact_phone, 
           host_username, status, form_phone, form_job_title, form_organization, 
-          form_tshirt_size, form_reference, form_transaction_id
+          form_tshirt_size, form_reference, form_transaction_id, is_private, event_for, student_category
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
         RETURNING id;
       `;
       const res = await client.query(insertQuery, [
@@ -71,6 +74,9 @@ export class EventService {
         input.formTshirtSize !== undefined ? input.formTshirtSize : false,
         input.formReference !== undefined ? input.formReference : false,
         input.formTransactionId !== undefined ? input.formTransactionId : false,
+        input.isPrivate !== undefined ? input.isPrivate : false,
+        input.eventFor || 'BOTH',
+        input.studentCategory || null,
       ]);
       const eventId = res.rows[0].id;
 
@@ -124,7 +130,10 @@ export class EventService {
     formTshirtSize?: boolean;
     formReference?: boolean;
     formTransactionId?: boolean;
-  }) {
+    isPrivate?: boolean;
+    eventFor?: string;
+    studentCategory?: string;
+  }, userRole?: string) {
     const client = await pool.connect();
     try {
       const checkRes = await client.query('SELECT * FROM events WHERE slug = $1', [slug]);
@@ -132,7 +141,16 @@ export class EventService {
         throw new Error('Event not found');
       }
       const event = checkRes.rows[0];
-      if (event.host_username !== hostUsername) {
+
+      // Enforce Edit Lock on Ended Events for non-admins
+      const computed = this.computeEventStatus(event);
+      if (computed.status === 'ENDED') {
+        if (userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN') {
+          throw new Error('This event has ended and is read-only. Only platform admins can edit ended events.');
+        }
+      }
+
+      if (event.host_username !== hostUsername && userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN') {
         throw new Error('Unauthorized: Only the event host can modify this event.');
       }
 
@@ -156,6 +174,9 @@ export class EventService {
         formTshirtSize: 'form_tshirt_size',
         formReference: 'form_reference',
         formTransactionId: 'form_transaction_id',
+        isPrivate: 'is_private',
+        eventFor: 'event_for',
+        studentCategory: 'student_category',
       };
 
       const updates: string[] = [];
@@ -207,19 +228,89 @@ export class EventService {
     return event;
   }
 
-  static async getEvents(username?: string, role?: string) {
-    let query = '';
+  static async getEvents(
+    usernameOrOptions?: string | { username?: string; role?: string; page?: number; limit?: number; search?: string; status?: string },
+    roleParam?: string,
+    pageParam?: number,
+    limitParam?: number
+  ) {
+    let username: string | undefined;
+    let role: string | undefined;
+    let page: number | undefined;
+    let limit: number | undefined;
+    let search: string | undefined;
+    let statusFilter: string | undefined;
+
+    if (typeof usernameOrOptions === 'object' && usernameOrOptions !== null) {
+      username = usernameOrOptions.username;
+      role = usernameOrOptions.role;
+      page = usernameOrOptions.page;
+      limit = usernameOrOptions.limit;
+      search = usernameOrOptions.search;
+      statusFilter = usernameOrOptions.status;
+    } else {
+      username = usernameOrOptions;
+      role = roleParam;
+      page = pageParam;
+      limit = limitParam;
+    }
+
+    const isPaginated = page !== undefined || limit !== undefined;
+    const pageNum = Math.max(1, page || 1);
+    const limitNum = Math.min(100, Math.max(1, limit || 10));
+    const offset = (pageNum - 1) * limitNum;
+
     const values: any[] = [];
-    
+    const whereConditions: string[] = [];
+
     if (username) {
       values.push(username);
-      query = `
+      const uIdx = values.length;
+      if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
+        whereConditions.push(`((e.status != 'DRAFT' AND e.is_private = false) OR e.host_username = $${uIdx} OR et.username = $${uIdx} OR r.user_id = $${uIdx})`);
+      }
+    } else {
+      whereConditions.push(`(e.status != 'DRAFT' AND e.is_private = false)`);
+    }
+
+    if (statusFilter) {
+      values.push(statusFilter);
+      whereConditions.push(`e.status = $${values.length}`);
+    }
+
+    if (search) {
+      values.push(`%${search}%`);
+      const sIdx = values.length;
+      whereConditions.push(`(e.title ILIKE $${sIdx} OR e.location ILIKE $${sIdx} OR e.description ILIKE $${sIdx})`);
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    // Count query
+    const countQuery = `
+      SELECT COUNT(DISTINCT e.id) as total
+      FROM events e
+      LEFT JOIN event_team et ON e.id = et.event_id
+      LEFT JOIN registrations r ON e.id = r.event_id
+      ${whereClause}
+    `;
+    const countRes = await pool.query(countQuery, whereConditions.length > 0 ? values : []);
+    const total = parseInt(countRes.rows[0]?.total || '0');
+
+    // Select query
+    let selectQuery = '';
+    if (username) {
+      selectQuery = `
         SELECT DISTINCT e.*,
           (e.host_username = $1) as is_host,
           EXISTS (
             SELECT 1 FROM event_team et 
             WHERE et.event_id = e.id AND et.username = $1
           ) as is_team_member,
+          EXISTS (
+            SELECT 1 FROM registrations r 
+            WHERE r.event_id = e.id AND r.user_id = $1
+          ) as is_registered,
           (
             SELECT role FROM event_team et 
             WHERE et.event_id = e.id AND et.username = $1
@@ -227,24 +318,44 @@ export class EventService {
           ) as team_role
         FROM events e
         LEFT JOIN event_team et ON e.id = et.event_id
+        LEFT JOIN registrations r ON e.id = r.event_id
+        ${whereClause}
+        ORDER BY e.created_at DESC
       `;
-      if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
-        query += ` WHERE e.status != 'DRAFT' OR e.host_username = $1 OR et.username = $1`;
+      if (isPaginated) {
+        selectQuery += ` LIMIT $${values.length + 1} OFFSET $${values.length + 2}`;
+        values.push(limitNum, offset);
       }
     } else {
-      query = `
+      selectQuery = `
         SELECT e.*, 
           false as is_host,
           false as is_team_member,
+          false as is_registered,
           null as team_role
         FROM events e
-        WHERE e.status != 'DRAFT'
+        ${whereClause}
+        ORDER BY e.created_at DESC
       `;
+      if (isPaginated) {
+        selectQuery += ` LIMIT $${values.length + 1} OFFSET $${values.length + 2}`;
+        values.push(limitNum, offset);
+      }
     }
-    
-    query += ' ORDER BY e.created_at DESC';
-    const res = await pool.query(query, values);
-    return res.rows.map(this.computeEventStatus);
+
+    const res = await pool.query(selectQuery, values);
+    const items = res.rows.map(this.computeEventStatus);
+    const totalPages = Math.ceil(total / limitNum);
+
+    return {
+      data: items,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages
+      }
+    };
   }
 
   static async getEventBySlug(slug: string, username?: string, role?: string) {
@@ -271,10 +382,14 @@ export class EventService {
       event.is_host = event.host_username === username;
       event.is_team_member = teamQuery.rowCount !== null && teamQuery.rowCount > 0;
       event.team_role = event.is_team_member ? teamQuery.rows[0].role : null;
+      
+      const regQuery = await pool.query('SELECT 1 FROM registrations WHERE event_id = $1 AND user_id = $2', [event.id, username]);
+      event.is_registered = (regQuery.rowCount !== null && regQuery.rowCount > 0);
     } else {
       event.is_host = false;
       event.is_team_member = false;
       event.team_role = null;
+      event.is_registered = false;
     }
 
     return this.computeEventStatus(event);

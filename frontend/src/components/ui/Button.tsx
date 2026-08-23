@@ -23,11 +23,11 @@ export default function Button({
   const baseStyles = 'inline-flex items-center justify-center font-heading font-semibold rounded-lg transition-all duration-150 focus-ring disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-97 hover:-translate-y-0.5';
   
   const variants = {
-    primary: 'bg-gradient-to-br from-[#7b55fa] to-[#b4a1ff] text-white border-none hover:shadow-[0_4px_12px_rgba(123,85,250,0.25)]',
-    secondary: 'bg-surface-soft border border-outline-variant text-primary hover:bg-[#eae6fc]',
-    ghost: 'bg-transparent text-primary hover:bg-surface-soft',
+    primary: 'bg-gradient-to-br from-[#2BA361] to-[#4dc487] text-white border-none hover:shadow-[0_4px_12px_rgba(43,163,97,0.25)]',
+    secondary: 'bg-transparent border border-secondary/15 text-secondary hover:bg-secondary/10 hover:border-secondary/30',
+    ghost: 'bg-transparent text-primary hover:bg-primary/10 border-none',
     outline: 'border border-outline-variant text-foreground hover:bg-surface-soft',
-    danger: 'bg-error text-white hover:opacity-90',
+    danger: 'bg-error text-white hover:opacity-90 border-none',
   };
 
   const sizes = {

@@ -13,8 +13,12 @@ export class AdminController {
    */
   static async listUsers(req: Request, res: Response) {
     try {
-      const users = await AdminService.listUsers();
-      return res.status(200).json(users);
+      const page = req.query.page ? parseInt(req.query.page as string) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const search = req.query.search as string;
+      const role = req.query.role as string;
+      const result = await AdminService.listUsers({ page, limit, search, role });
+      return res.status(200).json(result);
     } catch (error: any) {
       logger.error({ err: error }, 'Admin user list error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -110,8 +114,12 @@ export class AdminController {
    */
   static async listEvents(req: Request, res: Response) {
     try {
-      const events = await AdminService.listEvents();
-      return res.status(200).json(events);
+      const page = req.query.page ? parseInt(req.query.page as string) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const search = req.query.search as string;
+      const status = req.query.status as string;
+      const result = await AdminService.listEvents({ page, limit, search, status });
+      return res.status(200).json(result);
     } catch (error: any) {
       logger.error({ err: error }, 'Admin event list error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -148,8 +156,11 @@ export class AdminController {
    */
   static async listLogs(req: Request, res: Response) {
     try {
-      const logs = await AdminService.getAdminLogs();
-      return res.status(200).json(logs);
+      const page = req.query.page ? parseInt(req.query.page as string) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const search = req.query.search as string;
+      const result = await AdminService.getAdminLogs({ page, limit, search });
+      return res.status(200).json(result);
     } catch (error: any) {
       logger.error({ err: error }, 'Admin log list error');
       return res.status(500).json({ error: error.message || 'Internal server error' });

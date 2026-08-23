@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ConfigProvider, message } from 'antd';
-import { 
-  Calendar as CalendarIcon, 
-  MapPin, 
+import {
+  Calendar as CalendarIcon,
+  MapPin,
   Clock,
   Share2,
   ChevronDown,
@@ -19,45 +19,35 @@ import {
 } from 'lucide-react';
 import { FacebookOutlined, TwitterOutlined } from '@ant-design/icons';
 import { theme } from '../../../../theme/theme';
-import type { Event, TicketType } from '@/lib/api';
-import { getEventBySlug, fetchTicketTypes } from '@/lib/api';
+import type { Event, TicketType, ScheduleItem } from '@/lib/api';
+import { getEventBySlug, fetchTicketTypes, fetchSchedules } from '@/lib/api';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 
-// Fallback mock ticket types in case the backend database has no entries
-const fallbackTicketTypes: Record<string, TicketType[]> = {
-  '6th-gregorian-knowledge-fiesta-2026': [
-    { id: 101, event_id: 1, name: 'Solo Segment', description: 'Category: Kids (I-II) to Secondary (IX-X)', price: '50', currency: 'BDT', capacity: null, sort_order: 1, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: false },
-    { id: 102, event_id: 1, name: 'Wall Magazine', description: 'Category: Primary (III-V) to Higher Secondary (XI-XII)', price: '0', currency: 'BDT', capacity: null, sort_order: 2, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: true },
-    { id: 103, event_id: 1, name: 'Team Based Quiz', description: 'Category: Junior (VI-VIII) to Higher Secondary (XI-XII)', price: '0', currency: 'BDT', capacity: null, sort_order: 3, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: true },
-    { id: 104, event_id: 1, name: 'Criminal Case', description: 'Category: Open for All. Analytical segment', price: '100', currency: 'BDT', capacity: null, sort_order: 4, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: 8, available: true, isFree: false },
-    { id: 105, event_id: 1, name: 'Case Study', description: 'Category: Open for All. Standard rules', price: '0', currency: 'BDT', capacity: null, sort_order: 5, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: true },
-    { id: 106, event_id: 1, name: 'Heroes Assemble (Cosplay)', description: 'Category: Open for All. Exam/Show Duration: 20min', price: '50', currency: 'BDT', capacity: null, sort_order: 6, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: 12, available: true, isFree: false }
-  ],
-  'global-tech-summit': [
-    { id: 201, event_id: 2, name: 'Standard Pass', description: 'Access to all main stage keynotes and exhibition halls.', price: '0', currency: 'BDT', capacity: null, sort_order: 1, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: true },
-    { id: 202, event_id: 2, name: 'VIP All-Access Pass', description: 'Includes premium front-row seating, invite-only speaker dinner, and custom swag pack.', price: '1500', currency: 'BDT', capacity: 100, sort_order: 2, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: 45, available: true, isFree: false }
-  ],
-  'react-advanced-workshop': [
-    { id: 301, event_id: 3, name: 'Masterclass Entry', description: 'Complete 6-hour interactive training, code repositories, and certificate.', price: '500', currency: 'BDT', capacity: 150, sort_order: 1, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: 23, available: true, isFree: false }
-  ],
-  'ui-ux-design-forum': [
-    { id: 401, event_id: 4, name: 'Standard Ticket', description: 'Access to general design sessions and panels.', price: '250', currency: 'BDT', capacity: null, sort_order: 1, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: null, available: true, isFree: false },
-    { id: 402, event_id: 4, name: 'VIP Ticket', description: 'Includes design systems toolkit, workshop access, and portfolio review session.', price: '1000', currency: 'BDT', capacity: 50, sort_order: 2, is_active: true, sale_start: null, sale_end: null, sold_count: 0, remaining: 14, available: true, isFree: false }
-  ]
-};
+
 
 export default function EventRegistrationPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = React.use(params);
   const ticketsSectionRef = useRef<HTMLDivElement>(null);
-  
+
   // Page state
   const [event, setEvent] = useState<Event | null>(null);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Accordion state exactly like wireframe
   const [isDescOpen, setIsDescOpen] = useState(true);
+
+  // Auto-slide state
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    const slideInterval = setInterval(() => {
+      setCurrentSlide((prev) => (prev === 2 ? 0 : prev + 1));
+    }, 6000);
+    return () => clearInterval(slideInterval);
+  }, []);
 
   useEffect(() => {
     async function loadEventData() {
@@ -65,14 +55,18 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
         const eventData = await getEventBySlug(slug);
         if (eventData) {
           setEvent(eventData);
-          
-          // Fetch ticket types
+
           const dbTickets = await fetchTicketTypes(slug);
           if (dbTickets && dbTickets.length > 0) {
             setTicketTypes(dbTickets);
-          } else {
-            // Fallback to static mock ticket types
-            setTicketTypes(fallbackTicketTypes[slug] || fallbackTicketTypes['6th-gregorian-knowledge-fiesta-2026'] || []);
+          }
+
+          // Fetch schedules
+          try {
+            const dbSchedules = await fetchSchedules(slug);
+            if (dbSchedules) setSchedules(dbSchedules);
+          } catch (e) {
+            console.error('Failed to load schedules', e);
           }
         }
       } catch (err) {
@@ -120,64 +114,116 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
       <div className="flex-1 text-[#111c2d] flex flex-col">
 
         <main className="flex-grow pb-16">
-          {/* Hero Banner Section exactly like Wireframe */}
-          <div className="max-w-6xl mx-auto px-6 pt-6">
-            <div className="bg-slate-900 overflow-hidden relative aspect-[21/9] max-h-[380px] w-full rounded-3xl shadow-sm border border-slate-200/60">
-              {event.thumbnail ? (
-                <img 
-                  src={event.thumbnail} 
-                  alt={event.title} 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-[#7C3AED]/25 to-[#8B5CF6]/10 flex items-center justify-center text-white/20">
-                  <CalendarDays size={96} />
+          {/* Apple TV Style Hero Banner Section */}
+          <div className="w-full relative group">
+            <div className="relative w-full aspect-[21/9] max-h-[500px] bg-slate-900 overflow-hidden">
+              {/* Slider Images Layer */}
+              {[
+                event.thumbnail || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&h=675&fit=crop',
+                'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?q=80&w=1200&h=675&fit=crop',
+                'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=1200&h=675&fit=crop'
+              ].map((imgUrl, idx) => (
+                <div
+                  key={idx}
+                  className={`absolute inset-0 transition-all duration-[2000ms] ease-in-out ${
+                    currentSlide === idx ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-105 z-0'
+                  }`}
+                >
+                  <img
+                    src={imgUrl}
+                    alt={`${event.title} - Slide ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-              )}
-            </div>
+              ))}
+              
+              {/* Apple TV Style Dark Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-black/10 pointer-events-none z-20" />
 
-            {/* Title & Meta Bar exactly like Wireframe */}
-            <div className="bento-card px-6 py-6 mt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-3">
-                <h1 className="font-heading text-2xl md:text-3xl font-black text-foreground leading-tight m-0">
-                  {event.title}
-                </h1>
-                
-                <div className="flex flex-wrap items-center gap-5 text-xs font-semibold text-on-surface-variant">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin size={15} className="text-primary/70 shrink-0" />
-                    <span>{event.location}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CalendarIcon size={15} className="text-slate-400 shrink-0" />
-                    <span>{event.date}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Clock size={15} className="text-slate-400 shrink-0" />
-                    <span>{event.time}</span>
-                  </div>
-                </div>
+              {/* Slider Navigation Arrows */}
+              <button
+                onClick={() => setCurrentSlide((prev) => (prev === 0 ? 2 : prev - 1))}
+                className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/30 text-white flex items-center justify-center backdrop-blur-md border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-30"
+              >
+                <ChevronDown size={24} className="rotate-90" />
+              </button>
+              <button
+                onClick={() => setCurrentSlide((prev) => (prev === 2 ? 0 : prev + 1))}
+                className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/30 text-white flex items-center justify-center backdrop-blur-md border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-30"
+              >
+                <ChevronDown size={24} className="-rotate-90" />
+              </button>
+
+              {/* Slider Indicators */}
+              <div className="absolute bottom-6 right-6 flex items-center gap-2 z-30">
+                {[0, 1, 2].map((idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentSlide(idx)}
+                    className={`h-1.5 rounded-full transition-all duration-300 border-none cursor-pointer ${
+                      currentSlide === idx ? 'w-8 bg-white' : 'w-2 bg-white/40 hover:bg-white/70'
+                    }`}
+                  />
+                ))}
               </div>
 
-              <div className="shrink-0">
-                <Button 
-                  onClick={scrollToTickets}
-                  variant="primary"
-                  size="lg"
-                >
-                  Buy Ticket Now
-                </Button>
+              {/* Content Layer over the Banner */}
+              <div className="absolute bottom-0 left-0 right-0 max-w-6xl mx-auto px-6 pb-12 pt-32 flex flex-col justify-end z-30">
+                <div className="max-w-3xl space-y-5">
+                  <div className="inline-flex items-center gap-2">
+                    <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/30 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">
+                      {(event as any).category || 'Featured Event'}
+                    </span>
+                    <span className="px-3 py-1 bg-primary/80 backdrop-blur-md text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">
+                      Live
+                    </span>
+                  </div>
+                  
+                  <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight m-0 drop-shadow-xl">
+                    {event.title}
+                  </h1>
+
+                  <p className="text-slate-300 text-sm md:text-base font-medium max-w-2xl line-clamp-2 drop-shadow-md">
+                    {event.description}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-6 text-sm font-semibold text-slate-200 mt-2">
+                    <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                      <MapPin size={16} className="text-white/80" />
+                      <span>{event.location}</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                      <CalendarIcon size={16} className="text-white/80" />
+                      <span>{event.date}</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                      <Clock size={16} className="text-white/80" />
+                      <span>{event.time}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex items-center gap-5">
+                    <Button
+                      onClick={scrollToTickets}
+                      variant="primary"
+                      size="lg"
+                      className="rounded-full px-8 py-3 bg-white text-slate-900 hover:bg-slate-100 hover:text-slate-900 border-none font-extrabold shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-transform hover:scale-105 active:scale-95"
+                    >
+                      Buy Ticket Now
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Two-Column Layout Section exactly like Wireframe */}
           <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mt-8">
-            
+
             {/* LEFT COLUMN: Event Description Card (8/12 width) */}
             <div className="lg:col-span-8 space-y-6">
               <div className="bento-card overflow-hidden">
-                <button 
+                <button
                   onClick={() => setIsDescOpen(!isDescOpen)}
                   className="w-full px-7 py-6 flex items-center justify-between text-left font-bold text-sm text-foreground hover:text-primary transition-colors cursor-pointer border-none bg-transparent"
                 >
@@ -185,24 +231,23 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                     <FileText size={18} className="text-slate-400" />
                     <span className="font-heading font-extrabold text-base">Event Description</span>
                   </div>
-                  <ChevronDown 
-                    size={18} 
-                    className={`text-slate-400 shrink-0 transition-transform duration-300 ${isDescOpen ? 'rotate-180 text-[#7C3AED]' : ''}`} 
+                  <ChevronDown
+                    size={18}
+                    className={`text-slate-400 shrink-0 transition-transform duration-300 ${isDescOpen ? 'rotate-180 text-[#7C3AED]' : ''}`}
                   />
                 </button>
-                
-                <div 
-                  className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                    isDescOpen ? 'max-h-[2500px] border-t border-slate-100' : 'max-h-0'
-                  }`}
+
+                <div
+                  className={`transition-all duration-300 ease-in-out overflow-hidden ${isDescOpen ? 'max-h-[2500px] border-t border-slate-100' : 'max-h-0'
+                    }`}
                 >
                   <div className="px-7 py-6 space-y-4 text-xs text-slate-600 leading-relaxed font-medium">
                     <p className="m-0 whitespace-pre-line">{event.description}</p>
-                    
+
                     {slug === '6th-gregorian-knowledge-fiesta-2026' && (
                       <div className="pt-4 space-y-3 border-t border-slate-100">
                         <p className="font-bold text-slate-800 m-0">Event Date: 28th - 29th August, 2026</p>
-                        
+
                         <div className="space-y-1">
                           <p className="font-bold text-slate-800 m-0">Category:</p>
                           <ul className="list-disc list-inside space-y-1 pl-1 text-slate-600">
@@ -225,33 +270,61 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                   </div>
                 </div>
               </div>
+
+              {/* Event Schedule Display */}
+              {schedules.length > 0 && (
+                <div className="mt-8 space-y-4">
+                  <h3 className="font-heading text-xl font-extrabold text-foreground mb-4 flex items-center gap-2">
+                    <CalendarDays size={20} className="text-primary" />
+                    Event Schedule
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    {schedules.map((schedule) => (
+                      <div 
+                        key={schedule.id}
+                        className="bento-card p-5 bg-white border border-outline-variant/60 hover:shadow-md hover:border-primary/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group"
+                      >
+                        <div className="space-y-2">
+                          <span className="inline-block px-2.5 py-1 bg-primary-container/10 text-primary text-[10px] font-bold rounded-lg uppercase tracking-wide">
+                            {schedule.date}
+                          </span>
+                          <h4 className="font-heading text-lg font-bold text-foreground m-0 mt-1">
+                            {schedule.title}
+                          </h4>
+                          
+                          <div className="flex flex-wrap items-center gap-4 text-xs text-on-surface-variant font-medium">
+                            <span className="flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-md">
+                              <Clock className="w-3.5 h-3.5 text-primary/70" />
+                              {schedule.start_time} - {schedule.end_time}
+                            </span>
+                            <span className="flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-md">
+                              <MapPin className="w-3.5 h-3.5 text-primary/70" />
+                              {schedule.room}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {schedule.speaker && (
+                          <div className="flex items-center gap-3 md:border-l md:border-outline-variant/60 md:pl-6">
+                            <div className="w-10 h-10 rounded-full bg-primary-container/20 border border-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+                              {schedule.speaker.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant mb-0">Speaker</p>
+                              <p className="text-sm font-bold text-foreground m-0">{schedule.speaker}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* RIGHT COLUMN: Sidebar Cards (4/12 width) exactly like Wireframe */}
             <div className="lg:col-span-4 space-y-6">
-              
-              {/* Card 1: Payment Methods */}
-              <div className="bento-card p-6 space-y-4">
-                <h4 className="text-xs font-extrabold text-foreground m-0">
-                  Payment Methods
-                </h4>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/70 flex flex-col items-center justify-center text-center space-y-1">
-                    <span className="font-extrabold text-[#d81966] text-sm tracking-tight">বিকাশ</span>
-                    <span className="text-[10px] text-slate-400 font-bold">Pay with bKash</span>
-                  </div>
-                  <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/70 flex flex-col items-center justify-center text-center space-y-1">
-                    <span className="font-extrabold text-blue-600 text-xs tracking-tight">VISA / MC</span>
-                    <span className="text-[10px] text-slate-400 font-bold">Pay with Visa, MC</span>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/70 flex flex-col items-center justify-center text-center space-y-1">
-                  <span className="font-extrabold text-slate-700 text-xs">upay / Pathao</span>
-                  <span className="text-[10px] text-slate-400 font-bold">Pay with Pathao Pay</span>
-                </div>
-              </div>
 
               {/* Card 2: Share Event */}
               <div className="bento-card p-6 space-y-4">
@@ -260,32 +333,32 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                 </h4>
 
                 <div className="grid grid-cols-2 gap-2.5">
-                  <a 
+                  <a
                     href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                    target="_blank" 
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="py-2.5 px-3 bg-white border border-slate-200/80 hover:border-slate-400 rounded-xl text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors no-underline"
                   >
                     <FacebookOutlined style={{ fontSize: '13px', color: '#2563eb' }} />
                     <span>Facebook</span>
                   </a>
-                  <a 
+                  <a
                     href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(event.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                    target="_blank" 
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="py-2.5 px-3 bg-white border border-slate-200/80 hover:border-slate-400 rounded-xl text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors no-underline"
                   >
                     <TwitterOutlined style={{ fontSize: '13px', color: '#0ea5e9' }} />
                     <span>X</span>
                   </a>
-                  <a 
+                  <a
                     href={`mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
                     className="py-2.5 px-3 bg-white border border-slate-200/80 hover:border-slate-400 rounded-xl text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors no-underline"
                   >
                     <Mail size={13} />
                     <span>Email</span>
                   </a>
-                  <button 
+                  <button
                     onClick={copyPageLink}
                     className="py-2.5 px-3 bg-white border border-slate-200/80 hover:border-slate-400 rounded-xl text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
@@ -294,9 +367,9 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                   </button>
                 </div>
 
-                <a 
+                <a
                   href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}`}
-                  target="_blank" 
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="w-full py-2.5 bg-white border border-slate-200/80 hover:border-slate-400 rounded-xl text-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition-colors no-underline block"
                 >
@@ -353,7 +426,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                   const priceDisplay = isFree ? '৳ 0' : `৳ ${parseFloat(ticket.price).toLocaleString('en-BD')}`;
 
                   return (
-                    <div 
+                    <div
                       key={ticket.id}
                       className="bento-card p-5 transition-all flex flex-col justify-between min-h-[140px]"
                     >
@@ -377,7 +450,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
 
                       {/* Card Bottom: Click to Select button */}
                       <div className="mt-6">
-                        <Link 
+                        <Link
                           href={`/events/${slug}/checkout?ticketId=${ticket.id}`}
                           className="w-full flex"
                         >

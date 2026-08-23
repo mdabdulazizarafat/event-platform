@@ -17,13 +17,13 @@ export async function runTicketTests() {
     });
 
     await it('should create a free ticket type for Month 1 event model', async () => {
-      const ticketType = await TicketTypeService.createTicketType(
+      const ticketType = await TicketTypeService.createTicketType({
         eventId,
-        'General Access (Free Month 1)',
-        'Free admission pass',
-        0,
-        100
-      );
+        name: 'General Access (Free Month 1)',
+        description: 'Free admission pass',
+        price: 0,
+        capacity: 100
+      });
       expect(ticketType.id).toBeDefined();
       expect(Number(ticketType.price)).toBe(0);
       freeTicketId = ticketType.id;
@@ -35,9 +35,11 @@ export async function runTicketTests() {
         eventId,
         attendee.username,
         attendee.email,
-        'QA Test Attendee',
-        'St. Gregorys College',
-        freeTicketId
+        freeTicketId,
+        {
+          fullName: 'QA Test Attendee',
+          organization: 'St. Gregorys College',
+        }
       );
 
       expect(reg.registrationId).toBeDefined();

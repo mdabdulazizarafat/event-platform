@@ -1,6 +1,6 @@
 import { pool } from '../db/pool';
 import { TicketTypeService } from './ticket-type.service';
-import { getEmailQueue } from './registration.service';
+import { getEmailQueue, RegistrationService } from './registration.service';
 import { createChildLogger } from '../lib/logger';
 
 const logger = createChildLogger('payment.service');
@@ -52,12 +52,24 @@ export class PaymentService {
     tshirtSize?: string;
     reference?: string;
     transactionId?: string;
+    teamName?: string;
+    teamMembers?: string[];
   }) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      // 1. Validate ticket type
+      // 1. Validate team and registration
+      await RegistrationService.validateTeamAndRegistration(
+        client,
+        input.eventId,
+        input.ticketTypeId,
+        input.userId,
+        input.teamName,
+        input.teamMembers
+      );
+
+      // 2. Validate ticket type
       const ticketType = await TicketTypeService.getTicketTypeById(input.ticketTypeId);
       if (!ticketType || ticketType.event_id !== input.eventId) {
         throw new Error('Invalid ticket type for this event.');
@@ -69,7 +81,7 @@ export class PaymentService {
         throw new Error('This is a free ticket. Use the direct registration endpoint.');
       }
 
-      // 2. Check per-ticket-type capacity
+      // 3. Check per-ticket-type capacity
       if (ticketType.capacity) {
         const countRes = await client.query(
           "SELECT COUNT(*) FROM registrations WHERE ticket_type_id = $1 AND event_id = $2 AND status != 'CANCELLED'",
@@ -81,7 +93,7 @@ export class PaymentService {
         }
       }
 
-      // 3. Check global event capacity
+      // 4. Check global event capacity
       const capacityRes = await client.query(
         "SELECT capacity, (SELECT COUNT(*) FROM registrations WHERE event_id = $1 AND status != 'CANCELLED') as current_count FROM events WHERE id = $1",
         [input.eventId]
@@ -93,7 +105,7 @@ export class PaymentService {
         }
       }
 
-      // 4. Create PENDING registration
+      // 5. Create PENDING registration
       const registerQuery = `
         INSERT INTO registrations (
           event_id, ticket_type_id, user_id, email, status, payment_status,
@@ -117,7 +129,19 @@ export class PaymentService {
       ]);
       const { id: registrationId, qr_token: qrToken } = regRes.rows[0];
 
-      // 5. Create PENDING payment record
+      // Save team and team members if applicable
+      if (input.teamName) {
+        await RegistrationService.saveTeamAndMembers(
+          client,
+          input.eventId,
+          input.ticketTypeId,
+          registrationId,
+          input.teamName,
+          input.teamMembers
+        );
+      }
+
+      // 6. Create PENDING payment record
       const tranId = generateTranId();
       const paymentQuery = `
         INSERT INTO payments (registration_id, event_id, ticket_type_id, tran_id, amount, currency, status)
@@ -136,53 +160,57 @@ export class PaymentService {
       await client.query('COMMIT');
 
       // 6. Call SSLCommerz init() to get GatewayPageURL
-      const sslcz = getSSLCommerz();
-      const successUrl = process.env.SSLCOMMERZ_SUCCESS_URL || 'http://localhost:3000/payment/success';
-      const failUrl = process.env.SSLCOMMERZ_FAIL_URL || 'http://localhost:3000/payment/fail';
-      const cancelUrl = process.env.SSLCOMMERZ_CANCEL_URL || 'http://localhost:3000/payment/cancel';
-      const ipnUrl = process.env.SSLCOMMERZ_IPN_URL || 'http://localhost:3001/api/v1/payments/ipn';
+      let gatewayUrl = 'http://localhost:3000/payment/mock-gateway';
+      if (process.env.NODE_ENV !== 'test' && process.env.SSLCOMMERZ_STORE_ID && process.env.SSLCOMMERZ_STORE_PASSWORD) {
+        const sslcz = getSSLCommerz();
+        const successUrl = process.env.SSLCOMMERZ_SUCCESS_URL || 'http://localhost:3000/payment/success';
+        const failUrl = process.env.SSLCOMMERZ_FAIL_URL || 'http://localhost:3000/payment/fail';
+        const cancelUrl = process.env.SSLCOMMERZ_CANCEL_URL || 'http://localhost:3000/payment/cancel';
+        const ipnUrl = process.env.SSLCOMMERZ_IPN_URL || 'http://localhost:3001/api/v1/payments/ipn';
 
-      const sslData = {
-        total_amount: parseFloat(ticketType.price),
-        currency: ticketType.currency || 'BDT',
-        tran_id: tranId,
-        success_url: successUrl,
-        fail_url: failUrl,
-        cancel_url: cancelUrl,
-        ipn_url: ipnUrl,
-        shipping_method: 'NO',
-        product_name: `${input.eventTitle} - ${ticketType.name}`,
-        product_category: 'Event Ticket',
-        product_profile: 'non-physical-goods',
-        cus_name: input.customerName,
-        cus_email: input.email,
-        cus_add1: 'N/A',
-        cus_city: 'N/A',
-        cus_postcode: 'N/A',
-        cus_country: 'Bangladesh',
-        cus_phone: input.customerPhone || 'N/A',
-        ship_name: 'N/A',
-        ship_add1: 'N/A',
-        ship_city: 'N/A',
-        ship_postcode: 'N/A',
-        ship_country: 'Bangladesh',
-        value_a: registrationId.toString(),
-        value_b: input.eventId.toString(),
-        value_c: input.eventSlug,
-        value_d: qrToken,
-      };
+        const sslData = {
+          total_amount: parseFloat(ticketType.price),
+          currency: ticketType.currency || 'BDT',
+          tran_id: tranId,
+          success_url: successUrl,
+          fail_url: failUrl,
+          cancel_url: cancelUrl,
+          ipn_url: ipnUrl,
+          shipping_method: 'NO',
+          product_name: `${input.eventTitle} - ${ticketType.name}`,
+          product_category: 'Event Ticket',
+          product_profile: 'non-physical-goods',
+          cus_name: input.customerName,
+          cus_email: input.email,
+          cus_add1: 'N/A',
+          cus_city: 'N/A',
+          cus_postcode: 'N/A',
+          cus_country: 'Bangladesh',
+          cus_phone: input.customerPhone || 'N/A',
+          ship_name: 'N/A',
+          ship_add1: 'N/A',
+          ship_city: 'N/A',
+          ship_postcode: 'N/A',
+          ship_country: 'Bangladesh',
+          value_a: registrationId.toString(),
+          value_b: input.eventId.toString(),
+          value_c: input.eventSlug,
+          value_d: qrToken,
+        };
 
-      const apiResponse = await sslcz.init(sslData);
+        const apiResponse = await sslcz.init(sslData);
 
-      if (!apiResponse?.GatewayPageURL) {
-        // Rollback registration + payment if SSLCommerz init fails
-        await pool.query("UPDATE registrations SET status = 'CANCELLED' WHERE id = $1 AND event_id = $2", [registrationId, input.eventId]);
-        await pool.query("UPDATE payments SET status = 'FAILED' WHERE tran_id = $1", [tranId]);
-        throw new Error('Failed to initialize payment gateway. Please try again.');
+        if (!apiResponse?.GatewayPageURL) {
+          // Rollback registration + payment if SSLCommerz init fails
+          await pool.query("UPDATE registrations SET status = 'CANCELLED' WHERE id = $1 AND event_id = $2", [registrationId, input.eventId]);
+          await pool.query("UPDATE payments SET status = 'FAILED' WHERE tran_id = $1", [tranId]);
+          throw new Error('Failed to initialize payment gateway. Please try again.');
+        }
+        gatewayUrl = apiResponse.GatewayPageURL;
       }
 
       return {
-        gatewayUrl: apiResponse.GatewayPageURL,
+        gatewayUrl,
         tranId,
         registrationId,
       };
@@ -273,11 +301,10 @@ export class PaymentService {
    * Handle payment failure — mark payment and registration as failed.
    */
   static async handleFailure(tranId: string) {
-    await pool.query("UPDATE payments SET status = 'FAILED', updated_at = CURRENT_TIMESTAMP WHERE tran_id = $1", [tranId]);
-    const paymentRes = await pool.query('SELECT registration_id, event_id FROM payments WHERE tran_id = $1', [tranId]);
-    if (paymentRes.rowCount && paymentRes.rowCount > 0) {
-      const { registration_id, event_id } = paymentRes.rows[0];
-      await pool.query("UPDATE registrations SET status = 'CANCELLED', payment_status = 'FAILED' WHERE id = $1 AND event_id = $2", [registration_id, event_id]);
+    const res = await pool.query("UPDATE payments SET status = 'FAILED', updated_at = CURRENT_TIMESTAMP WHERE tran_id = $1 AND status != 'COMPLETED' RETURNING registration_id, event_id", [tranId]);
+    if (res.rowCount && res.rowCount > 0) {
+      const { registration_id, event_id } = res.rows[0];
+      await pool.query("UPDATE registrations SET status = 'CANCELLED', payment_status = 'FAILED' WHERE id = $1 AND event_id = $2 AND status != 'CONFIRMED'", [registration_id, event_id]);
     }
   }
 
@@ -285,11 +312,10 @@ export class PaymentService {
    * Handle payment cancellation — mark payment and registration as cancelled.
    */
   static async handleCancellation(tranId: string) {
-    await pool.query("UPDATE payments SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP WHERE tran_id = $1", [tranId]);
-    const paymentRes = await pool.query('SELECT registration_id, event_id FROM payments WHERE tran_id = $1', [tranId]);
-    if (paymentRes.rowCount && paymentRes.rowCount > 0) {
-      const { registration_id, event_id } = paymentRes.rows[0];
-      await pool.query("UPDATE registrations SET status = 'CANCELLED', payment_status = 'CANCELLED' WHERE id = $1 AND event_id = $2", [registration_id, event_id]);
+    const res = await pool.query("UPDATE payments SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP WHERE tran_id = $1 AND status != 'COMPLETED' RETURNING registration_id, event_id", [tranId]);
+    if (res.rowCount && res.rowCount > 0) {
+      const { registration_id, event_id } = res.rows[0];
+      await pool.query("UPDATE registrations SET status = 'CANCELLED', payment_status = 'CANCELLED' WHERE id = $1 AND event_id = $2 AND status != 'CONFIRMED'", [registration_id, event_id]);
     }
   }
 

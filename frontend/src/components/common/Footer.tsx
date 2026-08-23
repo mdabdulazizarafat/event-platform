@@ -3,10 +3,17 @@
 import React from 'react';
 import Link from 'next/link';
 import { Globe } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith('/dashboard')) {
+    return null;
+  }
+
   return (
-    <footer className="bg-surface-soft text-on-surface-variant py-16 mt-auto border-t border-slate-200">
+    <footer className="bg-surface-soft text-on-surface-variant py-16 mt-auto border-t border-outline-variant">
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
 
@@ -69,7 +76,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom row */}
-        <div className="mt-16 pt-8 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm font-medium">
+        <div className="mt-16 pt-8 border-t border-outline-variant flex flex-col sm:flex-row justify-between items-center gap-4 text-sm font-medium">
           <div className="flex items-center gap-2 text-primary hover:text-foreground transition-colors cursor-pointer">
             <Globe size={16} />
             <span>United States (English)</span>

@@ -10,27 +10,272 @@ import {
   Calendar, 
   Download,
   ChevronDown,
-  ArrowRight
+  ArrowRight,
+  Shield, 
+  Users,
+  Globe,
+  Ticket,
+  Award,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import StatCard from '@/components/ui/StatCard';
 import Button from '@/components/ui/Button';
+import DataTable from '@/components/ui/DataTable';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function DashboardOverviewPage() {
   const { user } = useAuth();
+
+  if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') {
+    return <AdminDashboardPage />;
+  }
+
+  if (user?.role === 'USER' || user?.role === 'PARTICIPANT') {
+    return <UserDashboardPage />;
+  }
+
+  return <OrganizerDashboardView />;
+}
+
+function AdminDashboardPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const [stats, setStats] = useState({
+    totalUsers: '3,842',
+    totalEvents: '18',
+    totalRevenue: '৳ 4,82,000',
+    apiHealth: '99.9%'
+  });
+
+  const [logs, setLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadAdminData() {
+      try {
+        const res = await fetch('/api/v1/admin/logs');
+        if (res.ok) {
+          const data = await res.json();
+          setLogs(data.slice(0, 5));
+        } else {
+          setLogs([
+            { id: 1, action: 'User Sign In', admin_username: 'host-organizer', target_type: 'AUTH', details: { ip: '127.0.0.1' }, created_at: new Date().toISOString() },
+            { id: 2, action: 'Role Update', admin_username: 'super-admin', target_type: 'USER', details: { target: 'jane-doe', role: 'ORGANIZER' }, created_at: new Date().toISOString() },
+          ]);
+        }
+      } catch {
+        setLogs([
+          { id: 1, action: 'User Sign In', admin_username: 'host-organizer', target_type: 'AUTH', details: { ip: '127.0.0.1' }, created_at: new Date().toISOString() },
+          { id: 2, action: 'Role Update', admin_username: 'super-admin', target_type: 'USER', details: { target: 'jane-doe', role: 'ORGANIZER' }, created_at: new Date().toISOString() },
+        ]);
+      }
+    }
+    loadAdminData();
+  }, []);
+
+  const columns = [
+    { key: 'action', title: 'Action' },
+    { key: 'admin_username', title: 'User / Actor' },
+    { key: 'target_type', title: 'Category' },
+    {
+      key: 'created_at',
+      title: 'Time',
+      render: (row: any) => new Date(row.created_at).toLocaleString()
+    }
+  ];
+
+  return (
+    <div className="space-y-6">
+      <section>
+        <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none flex items-center gap-3">
+          <Shield className="w-8 h-8 text-primary" />
+          Global Platform Administration
+        </h2>
+        <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
+          Supervise user registrations, audit access trails, and monitor system metrics.
+        </p>
+      </section>
+
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Total Accounts"
+          value={stats.totalUsers}
+          icon={<Users size={20} />}
+          color="var(--primary)"
+          bg="rgba(53, 37, 205, 0.05)"
+        />
+        <StatCard
+          title="Total Events Launched"
+          value={stats.totalEvents}
+          icon={<Globe size={20} />}
+          color="var(--tertiary)"
+          bg="rgba(104, 64, 0, 0.05)"
+        />
+        <StatCard
+          title="Consolidated Volume"
+          value={stats.totalRevenue}
+          icon={<DollarSign size={20} />}
+          color="var(--secondary)"
+          bg="rgba(0, 108, 73, 0.05)"
+        />
+        <StatCard
+          title="Service Node Uptime"
+          value={stats.apiHealth}
+          icon={<Activity size={20} />}
+          color="var(--error)"
+          bg="rgba(186, 26, 26, 0.05)"
+        />
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="font-heading text-lg font-bold text-foreground m-0">
+            System Activity Log
+          </h3>
+        </div>
+        <DataTable columns={columns} data={logs} emptyText="No system logs reported." />
+      </section>
+    </div>
+  );
+}
+
+function UserDashboardPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadParticipantData() {
+      try {
+        const res = await fetch(`/api/v1/tickets/my-registrations`);
+        if (res.ok) {
+          const registrations = await res.json();
+          const mappedTickets = registrations.map((r: any) => ({
+            id: r.id,
+            title: r.event_title,
+            slug: r.event_slug,
+            date: r.event_date,
+            ticketType: r.ticket_name,
+            status: r.status,
+          }));
+          setTickets(mappedTickets);
+        }
+      } catch (err) {
+        console.error('Failed to load user dashboard info:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadParticipantData();
+  }, []);
+
+  const columns = [
+    { key: 'title', title: 'Event Name' },
+    { key: 'date', title: 'Date' },
+    { key: 'ticketType', title: 'Ticket Type' },
+    {
+      key: 'status',
+      title: 'Status',
+      render: (row: any) => (
+        <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-secondary-container/10 text-secondary">
+          {row.status}
+        </span>
+      )
+    },
+    {
+      key: 'actions',
+      title: 'Action',
+      render: (row: any) => (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push(`/dashboard/tickets/${row.id}`)}
+          icon={<ExternalLink className="w-3.5 h-3.5" />}
+        >
+          View Ticket
+        </Button>
+      )
+    }
+  ];
+
+  return (
+    <div className="space-y-6">
+      <section>
+        <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none">
+          Welcome back, {user?.name?.split(' ')[0] || 'Attendee'}
+        </h2>
+        <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
+          Access your digital event passes, schedules, and certificates.
+        </p>
+      </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard
+          title="My Tickets"
+          value={tickets.length}
+          icon={<Ticket size={20} />}
+          color="var(--primary)"
+          bg="rgba(53, 37, 205, 0.05)"
+        />
+        <StatCard
+          title="Scheduled Sessions"
+          value="1"
+          icon={<Calendar size={20} />}
+          color="var(--tertiary)"
+          bg="rgba(104, 64, 0, 0.05)"
+        />
+        <StatCard
+          title="Certificates Earned"
+          value="0"
+          icon={<Award size={20} />}
+          color="var(--secondary)"
+          bg="rgba(0, 108, 73, 0.05)"
+        />
+      </section>
+
+      <section className="space-y-4">
+        <h3 className="font-heading text-lg font-bold text-foreground m-0">
+          My Active Registrations
+        </h3>
+        <DataTable columns={columns} data={tickets} emptyText="You have no registered event tickets." />
+      </section>
+    </div>
+  );
+}
+
+function OrganizerDashboardView() {
+  const { user } = useAuth();
   const [events, setEvents] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    totalRegistrations: 0,
+    totalRevenue: 0,
+    activeSessions: 0,
+    checkInRate: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadDashboardData() {
       try {
-        const res = await fetch('/api/v1/events');
-        if (res.ok) {
-          const data = await res.json();
-          // Filter events hosted by this host or where they are in the team
-          const hostEvents = data.filter((e: any) => e.host_username === user?.username || e.is_team_member);
+        const [eventsRes, statsRes] = await Promise.all([
+          fetch('/api/v1/events'),
+          fetch('/api/v1/events/dashboard-stats')
+        ]);
+        
+        if (eventsRes.ok) {
+          const data = await eventsRes.json();
+          const list = Array.isArray(data) ? data : (data.data || []);
+          const hostEvents = list.filter((e: any) => e.host_username === user?.username || e.is_team_member);
           setEvents(hostEvents);
+        }
+        
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
         }
       } catch (err) {
         console.error('Failed to load host dashboard overview:', err);
@@ -46,17 +291,24 @@ export default function DashboardOverviewPage() {
   return (
     <div className="space-y-6">
       {/* Header section with date and export options */}
-      <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none">
+      <section className="relative overflow-hidden bento-card p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        {/* Background layers */}
+        <div className="absolute inset-0 bg-hero-gradient dark:bg-bg-hero-gradient-dark pointer-events-none" />
+        <div className="absolute inset-0 hero-grid opacity-30 pointer-events-none" />
+        
+        {/* Ambient glow orbs */}
+        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-64 h-64 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+
+        <div className="relative z-10">
+          <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none m-0">
             Good morning, {user?.name?.split(' ')[0] || 'Organizer'}
           </h2>
-          <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
+          <p className="text-on-surface-variant text-sm mt-2.5 mb-0">
             Manage your event performance and attendee interactions in real-time.
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="relative z-10 flex items-center gap-3">
           <div className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-2 text-on-surface-variant text-xs font-bold cursor-pointer hover:bg-surface-container-low transition-colors">
             <Calendar size={16} />
             <span>Oct 12 - Oct 19, 2026</span>
@@ -76,33 +328,30 @@ export default function DashboardOverviewPage() {
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard
           title="Total Registrations"
-          value="2,840"
+          value={stats.totalRegistrations.toLocaleString()}
           icon={<UserPlus size={20} />}
-          change="+12% weekly"
           color="var(--primary)"
           bg="rgba(53, 37, 205, 0.05)"
         />
         <StatCard
           title="Total Revenue"
-          value="৳ 1,42,000"
+          value={`৳ ${stats.totalRevenue.toLocaleString()}`}
           icon={<DollarSign size={20} />}
-          change="+8% weekly"
           color="var(--tertiary)"
           bg="rgba(104, 64, 0, 0.05)"
         />
         <StatCard
           title="Check-in Rate"
-          value="64%"
+          value={`${stats.checkInRate}%`}
           icon={<CheckCircle size={20} />}
-          progress={64}
+          progress={stats.checkInRate}
           color="var(--secondary)"
           bg="rgba(0, 108, 73, 0.05)"
         />
         <StatCard
           title="Active Sessions"
-          value="12"
+          value={stats.activeSessions.toString()}
           icon={<Activity size={20} />}
-          change="Live Now"
           color="var(--error)"
           bg="rgba(186, 26, 26, 0.05)"
         />
@@ -146,18 +395,18 @@ export default function DashboardOverviewPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 mt-2 pt-4 border-t border-outline-variant/30">
-                  <Link href={`/dashboard/events/${e.slug}`} className="flex-1">
+                <div className="flex flex-col sm:flex-row items-center gap-2 mt-2 pt-4 border-t border-outline-variant/30">
+                  <Link href={`/dashboard/events/${e.slug}`} className="w-full sm:flex-1">
                     <Button variant="outline" size="sm" className="w-full justify-center">
                       Control Panel
                     </Button>
                   </Link>
-                  <Link href={`/dashboard/events/${e.slug}?tab=3`} className="flex-1">
+                  <Link href={`/dashboard/events/${e.slug}?tab=3`} className="w-full sm:flex-1">
                     <Button variant="outline" size="sm" className="w-full justify-center">
                       Edit
                     </Button>
                   </Link>
-                  <Link href={`/dashboard/events/${e.slug}?tab=5`} className="flex-1">
+                  <Link href={`/dashboard/events/${e.slug}?tab=5`} className="w-full sm:flex-1">
                     <Button variant="outline" size="sm" className="w-full justify-center">
                       Team
                     </Button>

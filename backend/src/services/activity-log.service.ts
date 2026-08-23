@@ -145,21 +145,38 @@ export class ActivityLogService {
   }
 
   /**
-   * Get all scan activity logs for a specific event (real-time dashboard data).
+   * Get all scan activity logs for a specific event with pagination (real-time dashboard data).
    */
-  static async getLogsForEvent(eventId: number) {
-    const query = `
-      SELECT l.*, r.email, r.user_id, tt.name as ticket_name, a.name as activity_name, h.name as scanner_name
+  static async getLogsForEvent(eventId: number, options: { page?: number; limit?: number } = {}) {
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(100, Math.max(1, options.limit || 20));
+    const offset = (page - 1) * limit;
+
+    const countQuery = `SELECT COUNT(*) as total FROM activity_scans WHERE event_id = $1`;
+    const countRes = await pool.query(countQuery, [eventId]);
+    const total = parseInt(countRes.rows[0]?.total || '0');
+
+    const dataQuery = `
+      SELECT l.*, r.email, r.user_id, r.full_name, tt.name as ticket_name, a.name as activity_name, h.name as scanner_name
       FROM activity_scans l
       JOIN registrations r ON l.registration_id = r.id AND l.event_id = r.event_id
       LEFT JOIN ticket_types tt ON r.ticket_type_id = tt.id
       JOIN event_activities a ON l.activity_id = a.id
       JOIN users h ON l.scanned_by = h.username
       WHERE l.event_id = $1
-      ORDER BY l.scanned_at DESC;
+      ORDER BY l.scanned_at DESC
+      LIMIT $2 OFFSET $3;
     `;
-    const res = await pool.query(query, [eventId]);
-    return res.rows;
+    const res = await pool.query(dataQuery, [eventId, limit, offset]);
+    return {
+      data: res.rows,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   /**

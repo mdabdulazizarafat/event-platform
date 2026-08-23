@@ -10,6 +10,8 @@ export interface CreateTicketTypeInput {
   sortOrder?: number;
   saleStart?: string;
   saleEnd?: string;
+  isTeam?: boolean;
+  maxTeamSize?: number;
 }
 
 export interface UpdateTicketTypeInput {
@@ -21,6 +23,8 @@ export interface UpdateTicketTypeInput {
   isActive?: boolean;
   saleStart?: string;
   saleEnd?: string;
+  isTeam?: boolean;
+  maxTeamSize?: number;
 }
 
 export class TicketTypeService {
@@ -29,8 +33,8 @@ export class TicketTypeService {
    */
   static async createTicketType(input: CreateTicketTypeInput) {
     const query = `
-      INSERT INTO ticket_types (event_id, name, description, price, currency, capacity, sort_order, sale_start, sale_end)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO ticket_types (event_id, name, description, price, currency, capacity, sort_order, sale_start, sale_end, is_team, max_team_size)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *;
     `;
     const res = await pool.query(query, [
@@ -43,6 +47,8 @@ export class TicketTypeService {
       input.sortOrder || 0,
       input.saleStart || null,
       input.saleEnd || null,
+      input.isTeam !== undefined ? input.isTeam : false,
+      input.maxTeamSize || 1,
     ]);
     return res.rows[0];
   }
@@ -104,6 +110,8 @@ export class TicketTypeService {
       isActive: 'is_active',
       saleStart: 'sale_start',
       saleEnd: 'sale_end',
+      isTeam: 'is_team',
+      maxTeamSize: 'max_team_size',
     };
 
     const updates: string[] = [];

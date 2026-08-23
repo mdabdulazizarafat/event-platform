@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 import { createChildLogger } from '../lib/logger';
-import { getParticipantEmailHtml } from './email-templates';
+import { getParticipantEmailHtml, getCancelEmailHtml } from './emails';
 
 const logger = createChildLogger('email.service');
 
@@ -61,7 +61,7 @@ export class EmailService {
       facebook_url: 'https://facebook.com/ayojok',
       instagram_url: 'https://instagram.com/ayojok',
       linkedin_url: 'https://linkedin.com/ayojok',
-      support_email: 'support@ayojok.com'
+      support_email: process.env.SUPPORT_EMAIL || process.env.RESEND_FROM_EMAIL || 'support@rongplan.com'
     });
 
     const client = getResendClient();
@@ -92,15 +92,16 @@ export class EmailService {
    * Sends transactional cancellation email via Resend
    */
   static async sendTicketCancellation(payload: CancellationEmailPayload): Promise<void> {
-    const htmlContent = `
-      <div style="font-family: sans-serif; padding: 24px; color: #111c2d; max-width: 600px; margin: 0 auto; border: 1px solid #ff4d4d; border-radius: 16px;">
-        <h2 style="color: #ff4d4d; font-family: 'Plus Jakarta Sans', sans-serif;">Registration Cancelled</h2>
-        <p>This is to inform you that your registration for the event <strong>${payload.eventTitle}</strong> has been cancelled by the organizer.</p>
-        <p>As a result, your digital ticket QR code is now invalidated and cannot be used for entry.</p>
-        <hr style="border: 0; border-top: 1px solid #c7c4d8; margin: 24px 0;" />
-        <p style="font-size: 11px; color: #464555;">Best regards,<br/>Rong Plan Event Infrastructure Team</p>
-      </div>
-    `;
+    const htmlContent = getCancelEmailHtml({
+      event_name: payload.eventTitle,
+      organizer_name: 'Ayojok',
+      organizer_address: 'Dhaka, Bangladesh',
+      unsubscribe_url: 'https://ayojok.com/unsubscribe',
+      facebook_url: 'https://facebook.com/ayojok',
+      instagram_url: 'https://instagram.com/ayojok',
+      linkedin_url: 'https://linkedin.com/ayojok',
+      support_email: process.env.SUPPORT_EMAIL || process.env.RESEND_FROM_EMAIL || 'support@rongplan.com'
+    });
 
     const client = getResendClient();
     if (!client) {

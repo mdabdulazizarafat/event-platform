@@ -105,88 +105,123 @@ export default function MarketingPage() {
     <div className="flex-1 flex flex-col bg-background min-h-screen">
       <main className="flex-grow">
         
-        {/* Sliding the upcoming event banner (clickable) */}
-        <section className="pt-8 pb-12 bg-background">
-          <div className="max-w-6xl mx-auto px-6">
+        {/* Sliding the upcoming event banner (Apple TV Style) */}
+        <section className="pt-8 pb-12 bg-background overflow-hidden">
+          <div className="w-full relative flex items-center justify-center min-h-[350px] md:min-h-[500px]">
             {loading ? (
-              <div className="w-full h-[320px] md:h-[400px] rounded-3xl bg-slate-200/60 animate-pulse flex items-center justify-center">
+              <div className="w-[90%] md:w-[75%] h-[320px] md:h-[450px] rounded-3xl bg-slate-200/60 animate-pulse flex items-center justify-center">
                 <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
               </div>
-            ) : activeSlideEvent ? (
-              <div className="relative group rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-slate-900 transition-all duration-300">
-                <Link 
-                  href={`/events/${activeSlideEvent.slug}`}
-                  className="block relative w-full h-[320px] md:h-[420px] overflow-hidden cursor-pointer"
-                >
-                  {/* Background Image */}
-                  <img 
-                    src={activeSlideEvent.thumbnail || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&h=675&fit=crop'} 
-                    alt={activeSlideEvent.title} 
-                    className="w-full h-full object-cover opacity-90 group-hover:scale-102 transition-transform duration-700"
-                  />
+            ) : sliderEvents.length > 0 ? (
+              <>
+                {sliderEvents.map((event, idx) => {
+                  let position = 'next';
+                  if (idx === currentSlide) position = 'active';
+                  else if (idx === (currentSlide - 1 + sliderEvents.length) % sliderEvents.length) position = 'prev';
+                  else if (idx === (currentSlide + 1) % sliderEvents.length) position = 'next';
+                  else position = 'hidden';
 
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/40 to-transparent flex flex-col justify-end p-8 md:p-12 text-white" />
+                  let transformClass = '';
+                  let opacityClass = 'opacity-0';
+                  let zIndex = 'z-0';
+                  
+                  if (position === 'active') {
+                    transformClass = 'translate-x-0 scale-100';
+                    opacityClass = 'opacity-100';
+                    zIndex = 'z-20 shadow-[0_20px_50px_rgba(0,0,0,0.5)]';
+                  } else if (position === 'prev') {
+                    transformClass = '-translate-x-[85%] md:-translate-x-[65%] scale-90';
+                    opacityClass = 'opacity-50 hover:opacity-80';
+                    zIndex = 'z-10 cursor-pointer shadow-xl';
+                  } else if (position === 'next') {
+                    transformClass = 'translate-x-[85%] md:translate-x-[65%] scale-90';
+                    opacityClass = 'opacity-50 hover:opacity-80';
+                    zIndex = 'z-10 cursor-pointer shadow-xl';
+                  } else {
+                    transformClass = 'translate-x-[150%] scale-75';
+                    opacityClass = 'opacity-0';
+                    zIndex = 'z-0';
+                  }
 
-                  {/* Banner Content */}
-                  <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 flex flex-col md:flex-row items-start md:items-end justify-between gap-6 text-white">
-                    <div className="space-y-3 max-w-2xl">
-                      <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 bg-primary text-white text-xs font-bold rounded-lg uppercase tracking-wider shadow-xs">
-                          Featured Upcoming
-                        </span>
-                        <span className="px-3 py-1 glass-panel text-white text-xs font-bold rounded-lg border border-white/20">
-                          Live Registration
-                        </span>
-                      </div>
+                  return (
+                    <div 
+                      key={event.slug}
+                      onClick={(e) => {
+                         if (position === 'prev') prevSlide(e as any);
+                         else if (position === 'next') nextSlide(e as any);
+                      }}
+                      className={`absolute w-[90%] md:w-[70%] lg:w-[60%] h-[320px] md:h-[450px] rounded-[32px] overflow-hidden bg-slate-900 transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] ${transformClass} ${opacityClass} ${zIndex}`}
+                    >
+                       <Link 
+                         href={`/events/${event.slug}`} 
+                         className={`block relative w-full h-full ${position !== 'active' ? 'pointer-events-none' : ''}`}
+                       >
+                         <img 
+                           src={event.thumbnail || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&h=675&fit=crop'} 
+                           alt={event.title} 
+                           className="w-full h-full object-cover opacity-90"
+                         />
+                         
+                         {/* Gradient Overlay */}
+                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/40 to-transparent" />
+                         
+                         {position === 'active' && (
+                           <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 flex flex-col items-start gap-4 text-white transition-opacity duration-700 delay-300">
+                             <div className="flex items-center gap-2">
+                               <span className="px-3 py-1 bg-primary text-white text-[10px] font-bold rounded-lg uppercase tracking-wider shadow-xs">
+                                 Featured Upcoming
+                               </span>
+                               <span className="px-3 py-1 glass-panel text-white text-[10px] font-bold rounded-lg border border-white/20">
+                                 Live Registration
+                               </span>
+                             </div>
 
-                      <h2 className="font-heading text-2xl md:text-4xl font-black text-white tracking-tight leading-tight m-0">
-                        {activeSlideEvent.title}
-                      </h2>
+                             <h2 className="font-heading text-2xl md:text-5xl font-black text-white tracking-tight leading-tight m-0 drop-shadow-lg">
+                               {event.title}
+                             </h2>
 
-                      <p className="text-sm text-slate-200/90 font-medium line-clamp-2 m-0">
-                        {activeSlideEvent.description}
-                      </p>
-
-                      <div className="pt-2 flex flex-wrap items-center gap-5 text-xs font-bold text-slate-300">
-                        <span className="flex items-center gap-1.5">
-                          <Calendar size={14} className="text-primary-container" />
-                          {activeSlideEvent.date}
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <MapPin size={14} className="text-primary-container" />
-                          {activeSlideEvent.location}
-                        </span>
-                      </div>
+                             <div className="pt-2 flex flex-wrap items-center gap-5 text-sm font-bold text-slate-300">
+                               <span className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10">
+                                 <Calendar size={16} className="text-white" />
+                                 {event.date}
+                               </span>
+                               <span className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10">
+                                 <MapPin size={16} className="text-white" />
+                                 {event.location}
+                               </span>
+                             </div>
+                             
+                             <div className="mt-4 shrink-0 flex items-center gap-2 bg-white text-slate-900 px-6 py-3 rounded-full font-black text-sm transition-transform hover:scale-105 shadow-xl">
+                               <span>View Details</span>
+                               <ArrowUpRight size={18} />
+                             </div>
+                           </div>
+                         )}
+                       </Link>
                     </div>
+                  );
+                })}
 
-                    <div className="shrink-0 flex items-center gap-2 glass-panel px-5 py-3 rounded-2xl border border-white/20 text-white font-bold text-sm transition-all group-hover:translate-x-1">
-                      <span>View Event</span>
-                      <ArrowUpRight size={18} />
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Slider Navigation Arrows */}
+                {/* Slider Navigation Arrows (only if active slide) */}
                 {sliderEvents.length > 1 && (
                   <>
                     <button
                       onClick={prevSlide}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-md border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
+                      className="absolute left-[3%] md:left-[10%] top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-md border border-white/20 opacity-0 md:opacity-100 transition-all cursor-pointer z-30 shadow-lg hover:scale-110"
                       aria-label="Previous event slide"
                     >
-                      <ChevronLeft size={20} />
+                      <ChevronLeft size={24} />
                     </button>
                     <button
                       onClick={nextSlide}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-md border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
+                      className="absolute right-[3%] md:right-[10%] top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-md border border-white/20 opacity-0 md:opacity-100 transition-all cursor-pointer z-30 shadow-lg hover:scale-110"
                       aria-label="Next event slide"
                     >
-                      <ChevronRight size={20} />
+                      <ChevronRight size={24} />
                     </button>
 
                     {/* Dot Indicators */}
-                    <div className="absolute bottom-4 right-8 flex items-center gap-2 z-10">
+                    <div className="absolute bottom-[-10px] md:bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30">
                       {sliderEvents.map((_, idx) => (
                         <button
                           key={idx}
@@ -195,10 +230,10 @@ export default function MarketingPage() {
                             e.stopPropagation();
                             setCurrentSlide(idx);
                           }}
-                          className={`h-2 rounded-full transition-all cursor-pointer border-none ${
+                          className={`h-1.5 rounded-full transition-all cursor-pointer border-none ${
                             currentSlide === idx 
-                              ? 'w-6 bg-[#8B5CF6]' 
-                              : 'w-2 bg-white/50 hover:bg-white/80'
+                              ? 'w-8 bg-primary shadow-[0_0_10px_rgba(139,92,246,0.8)]' 
+                              : 'w-2 bg-slate-300 hover:bg-primary/50'
                           }`}
                           aria-label={`Go to slide ${idx + 1}`}
                         />
@@ -206,7 +241,7 @@ export default function MarketingPage() {
                     </div>
                   </>
                 )}
-              </div>
+              </>
             ) : null}
           </div>
         </section>

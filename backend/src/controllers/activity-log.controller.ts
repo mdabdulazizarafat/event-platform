@@ -50,7 +50,10 @@ export class ActivityLogController {
         return res.status(400).json({ error: 'Resolved Event ID required' });
       }
 
-      const logs = await ActivityLogService.getLogsForEvent(eventId);
+      const page = req.query.page ? parseInt(req.query.page as string) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+
+      const logs = await ActivityLogService.getLogsForEvent(eventId, { page, limit });
       return res.status(200).json(logs);
     } catch (error: any) {
       logger.error({ err: error }, 'Error fetching scan logs');

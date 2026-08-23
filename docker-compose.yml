@@ -31,6 +31,9 @@ services:
 
   # Express Backend API
   ayojok-backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     image: ghcr.io/mdabdulazizarafat/ayojok-backend:main
     container_name: ayojok-backend
     restart: always
@@ -39,7 +42,7 @@ services:
       - ayojok-redis
     ports:
       # Bound to 127.0.0.1 to prevent public internet access to this port
-      - "127.0.0.1:8081:3001"
+      - "127.0.0.1:3001:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -66,12 +69,15 @@ services:
 
   # Next.js Frontend
   ayojok-frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     image: ghcr.io/mdabdulazizarafat/ayojok-frontend:main
     container_name: ayojok-frontend
     restart: always
     ports:
       # Bound to 127.0.0.1 to prevent public internet access to this port
-      - "127.0.0.1:8080:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000

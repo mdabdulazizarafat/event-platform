@@ -17,10 +17,17 @@ export default function SecurePaymentPage({ params }: { params: Promise<{ slug: 
   
   const ticketIdParam = searchParams.get('ticketId');
   const ticketId = ticketIdParam ? parseInt(ticketIdParam) : null;
-  const fullName = searchParams.get('fullName') || '';
+  const fullName = searchParams.get('fullName') || searchParams.get('name') || '';
   const email = searchParams.get('email') || '';
   const phone = searchParams.get('phone') || '';
-  const organization = searchParams.get('org') || '';
+  const organization = searchParams.get('org') || searchParams.get('institution') || '';
+  const jobTitle = searchParams.get('jobTitle') || '';
+  const teamName = searchParams.get('teamName') || '';
+  const teamMembersRaw = searchParams.get('teamMembers') || '';
+  const teamMembers = teamMembersRaw ? JSON.parse(teamMembersRaw) : [];
+  const tshirtSize = searchParams.get('tshirtSize') || '';
+  const reference = searchParams.get('reference') || '';
+  const transactionId = searchParams.get('transactionId') || '';
 
   const { user, loading: authLoading } = useAuth();
   const [event, setEvent] = useState<Event | null>(null);
@@ -72,6 +79,13 @@ export default function SecurePaymentPage({ params }: { params: Promise<{ slug: 
           email: email,
           customerName: fullName,
           customerPhone: phone || undefined,
+          jobTitle: jobTitle || undefined,
+          organization: organization || undefined,
+          tshirtSize: tshirtSize || undefined,
+          reference: reference || undefined,
+          transactionId: transactionId || undefined,
+          teamName: teamName || undefined,
+          teamMembers: teamMembers.length > 0 ? teamMembers : undefined,
         });
         
         message.info('Redirecting to payment gateway...');
@@ -84,7 +98,16 @@ export default function SecurePaymentPage({ params }: { params: Promise<{ slug: 
           body: JSON.stringify({
             email: email,
             userId: user.username,
-            ticketTypeId: ticket.id
+            ticketTypeId: ticket.id,
+            fullName: fullName,
+            phone: phone,
+            organization: organization,
+            jobTitle: jobTitle,
+            tshirtSize: tshirtSize || undefined,
+            reference: reference || undefined,
+            transactionId: transactionId || undefined,
+            teamName: teamName || undefined,
+            teamMembers: teamMembers.length > 0 ? teamMembers : undefined,
           })
         });
 
