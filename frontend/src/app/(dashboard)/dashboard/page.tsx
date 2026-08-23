@@ -22,6 +22,7 @@ import { useAuth } from '@/context/AuthContext';
 import StatCard from '@/components/ui/StatCard';
 import Button from '@/components/ui/Button';
 import DataTable from '@/components/ui/DataTable';
+import PageHeader from '@/components/ui/PageHeader';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -88,15 +89,13 @@ function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section>
-        <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none flex items-center gap-3">
-          <Shield className="w-8 h-8 text-primary" />
-          Global Platform Administration
-        </h2>
-        <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
-          Supervise user registrations, audit access trails, and monitor system metrics.
-        </p>
-      </section>
+      <PageHeader
+        title="Global Platform Administration"
+        description="Supervise user registrations, audit access trails, and monitor system metrics."
+        action={
+          <Shield className="w-12 h-12 text-primary opacity-20 hidden sm:block" />
+        }
+      />
 
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
@@ -204,14 +203,13 @@ function UserDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section>
-        <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none">
-          Welcome back, {user?.name?.split(' ')[0] || 'Attendee'}
-        </h2>
-        <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
-          Access your digital event passes, schedules, and certificates.
-        </p>
-      </section>
+      <PageHeader
+        title="Operations Control Center"
+        description="Manage cross-event administration, view global statistics, and configure system settings."
+        action={
+          <Activity className="w-12 h-12 text-primary opacity-20 hidden sm:block" />
+        }
+      />
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
@@ -290,39 +288,26 @@ function OrganizerDashboardView() {
 
   return (
     <div className="space-y-6">
-      {/* Header section with date and export options */}
-      <section className="relative overflow-hidden bento-card p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        {/* Background layers */}
-        <div className="absolute inset-0 bg-hero-gradient dark:bg-bg-hero-gradient-dark pointer-events-none" />
-        <div className="absolute inset-0 hero-grid opacity-30 pointer-events-none" />
-        
-        {/* Ambient glow orbs */}
-        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-64 h-64 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-
-        <div className="relative z-10">
-          <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none m-0">
-            Good morning, {user?.name?.split(' ')[0] || 'Organizer'}
-          </h2>
-          <p className="text-on-surface-variant text-sm mt-2.5 mb-0">
-            Manage your event performance and attendee interactions in real-time.
-          </p>
-        </div>
-        
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-2 text-on-surface-variant text-xs font-bold cursor-pointer hover:bg-surface-container-low transition-colors">
-            <Calendar size={16} />
-            <span>Oct 12 - Oct 19, 2026</span>
-            <ChevronDown size={14} />
+      <PageHeader
+        title={`Good morning, ${user?.name?.split(' ')[0] || 'Organizer'}`}
+        description="Manage your event performance and attendee interactions in real-time."
+        action={
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-2 text-on-surface-variant text-xs font-bold cursor-pointer hover:bg-surface-container-low transition-colors">
+              <Calendar size={16} />
+              <span>Oct 12 - Oct 19, 2026</span>
+              <ChevronDown size={14} />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Download size={16} />}
+            >
+              Export Report
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<Download size={16} />}
-          >
-            Export Report
-          </Button>
-        </div>
-      </section>
+        }
+      />
 
       {/* Bento Stats Grid */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">

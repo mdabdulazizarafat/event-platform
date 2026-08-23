@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import DataTable from '@/components/ui/DataTable';
 import Button from '@/components/ui/Button';
 import StatusChip from '@/components/ui/StatusChip';
+import PageHeader from '@/components/ui/PageHeader';
 import { Plus, LayoutDashboard, Globe, Calendar, MapPin, Settings, Trash2, User, Scan } from 'lucide-react';
 import { message, Pagination } from 'antd';
 import { useRouter } from 'next/navigation';
@@ -30,24 +31,24 @@ export default function EventsDirectoryPage() {
     try {
       const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
       const endpoint = isAdmin ? '/api/v1/admin/events' : `/api/v1/events?page=${currentPage}&limit=${pageSize}`;
-      
+
       const res = await fetch(endpoint);
       if (res.ok) {
         const result = await res.json();
-        
+
         const list = Array.isArray(result) ? result : (result.data || []);
 
         if (isAdmin) {
-           setEvents(list);
-           setTotalItems(result.pagination?.total || list.length);
+          setEvents(list);
+          setTotalItems(result.pagination?.total || list.length);
         } else {
-           const hostEvents = list.filter((e: any) => e.host_username === user?.username || e.is_team_member || e.is_registered);
-           setEvents(hostEvents);
-           if (result.pagination) {
-             setTotalItems(result.pagination.total);
-           } else {
-             setTotalItems(hostEvents.length);
-           }
+          const hostEvents = list.filter((e: any) => e.host_username === user?.username || e.is_team_member || e.is_registered);
+          setEvents(hostEvents);
+          if (result.pagination) {
+            setTotalItems(result.pagination.total);
+          } else {
+            setTotalItems(hostEvents.length);
+          }
         }
       } else {
         setEvents([]);
@@ -62,12 +63,12 @@ export default function EventsDirectoryPage() {
 
   const handleDeleteEvent = async (id: number) => {
     if (user?.role !== 'SUPER_ADMIN') {
-      message.error('Only Super Admins can purge events.');
+      message.error('Only Super Admins can Delete events.');
       return;
     }
     const confirmText = window.prompt('Type "delete the event" to confirm purging this event:');
     if (confirmText !== 'delete the event') {
-      message.error('Confirmation text did not match. Purge cancelled.');
+      message.error('Confirmation text did not match. Delete cancelled.');
       return;
     }
     try {
@@ -75,28 +76,28 @@ export default function EventsDirectoryPage() {
         method: 'DELETE'
       });
       if (res.ok) {
-        message.success('Event purged successfully.');
+        message.success('Event Deleted successfully.');
         setEvents(events.filter(e => e.id !== id));
       } else {
         const err = await res.json();
-        message.error(err.error || 'Purge request failed.');
+        message.error(err.error || 'Delete request failed.');
       }
     } catch (err: any) {
       console.error(err);
-      message.error('Purge action failed.');
+      message.error('Delete action failed.');
     }
   };
 
   const columns = [
-    { 
-      key: 'title', 
+    {
+      key: 'title',
       title: 'Event Title',
       render: (row: any) => (
         <span className="font-bold text-foreground">{row.title}</span>
       )
     },
     ...(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' ? [{
-      key: 'host_username', 
+      key: 'host_username',
       title: 'Organizer',
       render: (row: any) => (
         <span className="text-on-surface-variant font-medium text-xs flex items-center gap-1.5">
@@ -105,8 +106,8 @@ export default function EventsDirectoryPage() {
         </span>
       )
     }] : []),
-    { 
-      key: 'date', 
+    {
+      key: 'date',
       title: 'Date',
       render: (row: any) => (
         <span className="text-on-surface-variant font-medium text-xs flex items-center gap-1.5">
@@ -115,8 +116,8 @@ export default function EventsDirectoryPage() {
         </span>
       )
     },
-    { 
-      key: 'location', 
+    {
+      key: 'location',
       title: 'Location',
       render: (row: any) => (
         <span className="text-on-surface-variant font-medium text-xs flex items-center gap-1.5">
@@ -163,7 +164,7 @@ export default function EventsDirectoryPage() {
               icon={<Trash2 className="w-3.5 h-3.5" />}
               onClick={() => handleDeleteEvent(row.id)}
             >
-              Purge
+              Delete
             </Button>
           )}
         </div>
@@ -171,43 +172,29 @@ export default function EventsDirectoryPage() {
     }
   ];
 
-  const paginatedEvents = (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') 
+  const paginatedEvents = (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN')
     ? events.slice((currentPage - 1) * pageSize, currentPage * pageSize)
     : events;
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden bento-card p-6 md:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-        {/* Background layers */}
-        <div className="absolute inset-0 bg-hero-gradient dark:bg-bg-hero-gradient-dark pointer-events-none" />
-        <div className="absolute inset-0 hero-grid opacity-30 pointer-events-none" />
-        
-        {/* Ambient glow orbs */}
-        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-64 h-64 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-
-        <div className="relative z-10">
-          <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none m-0">
-            Events Directory
-          </h2>
-          <p className="text-on-surface-variant text-sm mt-2.5 mb-0">
-            View all your hosted events, check their current stage, and open the Control Panel to manage details.
-          </p>
-        </div>
-
-        <div className="relative z-10">
-          {user?.role !== 'USER' && (
-            <Button 
-              variant="primary" 
-              icon={<Plus className="w-4 h-4" />} 
+      <PageHeader
+        title="Events Directory"
+        description="View your events, check their current updates, and open the Control Panel to manage them."
+        action={
+          user?.role !== 'USER' && (
+            <Button
+              variant="primary"
               onClick={() => router.push('/dashboard/events/create')}
+              icon={<Plus className="w-4 h-4" />}
             >
               Create New Event
             </Button>
-          )}
-        </div>
-      </section>
+          )
+        }
+      />
 
-      <section className="space-y-4">
+      <div className="bento-card overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -215,10 +202,10 @@ export default function EventsDirectoryPage() {
           </div>
         ) : (
           <>
-            <DataTable 
-              columns={columns} 
-              data={paginatedEvents} 
-              emptyText="No events found in your directory." 
+            <DataTable
+              columns={columns}
+              data={paginatedEvents}
+              emptyText="No events found in your directory."
             />
             {totalItems > 0 && (
               <div className="flex justify-end pt-2">
@@ -237,7 +224,7 @@ export default function EventsDirectoryPage() {
             )}
           </>
         )}
-      </section>
+      </div>
     </div>
   );
 }

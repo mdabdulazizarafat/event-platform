@@ -28,6 +28,7 @@ import { fetchEventTeam, inviteTeamMember, removeTeamMember, TeamMember, fetchMy
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import AvatarCropper from '@/components/ui/AvatarCropper';
+import PageHeader from '@/components/ui/PageHeader';
 
 const CLASS_LEVELS = ["Class 1", "Class 2", "Class 3", "Class 4", "Class 5", "Class 6", "Class 7", "Class 8", "Class 9", "Class 10 / Dakhil", "Class 11 / Alim", "Class 12 / Alim", "University / Polytechnic / Fazil"];
 
@@ -451,6 +452,10 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        title="My Profile"
+        description="Manage your profile details."
+      />
       {/* Main Stacked Options */}
       {activeTab === 'Overview' && (
         <div className="max-w-5xl mx-auto space-y-6 pb-12">
