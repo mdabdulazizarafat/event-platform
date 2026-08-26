@@ -42,7 +42,7 @@ export class PaymentService {
     eventId: number;
     eventSlug: string;
     eventTitle: string;
-    ticketTypeId: number;
+    ticketTypeIds: number[];
     userId: string;
     email: string;
     customerName: string;
@@ -60,38 +60,53 @@ export class PaymentService {
       await client.query('BEGIN');
 
       // 1. Validate team and registration
-      await RegistrationService.validateTeamAndRegistration(
-        client,
-        input.eventId,
-        input.ticketTypeId,
-        input.userId,
-        input.teamName,
-        input.teamMembers
-      );
-
-      // 2. Validate ticket type
-      const ticketType = await TicketTypeService.getTicketTypeById(input.ticketTypeId);
-      if (!ticketType || ticketType.event_id !== input.eventId) {
-        throw new Error('Invalid ticket type for this event.');
-      }
-      if (!ticketType.is_active) {
-        throw new Error('This ticket type is no longer available.');
-      }
-      if (parseFloat(ticketType.price) <= 0) {
-        throw new Error('This is a free ticket. Use the direct registration endpoint.');
-      }
-
-      // 3. Check per-ticket-type capacity
-      if (ticketType.capacity) {
-        const countRes = await client.query(
-          "SELECT COUNT(*) FROM registrations WHERE ticket_type_id = $1 AND event_id = $2 AND status != 'CANCELLED'",
-          [input.ticketTypeId, input.eventId]
+      for (const ticketTypeId of input.ticketTypeIds) {
+        await RegistrationService.validateTeamAndRegistration(
+          client,
+          input.eventId,
+          ticketTypeId,
+          input.userId,
+          input.teamName,
+          input.teamMembers
         );
-        const soldCount = parseInt(countRes.rows[0].count);
-        if (soldCount >= ticketType.capacity) {
-          throw new Error('This ticket type is sold out.');
+      }
+
+      // 2. Validate ticket types and calculate total price
+      let totalPrice = 0;
+      let currency = 'BDT';
+      const ticketNames = [];
+
+      for (const ticketTypeId of input.ticketTypeIds) {
+        const ticketType = await TicketTypeService.getTicketTypeById(ticketTypeId);
+        if (!ticketType || ticketType.event_id !== input.eventId) {
+          throw new Error('Invalid ticket type for this event.');
+        }
+        if (!ticketType.is_active) {
+          throw new Error('This ticket type is no longer available.');
+        }
+
+        totalPrice += parseFloat(ticketType.price || '0');
+        currency = ticketType.currency || currency;
+        ticketNames.push(ticketType.name);
+
+        // 3. Check per-ticket-type capacity
+        if (ticketType.capacity) {
+          const countRes = await client.query(
+            "SELECT COUNT(*) FROM registrations WHERE ticket_type_id = $1 AND event_id = $2 AND status != 'CANCELLED'",
+            [ticketTypeId, input.eventId]
+          );
+          const soldCount = parseInt(countRes.rows[0].count);
+          if (soldCount >= ticketType.capacity) {
+            throw new Error(`Ticket type ${ticketType.name} is sold out.`);
+          }
         }
       }
+
+      if (totalPrice <= 0) {
+        throw new Error('This registration is free. Use the direct registration endpoint.');
+      }
+
+      const primaryTicketTypeId = input.ticketTypeIds.length > 0 ? input.ticketTypeIds[0] : null;
 
       // 4. Check global event capacity
       const capacityRes = await client.query(
@@ -116,7 +131,7 @@ export class PaymentService {
       `;
       const regRes = await client.query(registerQuery, [
         input.eventId,
-        input.ticketTypeId,
+        primaryTicketTypeId,
         input.userId,
         input.email,
         input.customerName,
@@ -129,12 +144,20 @@ export class PaymentService {
       ]);
       const { id: registrationId, qr_token: qrToken } = regRes.rows[0];
 
+      // Save to join table
+      for (const tId of input.ticketTypeIds) {
+        await client.query(
+          'INSERT INTO registration_ticket_types (registration_id, ticket_type_id) VALUES ($1, $2)',
+          [registrationId, tId]
+        );
+      }
+
       // Save team and team members if applicable
-      if (input.teamName) {
+      if (input.teamName && primaryTicketTypeId) {
         await RegistrationService.saveTeamAndMembers(
           client,
           input.eventId,
-          input.ticketTypeId,
+          primaryTicketTypeId,
           registrationId,
           input.teamName,
           input.teamMembers
@@ -151,10 +174,10 @@ export class PaymentService {
       await client.query(paymentQuery, [
         registrationId,
         input.eventId,
-        input.ticketTypeId,
+        primaryTicketTypeId,
         tranId,
-        ticketType.price,
-        ticketType.currency || 'BDT',
+        totalPrice,
+        currency,
       ]);
 
       await client.query('COMMIT');
@@ -169,15 +192,15 @@ export class PaymentService {
         const ipnUrl = process.env.SSLCOMMERZ_IPN_URL || 'http://localhost:3001/api/v1/payments/ipn';
 
         const sslData = {
-          total_amount: parseFloat(ticketType.price),
-          currency: ticketType.currency || 'BDT',
+          total_amount: totalPrice,
+          currency: currency,
           tran_id: tranId,
           success_url: successUrl,
           fail_url: failUrl,
           cancel_url: cancelUrl,
           ipn_url: ipnUrl,
           shipping_method: 'NO',
-          product_name: `${input.eventTitle} - ${ticketType.name}`,
+          product_name: `${input.eventTitle} - ${ticketNames.join(', ')}`,
           product_category: 'Event Ticket',
           product_profile: 'non-physical-goods',
           cus_name: input.customerName,

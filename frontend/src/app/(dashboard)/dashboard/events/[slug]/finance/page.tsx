@@ -8,7 +8,8 @@ import DataTable from '@/components/ui/DataTable';
 import type { Event, TicketType } from '@/lib/api';
 import { getEventBySlug, fetchTicketTypes } from '@/lib/api';
 import { DollarSign, ArrowLeft, Calendar, MapPin, Receipt, ShieldCheck } from 'lucide-react';
-import { message } from 'antd';
+import { message, Pagination } from 'antd';
+import PageHeader from '@/components/ui/PageHeader';
 
 export default function EventFinancePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = React.use(params);
@@ -18,6 +19,8 @@ export default function EventFinancePage({ params }: { params: Promise<{ slug: s
   const [tickets, setTickets] = useState<TicketType[]>([]);
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     async function loadData() {
@@ -77,24 +80,10 @@ export default function EventFinancePage({ params }: { params: Promise<{ slug: s
 
   return (
     <div className="space-y-6">
-      <section className="flex items-center gap-3 border-b border-outline-variant/60 pb-5">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.push(`/dashboard/events/${slug}`)}
-          icon={<ArrowLeft className="w-4 h-4" />}
-        >
-          Back
-        </Button>
-        <div>
-          <h2 className="font-heading text-2xl font-extrabold text-foreground leading-tight m-0">
-            Financial Ledger: {event.title}
-          </h2>
-          <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
-            Monitor payment settlements, billing audits, and transactions.
-          </p>
-        </div>
-      </section>
+      <PageHeader
+        title={`Financial Ledger: ${event.title}`}
+        description="Monitor payment settlements, billing audits, and transactions."
+      />
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
@@ -125,7 +114,26 @@ export default function EventFinancePage({ params }: { params: Promise<{ slug: s
         <h3 className="font-heading text-lg font-bold text-foreground m-0">
           Transaction Records
         </h3>
-        <DataTable columns={columns} data={payments} emptyText="No payments recorded for this event." />
+        <DataTable 
+          columns={columns} 
+          data={payments.slice((currentPage - 1) * pageSize, currentPage * pageSize)} 
+          emptyText="No payments recorded for this event." 
+        />
+        {payments.length > 0 && (
+          <div className="flex justify-end pt-2">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={payments.length}
+              onChange={(page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              }}
+              showSizeChanger
+              showTotal={(total) => `Showing ${Math.min(total, (currentPage - 1) * pageSize + 1)}-${Math.min(total, currentPage * pageSize)} of ${total} entries`}
+            />
+          </div>
+        )}
       </section>
     </div>
   );

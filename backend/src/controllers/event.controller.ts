@@ -185,10 +185,12 @@ export class EventController {
     try {
       const { slug } = req.params;
       const { 
-        email, userId, ticketTypeId, 
+        email, userId, ticketTypeId, ticketTypeIds: incomingTicketTypeIds,
         fullName, phone, jobTitle, organization, tshirtSize, reference, transactionId,
         teamName, teamMembers
       } = req.body;
+
+      const ticketTypeIds = incomingTicketTypeIds || (ticketTypeId ? [ticketTypeId] : []);
 
       if (!email || !userId) {
         return res.status(400).json({ error: 'Missing email or userId' });
@@ -207,21 +209,32 @@ export class EventController {
         return res.status(400).json({ error: 'Registration deadline has passed' });
       }
 
-      // If ticketTypeId is provided, check if the ticket is paid
-      if (ticketTypeId) {
-        const ticketRes = await pool.query('SELECT * FROM ticket_types WHERE id = $1 AND event_id = $2 AND is_active = true', [ticketTypeId, event.id]);
-        if (ticketRes.rowCount === 0) {
-          return res.status(400).json({ error: 'Invalid or inactive ticket type' });
+      // Validate ticket types and calculate total price
+      if (ticketTypeIds.length > 0) {
+        const placeholders = ticketTypeIds.map((_: number, i: number) => `$${i + 2}`).join(',');
+        const ticketRes = await pool.query(
+          `SELECT * FROM ticket_types WHERE id IN (${placeholders}) AND event_id = $1 AND is_active = true`,
+          [event.id, ...ticketTypeIds]
+        );
+        
+        if (ticketRes.rowCount !== ticketTypeIds.length) {
+          return res.status(400).json({ error: 'One or more invalid or inactive ticket types' });
         }
-        const ticketType = ticketRes.rows[0];
 
-        if (parseFloat(ticketType.price) > 0) {
+        let totalPrice = 0;
+        let currency = 'BDT';
+        for (const ticketType of ticketRes.rows) {
+          totalPrice += parseFloat(ticketType.price || '0');
+          currency = ticketType.currency || currency;
+        }
+
+        if (totalPrice > 0) {
           // Paid ticket — registration must go through payment flow
           return res.status(400).json({ 
-            error: 'This is a paid ticket. Please use the payment endpoint to register.',
+            error: 'This registration requires payment. Please use the payment endpoint to register.',
             requiresPayment: true,
-            price: ticketType.price,
-            currency: ticketType.currency,
+            price: totalPrice,
+            currency: currency,
           });
         }
       }
@@ -230,7 +243,7 @@ export class EventController {
         event.id, 
         userId, 
         email, 
-        ticketTypeId || null,
+        ticketTypeIds,
         {
           fullName,
           phone,

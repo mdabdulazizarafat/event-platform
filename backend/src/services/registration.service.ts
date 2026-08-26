@@ -179,7 +179,7 @@ export class RegistrationService {
     eventId: number, 
     userId: string, 
     email: string, 
-    ticketTypeId: number | null = null,
+    ticketTypeIds: number[] = [],
     details?: {
       fullName?: string;
       phone?: string;
@@ -196,17 +196,18 @@ export class RegistrationService {
     try {
       await client.query('BEGIN');
 
-      // If a ticket type is specified, validate it
-      if (ticketTypeId) {
-        // Validate team and registration
-        await this.validateTeamAndRegistration(
-          client,
-          eventId,
-          ticketTypeId,
-          userId,
-          details?.teamName,
-          details?.teamMembers
-        );
+      // If ticket types are specified, validate all of them
+      if (ticketTypeIds.length > 0) {
+        for (const ticketTypeId of ticketTypeIds) {
+          // Validate team and registration
+          await this.validateTeamAndRegistration(
+            client,
+            eventId,
+            ticketTypeId,
+            userId,
+            details?.teamName,
+            details?.teamMembers
+          );
 
         const ttRes = await client.query(
           'SELECT * FROM ticket_types WHERE id = $1 AND event_id = $2 AND is_active = true',
@@ -230,7 +231,10 @@ export class RegistrationService {
             throw new Error('This ticket type is sold out.');
           }
         }
+        }
       }
+
+      const primaryTicketTypeId = ticketTypeIds.length > 0 ? ticketTypeIds[0] : null;
 
       // Atomic insert checking current count against global event capacity
       const registerQuery = `
@@ -249,7 +253,7 @@ export class RegistrationService {
       
       const res = await client.query(registerQuery, [
         eventId, 
-        ticketTypeId, 
+        primaryTicketTypeId, 
         userId, 
         email,
         details?.fullName || null,
@@ -267,12 +271,20 @@ export class RegistrationService {
 
       const { id: registrationId, qr_token: qrToken } = res.rows[0];
 
-      // Save team and team members if applicable
-      if (ticketTypeId && details?.teamName) {
+      // Save to join table
+      for (const tId of ticketTypeIds) {
+        await client.query(
+          'INSERT INTO registration_ticket_types (registration_id, ticket_type_id) VALUES ($1, $2)',
+          [registrationId, tId]
+        );
+      }
+
+      // Save team and team members if applicable (associating with the first team ticket type)
+      if (ticketTypeIds.length > 0 && details?.teamName) {
         await this.saveTeamAndMembers(
           client,
           eventId,
-          ticketTypeId,
+          ticketTypeIds[0],
           registrationId,
           details.teamName,
           details.teamMembers

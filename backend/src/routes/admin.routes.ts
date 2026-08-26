@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { AdminController } from '../controllers/admin.controller';
+import { SettingsController } from '../controllers/settings.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { requireGlobalRole } from '../middleware/rbac.middleware';
 
@@ -14,6 +15,7 @@ router.post('/users', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminControll
 router.put('/users/:username', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.updateUser);
 router.delete('/users/:username', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.deleteUser);
 router.put('/users/:username/role', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.updateUserRole);
+router.post('/users/:username/impersonate', requireGlobalRole(['SUPER_ADMIN']), AdminController.impersonateUser);
 
 // Event moderation/administration routes
 router.get('/events', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.listEvents);
@@ -24,8 +26,13 @@ router.get('/events/:id/team', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), Admi
 router.post('/events/:id/team', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.addEventTeamMember);
 router.delete('/events/:id/team/:username', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.removeEventTeamMember);
 
-// Audit logs
+// Audit logs & Stats
 router.get('/logs', requireGlobalRole(['SUPER_ADMIN']), AdminController.listLogs);
+router.get('/stats', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.getDashboardStats);
+
+// Global Platform Settings
+router.get('/settings', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), SettingsController.getSettings);
+router.put('/settings', requireGlobalRole(['SUPER_ADMIN']), SettingsController.updateSettings);
 
 // Organizer Applications moderation routes
 router.get('/organizer-applications', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.listOrganizerApplications);

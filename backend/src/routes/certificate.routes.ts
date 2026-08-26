@@ -5,13 +5,17 @@ import {
   getCertificateTemplate,
   upsertCertificateTemplate,
   getEventCertificates,
-  issueCertificate
+  issueCertificate,
+  getMyCertificates
 } from '../controllers/certificate.controller';
 
 const router = Router();
 
 // Middleware applied to all routes
 router.use(authMiddleware);
+
+// Get my certificates (must be defined BEFORE :slug to prevent overlap)
+router.get('/my', getMyCertificates);
 
 // Get/Upsert template (only organizers and above)
 router.get('/:slug/template', requireEventRole(['ORGANIZER']), getCertificateTemplate);

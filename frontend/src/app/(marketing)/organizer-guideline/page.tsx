@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { CheckCircle2, Shield, Calendar, Users, Megaphone } from 'lucide-react';
 
 export const metadata = {
-  title: 'Organizer Guidelines | Rong Plan',
-  description: 'Best practices, rules, and guidelines for hosting events on Rong Plan.',
+  title: 'Organizer Guidelines | Ayojok',
+  description: 'Best practices, rules, and guidelines for hosting events on Ayojok.',
 };
 
 export default function OrganizerGuidelinePage() {
@@ -17,16 +17,16 @@ export default function OrganizerGuidelinePage() {
             Organizer Guidelines
           </h1>
           <p className="text-xl text-surface-dim font-sans">
-            Everything you need to know to host successful, safe, and engaging events on the Rong Plan platform.
+            Everything you need to know to host successful, safe, and engaging events on the Ayojok platform.
           </p>
         </div>
       </section>
 
       {/* Content */}
       <section className="max-w-4xl mx-auto px-6 py-16">
-        
+
         <div className="space-y-16">
-          
+
           {/* Section 1 */}
           <div className="glass-card p-8 md:p-10 rounded-3xl">
             <div className="flex items-center gap-4 mb-6">
@@ -117,8 +117,8 @@ export default function OrganizerGuidelinePage() {
           <p className="text-on-surface-variant text-lg mb-8 max-w-xl mx-auto font-sans">
             Start drafting your next event and see how our platform makes these best practices a breeze to implement.
           </p>
-          <Link 
-            href="/sign-up" 
+          <Link
+            href="/sign-up"
             className="inline-flex items-center justify-center bg-gradient-to-br from-primary to-secondary hover:opacity-90 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg transition-all"
           >
             Create an Event

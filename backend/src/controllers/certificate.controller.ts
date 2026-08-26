@@ -140,3 +140,29 @@ export const issueCertificate = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Failed to issue certificate' });
   }
 };
+
+/**
+ * Get all certificates issued to the current logged in user
+ */
+export const getMyCertificates = async (req: Request, res: Response) => {
+  try {
+    const username = req.user?.username;
+    if (!username) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const result = await pool.query(`
+      SELECT c.*, e.title as event_title, e.slug as event_slug, e.date as event_date
+      FROM certificates c
+      JOIN events e ON c.event_id = e.id
+      WHERE c.issued_to = $1
+      ORDER BY c.issued_at DESC
+    `, [username]);
+
+    return res.json(result.rows);
+  } catch (error) {
+    logger.error({ err: error, username: req.user?.username }, 'Failed to get user certificates');
+    return res.status(500).json({ error: 'Failed to fetch certificates' });
+  }
+};
+

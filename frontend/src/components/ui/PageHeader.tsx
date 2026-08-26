@@ -1,8 +1,8 @@
 import React from 'react';
 
 interface PageHeaderProps {
-  title: string;
-  description?: string;
+  title: React.ReactNode;
+  description?: React.ReactNode;
   action?: React.ReactNode;
 }
 
@@ -21,9 +21,9 @@ export default function PageHeader({ title, description, action }: PageHeaderPro
           {title}
         </h2>
         {description && (
-          <p className="text-on-surface-variant text-sm mt-2.5 mb-0">
+          <div className="text-on-surface-variant text-sm mt-2.5 mb-0">
             {description}
-          </p>
+          </div>
         )}
       </div>
 

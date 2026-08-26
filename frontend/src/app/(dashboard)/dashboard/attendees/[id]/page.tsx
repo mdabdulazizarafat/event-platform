@@ -7,7 +7,8 @@ import Button from '@/components/ui/Button';
 import DataTable from '@/components/ui/DataTable';
 import StatusChip from '@/components/ui/StatusChip';
 import { ArrowLeft, User, Mail, Calendar, ShieldCheck, Clock, ShieldAlert } from 'lucide-react';
-import { message } from 'antd';
+import { message, Pagination } from 'antd';
+import PageHeader from '@/components/ui/PageHeader';
 
 export default function AttendeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
@@ -16,6 +17,8 @@ export default function AttendeeDetailPage({ params }: { params: Promise<{ id: s
   const [attendee, setAttendee] = useState<any>(null);
   const [scanHistory, setScanHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     async function loadAttendeeData() {
@@ -86,24 +89,10 @@ export default function AttendeeDetailPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <section className="flex items-center gap-3 border-b border-outline-variant/60 pb-5">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.push('/dashboard/attendees')}
-          icon={<ArrowLeft className="w-4 h-4" />}
-        >
-          Back
-        </Button>
-        <div>
-          <h2 className="font-heading text-2xl font-extrabold text-foreground leading-tight m-0">
-            Participant File: {attendee.name}
-          </h2>
-          <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
-            View registration status and logistical door check logs.
-          </p>
-        </div>
-      </section>
+      <PageHeader
+        title={`Participant File: ${attendee.name}`}
+        description="View registration status and logistical door check logs."
+      />
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
@@ -163,7 +152,26 @@ export default function AttendeeDetailPage({ params }: { params: Promise<{ id: s
         <h3 className="font-heading text-base font-bold text-foreground m-0">
           Check-in Scan Logs
         </h3>
-        <DataTable columns={columns} data={scanHistory} emptyText="No check-in logs registered for this attendee." />
+        <DataTable 
+          columns={columns} 
+          data={scanHistory.slice((currentPage - 1) * pageSize, currentPage * pageSize)} 
+          emptyText="No check-in logs registered for this attendee." 
+        />
+        {scanHistory.length > 0 && (
+          <div className="flex justify-end pt-2">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={scanHistory.length}
+              onChange={(page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              }}
+              showSizeChanger
+              showTotal={(total) => `Showing ${Math.min(total, (currentPage - 1) * pageSize + 1)}-${Math.min(total, currentPage * pageSize)} of ${total} entries`}
+            />
+          </div>
+        )}
       </section>
     </div>
   );

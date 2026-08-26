@@ -9,6 +9,7 @@ import FormField from '@/components/ui/FormField';
 import type { Event, TicketType } from '@/lib/api';
 import { fetchTicketTypes } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import PageHeader from '@/components/ui/PageHeader';
 
 interface EditableTicketType extends Partial<TicketType> {
   isNew?: boolean;
@@ -496,26 +497,27 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
   ];
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between border-b border-outline-variant/60 pb-5">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/events/${slug}`)} icon={<ArrowLeft className="w-4 h-4" />}>
-            Back
-          </Button>
-          <h2 className="font-heading text-2xl font-extrabold text-foreground leading-tight m-0">
-            Edit Event Details
-          </h2>
-        </div>
-        <Button 
-          variant="primary" 
-          loading={saving} 
-          disabled={isEndedAndLocked}
-          onClick={handleSave} 
-          icon={<Save className="w-4 h-4" />}
-        >
-          {isEndedAndLocked ? 'Read-Only (Ended)' : 'Save Changes'}
-        </Button>
-      </div>
+    <div className="space-y-6 w-full">
+      <PageHeader
+        title="Edit Event Details"
+        description={`Modify settings and properties for event: ${title || slug}`}
+        action={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/events/${slug}`)} icon={<ArrowLeft className="w-4 h-4" />}>
+              Back
+            </Button>
+            <Button 
+              variant="primary" 
+              loading={saving} 
+              disabled={isEndedAndLocked}
+              onClick={handleSave} 
+              icon={<Save className="w-4 h-4" />}
+            >
+              {isEndedAndLocked ? 'Read-Only (Ended)' : 'Save Changes'}
+            </Button>
+          </div>
+        }
+      />
 
       {isEndedAndLocked && (
         <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-500 text-xs font-bold flex items-center gap-2">

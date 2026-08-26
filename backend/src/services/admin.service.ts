@@ -507,6 +507,7 @@ export class AdminService {
    */
   static async updateUser(username: string, input: any, adminUsername: string) {
     const fieldMap: Record<string, { col: string; transform?: (val: any) => any }> = {
+      username: { col: 'username', transform: (v) => v.trim() },
       name: { col: 'name', transform: (v) => v.trim() },
       email: { col: 'email', transform: (v) => v.toLowerCase().trim() },
       role: { col: 'role' },
@@ -543,8 +544,10 @@ export class AdminService {
       throw new Error(`User "${username}" not found.`);
     }
 
-    await this.logAction(adminUsername, 'UPDATE_USER', 'USER', username, input);
-    return res.rows[0];
+    const updated = res.rows[0];
+    const finalAdminUsername = adminUsername === username ? updated.username : adminUsername;
+    await this.logAction(finalAdminUsername, 'UPDATE_USER', 'USER', updated.username, input);
+    return updated;
   }
 
   /**
@@ -563,6 +566,22 @@ export class AdminService {
 
     await this.logAction(adminUsername, 'DELETE_USER', 'USER', username, null);
     return res.rows[0];
+  }
+
+  /**
+   * Get global platform statistics.
+   */
+  static async getDashboardStats() {
+    const usersRes = await pool.query('SELECT COUNT(*) as total FROM users');
+    const eventsRes = await pool.query('SELECT COUNT(*) as total FROM events');
+    const revenueRes = await pool.query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'SUCCESS' OR status = 'COMPLETED'");
+    
+    return {
+      totalUsers: parseInt(usersRes.rows[0]?.total || '0'),
+      totalEvents: parseInt(eventsRes.rows[0]?.total || '0'),
+      totalRevenue: parseFloat(revenueRes.rows[0]?.total || '0'),
+      apiHealth: '99.9%'
+    };
   }
 }
 

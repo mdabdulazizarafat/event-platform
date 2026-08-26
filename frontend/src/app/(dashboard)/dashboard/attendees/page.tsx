@@ -7,8 +7,9 @@ import FormField from '@/components/ui/FormField';
 import Button from '@/components/ui/Button';
 import StatusChip from '@/components/ui/StatusChip';
 import { Search, Mail, ExternalLink, Calendar } from 'lucide-react';
-import { message } from 'antd';
+import { message, Pagination } from 'antd';
 import { useRouter } from 'next/navigation';
+import PageHeader from '@/components/ui/PageHeader';
 
 export default function AttendeesPage() {
   const { user } = useAuth();
@@ -20,6 +21,8 @@ export default function AttendeesPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Fetch events on mount
   useEffect(() => {
@@ -118,17 +121,10 @@ export default function AttendeesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Title */}
-      <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none">
-            Attendee Registry
-          </h2>
-          <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
-            Audit registered participants, check ticket status, and inspect credentials.
-          </p>
-        </div>
-      </section>
+      <PageHeader
+        title="Attendee Registry"
+        description="Audit registered participants, check ticket status, and inspect credentials."
+      />
 
       {/* Filters Bar */}
       <section className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-xs">
@@ -184,11 +180,28 @@ export default function AttendeesPage() {
             <span className="text-body-sm text-on-surface-variant">Loading registrations...</span>
           </div>
         ) : (
-          <DataTable
-            columns={columns}
-            data={filteredRegistrations}
-            emptyText="No registrations found for this event."
-          />
+          <>
+            <DataTable
+              columns={columns}
+              data={filteredRegistrations.slice((currentPage - 1) * pageSize, currentPage * pageSize)}
+              emptyText="No registrations found for this event."
+            />
+            {filteredRegistrations.length > 0 && (
+              <div className="flex justify-end pt-2">
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={filteredRegistrations.length}
+                  onChange={(page, size) => {
+                    setCurrentPage(page);
+                    setPageSize(size);
+                  }}
+                  showSizeChanger
+                  showTotal={(total) => `Showing ${Math.min(total, (currentPage - 1) * pageSize + 1)}-${Math.min(total, currentPage * pageSize)} of ${total} entries`}
+                />
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>

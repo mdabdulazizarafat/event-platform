@@ -198,7 +198,7 @@ export async function fetchMyRegistrations() {
  */
 export async function initiatePayment(data: {
   eventSlug: string;
-  ticketTypeId: number;
+  ticketTypeIds: number[];
   userId: string;
   email: string;
   customerName: string;

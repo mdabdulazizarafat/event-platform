@@ -5,14 +5,16 @@ import DataTable from '@/components/ui/DataTable';
 import Button from '@/components/ui/Button';
 import FormField from '@/components/ui/FormField';
 import StatusChip from '@/components/ui/StatusChip';
-import { Search, UserCheck, ShieldAlert, ArrowLeft, Plus, Edit, Trash2 } from 'lucide-react';
-import { Modal, Form, Input, Select, Pagination, message } from 'antd';
+import { Search, UserCheck, ShieldAlert, ArrowLeft, Plus, Edit, Trash2, LogIn } from 'lucide-react';
+import { Modal, Form, Input, Select, Pagination, App } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import PageHeader from '@/components/ui/PageHeader';
 
 export default function AdminAccountsPage() {
+  const { message } = App.useApp();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refetchUser } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -154,9 +156,35 @@ export default function AdminAccountsPage() {
     }
   };
 
+  // Impersonate User Handler
+  const handleImpersonateUser = async (username: string) => {
+    try {
+      const res = await fetch(`/api/v1/admin/users/${username}/impersonate`, {
+        method: 'POST'
+      });
+      
+      let data: any = {};
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      }
+
+      if (res.ok) {
+        message.success(`You are now logged in as ${username}.`);
+        await refetchUser();
+        router.push('/dashboard');
+      } else {
+        message.error(data.error || 'Failed to impersonate user.');
+      }
+    } catch (err: any) {
+      message.error(err.message || 'Error impersonating user.');
+    }
+  };
+
   const openEditModal = (user: any) => {
     setEditingUser(user);
     editForm.setFieldsValue({
+      username: user.username,
       name: user.name,
       email: user.email,
       mobile: user.mobile || '',
@@ -219,6 +247,18 @@ export default function AdminAccountsPage() {
           >
             Delete
           </Button>
+
+          {user?.role === 'SUPER_ADMIN' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleImpersonateUser(row.username)}
+              icon={<LogIn className="w-3.5 h-3.5" />}
+              className="text-primary border-primary hover:bg-primary/10"
+            >
+              Login as
+            </Button>
+          )}
         </div>
       )
     }
@@ -230,34 +270,19 @@ export default function AdminAccountsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="flex items-center justify-between border-b border-outline-variant/60 pb-5">
-        <div className="flex items-center gap-3">
+      <PageHeader
+        title="Account Management Registry"
+        description="Configure authorization clearance and moderations."
+        action={
           <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push('/dashboard')}
-            icon={<ArrowLeft className="w-4 h-4" />}
+            variant="primary"
+            icon={<Plus className="w-4 h-4" />}
+            onClick={() => setIsCreateModalOpen(true)}
           >
-            Back
+            Create User Account
           </Button>
-          <div>
-            <h2 className="font-heading text-2xl font-extrabold text-foreground leading-tight m-0">
-              Account Management Registry
-            </h2>
-            <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
-              Configure authorization clearance and moderations.
-            </p>
-          </div>
-        </div>
-
-        <Button
-          variant="primary"
-          icon={<Plus className="w-4 h-4" />}
-          onClick={() => setIsCreateModalOpen(true)}
-        >
-          Create User Account
-        </Button>
-      </section>
+        }
+      />
 
       {/* Filter and Search */}
       <section className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 shadow-xs max-w-md">
@@ -408,6 +433,16 @@ export default function AdminAccountsPage() {
           requiredMark={true}
           className="mt-4 space-y-4"
         >
+          {user?.role === 'SUPER_ADMIN' && (
+            <Form.Item
+              label="Username"
+              name="username"
+              rules={[{ required: true, message: 'Please enter username' }]}
+            >
+              <Input placeholder="e.g. janesmith" className="h-10 rounded-lg" />
+            </Form.Item>
+          )}
+
           <Form.Item
             label="Full Name"
             name="name"

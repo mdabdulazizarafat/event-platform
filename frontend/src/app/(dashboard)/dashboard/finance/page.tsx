@@ -7,6 +7,8 @@ import Button from '@/components/ui/Button';
 import { DollarSign, ArrowLeft, TrendingUp, Landmark } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import PageHeader from '@/components/ui/PageHeader';
+import { Pagination } from 'antd';
 
 export default function AdminFinanceOperationsPage() {
   const router = useRouter();
@@ -20,6 +22,9 @@ export default function AdminFinanceOperationsPage() {
     { id: 1, host: 'tech-hub', amount: 48000, fee: 2400, netPayout: 45600, status: 'SETTLED', date: '2026-08-01' },
     { id: 2, host: 'gregorian-quiz-club', amount: 15000, fee: 750, netPayout: 14250, status: 'PENDING', date: '2026-08-07' }
   ]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const columns = [
     { key: 'host', title: 'Organizer Host' },
@@ -42,24 +47,10 @@ export default function AdminFinanceOperationsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="flex items-center gap-3 border-b border-outline-variant/60 pb-5">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.push('/dashboard')}
-          icon={<ArrowLeft className="w-4 h-4" />}
-        >
-          Back
-        </Button>
-        <div>
-          <h2 className="font-heading text-2xl font-extrabold text-foreground leading-tight m-0">
-            Consolidated Financial Operations
-          </h2>
-          <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
-            Audit platform payout settlements, transactions fees, and global invoices.
-          </p>
-        </div>
-      </section>
+      <PageHeader
+        title="Consolidated Financial Operations"
+        description="Audit platform payout settlements, transactions fees, and global invoices."
+      />
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
@@ -90,7 +81,26 @@ export default function AdminFinanceOperationsPage() {
         <h3 className="font-heading text-lg font-bold text-foreground m-0">
           Payout Settlements Ledger
         </h3>
-        <DataTable columns={columns} data={payouts} emptyText="No payout logs found." />
+        <DataTable 
+          columns={columns} 
+          data={payouts.slice((currentPage - 1) * pageSize, currentPage * pageSize)} 
+          emptyText="No payout logs found." 
+        />
+        {payouts.length > 0 && (
+          <div className="flex justify-end pt-2">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={payouts.length}
+              onChange={(page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              }}
+              showSizeChanger
+              showTotal={(total) => `Showing ${Math.min(total, (currentPage - 1) * pageSize + 1)}-${Math.min(total, currentPage * pageSize)} of ${total} entries`}
+            />
+          </div>
+        )}
       </section>
     </div>
   );

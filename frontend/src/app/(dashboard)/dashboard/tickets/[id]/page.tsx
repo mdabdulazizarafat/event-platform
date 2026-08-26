@@ -82,9 +82,19 @@ export default function MobileTicketPage({ params }: { params: Promise<{ id: str
             <h1 className="font-heading text-lg font-extrabold m-0 leading-none">Rong Plan</h1>
             <span className="text-[10px] uppercase font-bold text-white/70 tracking-widest mt-1 inline-block">Verification Ticket</span>
           </div>
-          <span className="px-2.5 py-1 bg-white/10 text-white text-[10px] font-bold rounded-lg border border-white/20">
-            {ticket.ticket_name}
-          </span>
+          <div className="flex flex-col gap-1 items-end">
+            {ticket.tickets && ticket.tickets.length > 0 ? (
+              ticket.tickets.map((t: any) => (
+                <span key={t.id} className="px-2.5 py-1 bg-white/10 text-white text-[10px] font-bold rounded-lg border border-white/20 whitespace-nowrap">
+                  {t.name}
+                </span>
+              ))
+            ) : (
+              <span className="px-2.5 py-1 bg-white/10 text-white text-[10px] font-bold rounded-lg border border-white/20">
+                {ticket.ticket_name || 'Standard Pass'}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* QR Section */}

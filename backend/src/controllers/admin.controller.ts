@@ -3,6 +3,8 @@ import { AdminService } from '../services/admin.service';
 import { EventService } from '../services/event.service';
 import { pool } from '../db/pool';
 import { createChildLogger } from '../lib/logger';
+import jwt from 'jsonwebtoken';
+import { getPrivateKey } from '../services/crypto.service';
 
 const logger = createChildLogger('admin.controller');
 
@@ -163,6 +165,20 @@ export class AdminController {
       return res.status(200).json(result);
     } catch (error: any) {
       logger.error({ err: error }, 'Admin log list error');
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  /**
+   * Fetch platform stats for dashboard.
+   * GET /api/v1/admin/stats
+   */
+  static async getDashboardStats(req: Request, res: Response) {
+    try {
+      const stats = await AdminService.getDashboardStats();
+      return res.status(200).json(stats);
+    } catch (error: any) {
+      logger.error({ err: error }, 'Admin get dashboard stats error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
@@ -416,6 +432,56 @@ export class AdminController {
       return res.status(201).json({ message: 'Event created successfully by admin', eventId });
     } catch (error: any) {
       logger.error({ err: error }, 'Admin create event error');
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  /**
+   * Impersonate a user as a super admin.
+   * POST /api/v1/admin/users/:username/impersonate
+   */
+  static async impersonateUser(req: Request, res: Response) {
+    try {
+      const { username } = req.params;
+      if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+      }
+
+      // Lookup user in users database
+      const userQuery = `SELECT * FROM users WHERE username = $1;`;
+      const userRes = await pool.query(userQuery, [username]);
+      if (userRes.rowCount === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const user = userRes.rows[0];
+
+      // Sign Stateless JWT via Asymmetric Private Key (RS256)
+      const tokenPayload = {
+        username: user.username,
+        email: user.email,
+        role: user.role || 'USER',
+        mobile: user.mobile,
+        org: user.org,
+        status: user.status || 'ACTIVE'
+      };
+      
+      const token = jwt.sign(tokenPayload, getPrivateKey(), {
+        algorithm: 'RS256',
+        expiresIn: '24h',
+      });
+
+      // Set cookie in response jar (HttpOnly, Secure, Lax SameSite)
+      res.cookie('session_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      });
+
+      return res.status(200).json({ message: 'Successfully impersonated user', user: tokenPayload });
+    } catch (error: any) {
+      logger.error({ err: error }, 'Admin impersonate error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

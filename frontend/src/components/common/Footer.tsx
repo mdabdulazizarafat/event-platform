@@ -22,10 +22,10 @@ export default function Footer() {
             <div>
               <h4 className="font-semibold text-foreground mb-4 text-sm">Ayojok</h4>
               <ul className="space-y-3 text-sm font-medium">
-                <li><Link href="/ticketing-registration" className="hover:text-primary transition-colors">Ticketing & Registration</Link></li>
-                <li><Link href="/event-management" className="hover:text-primary transition-colors">Event Management</Link></li>
-                <li><Link href="/event-analytics" className="hover:text-primary transition-colors">Event Analytics</Link></li>
-                <li><Link href="/post-event-works" className="hover:text-primary transition-colors">Post Event Works</Link></li>
+                <li><Link href="/" className="!text-black/70 hover:!text-black transition-colors">Home</Link></li>
+                <li><Link href="/events" className="!text-black/70 hover:!text-black transition-colors">Events</Link></li>
+                <li><Link href="/about" className="!text-black/70 hover:!text-black transition-colors">About</Link></li>
+                <li><Link href="/contact" className="!text-black/70 hover:!text-black transition-colors">Contact</Link></li>
               </ul>
             </div>
           </div>
@@ -35,10 +35,10 @@ export default function Footer() {
             <div>
               <h4 className="font-semibold text-foreground mb-4 text-sm">Terms & Legal</h4>
               <ul className="space-y-3 text-sm font-medium">
-                <li><Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
-                <li><Link href="/terms-and-conditions" className="hover:text-primary transition-colors">Terms & Conditions</Link></li>
-                <li><Link href="/organizer-policy" className="hover:text-primary transition-colors">Organizer Policy</Link></li>
-                <li><Link href="/events-policy" className="hover:text-primary transition-colors">Events Policy</Link></li>
+                <li><Link href="/privacy-policy" className="!text-black/70 hover:!text-black transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms-and-conditions" className="!text-black/70 hover:!text-black transition-colors">Terms & Conditions</Link></li>
+                <li><Link href="/organizer-policy" className="!text-black/70 hover:!text-black transition-colors">Organizer Policy</Link></li>
+                <li><Link href="/events-policy" className="!text-black/70 hover:!text-black transition-colors">Events Policy</Link></li>
               </ul>
             </div>
           </div>
@@ -48,27 +48,26 @@ export default function Footer() {
             <div>
               <h4 className="font-semibold text-foreground mb-4 text-sm">Resources & Support</h4>
               <ul className="space-y-3 text-sm font-medium">
-                <li><Link href="/event-guidelines" className="hover:text-primary transition-colors">Events Guidelines</Link></li>
-                <li><Link href="/organizer-guidelines" className="hover:text-primary transition-colors">Organizer Guidelines</Link></li>
+                <li><Link href="/event-guidelines" className="!text-black/70 hover:!text-black transition-colors">Events Guidelines</Link></li>
+                <li><Link href="/organizer-guidelines" className="!text-black/70 hover:!text-black transition-colors">Organizer Guidelines</Link></li>
               </ul>
             </div>
           </div>
 
           <div className="space-y-12">
             <div>
-              <h4 className="font-semibold text-foreground mb-4 text-sm">Company</h4>
+              <h4 className="font-semibold text-foreground mb-4 text-sm">Quick Actions</h4>
               <ul className="space-y-3 text-sm font-medium">
-                <li><Link href="/about" className="hover:text-primary transition-colors">About</Link></li>
-                <li><Link href="/careers" className="hover:text-primary transition-colors">Careers</Link></li>
-                <li><Link href="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
+                <li><Link href="/sign-in" className="!text-black/70 hover:!text-black transition-colors flex items-center gap-1 group">Sign in <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
+                <li><Link href="/sign-up" className="!text-black/70 hover:!text-black transition-colors flex items-center gap-1 group">Sign up <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
+                <li><Link href="/organizer-signup" className="!text-black/70 hover:!text-black transition-colors flex items-center gap-1 group">Become an Organizer <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-foreground mb-4 text-sm">Quick Actions</h4>
+              <h4 className="font-semibold text-foreground mb-4 text-sm">Company</h4>
               <ul className="space-y-3 text-sm font-medium">
-                <li><Link href="/sign-in" className="hover:text-primary transition-colors flex items-center gap-1 group">Sign in <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
-                <li><Link href="/sign-up" className="hover:text-primary transition-colors flex items-center gap-1 group">Sign up <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
-                <li><Link href="/organizer-signup" className="hover:text-primary transition-colors flex items-center gap-1 group">Become an Organizer <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
+                <li><Link href="/careers" className="!text-black/70 hover:!text-black transition-colors">Careers</Link></li>
+                <li><Link href="/collaborations" className="!text-black/70 hover:!text-black transition-colors">Collaborations</Link></li>
               </ul>
             </div>
           </div>
@@ -77,13 +76,12 @@ export default function Footer() {
 
         {/* Bottom row */}
         <div className="mt-16 pt-8 border-t border-outline-variant flex flex-col sm:flex-row justify-between items-center gap-4 text-sm font-medium">
-          <div className="flex items-center gap-2 text-primary hover:text-foreground transition-colors cursor-pointer">
-            <Globe size={16} />
-            <span>United States (English)</span>
-          </div>
           <div>
-            © {new Date().getFullYear()} Ayojok By Rong Plan.
+            <span>© {new Date().getFullYear()} Ayojok. All rights reserved.</span>
           </div>
+          <Link href="https://rongplan.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 !text-black/70 hover:!text-black transition-colors cursor-pointer">
+            Powered by Rong Plan
+          </Link>
         </div>
       </div>
     </footer>

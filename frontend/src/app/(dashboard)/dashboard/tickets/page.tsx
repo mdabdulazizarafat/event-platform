@@ -39,9 +39,7 @@ interface RegistrationTicket {
   event_slug: string;
   contact_email?: string;
   contact_phone?: string;
-  ticket_name: string;
-  ticket_price: string;
-  ticket_currency: string;
+  tickets?: Array<{ id: number; name: string; price: string; currency: string; }>;
   scanHistory: ScanLog[];
 }
 
@@ -125,11 +123,24 @@ export default function MyTicketsPage() {
                       <h3 className="font-heading text-lg font-bold text-foreground leading-snug m-0">
                         {ticket.event_title}
                       </h3>
-                      <div className="flex items-center gap-1.5 mt-1.5">
-                        <TagIcon size={12} className="text-on-surface-variant" />
-                        <span className="text-xs font-bold text-primary uppercase">
-                          {ticket.ticket_name}
-                        </span>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {ticket.tickets && ticket.tickets.length > 0 ? (
+                          ticket.tickets.map(t => (
+                            <span key={t.id} className="flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                              <TagIcon size={10} className="text-primary" />
+                              <span className="text-[10px] font-bold text-primary uppercase whitespace-nowrap">
+                                {t.name}
+                              </span>
+                            </span>
+                          ))
+                        ) : (
+                          <span className="flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                            <TagIcon size={10} className="text-primary" />
+                            <span className="text-[10px] font-bold text-primary uppercase whitespace-nowrap">
+                              Standard Pass
+                            </span>
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -137,7 +148,7 @@ export default function MyTicketsPage() {
                       <Tag color={ticket.status === 'CHECKED_IN' ? 'success' : isConfirmed ? 'blue' : 'error'} className="font-bold uppercase text-[9px] m-0">
                         {ticket.status}
                       </Tag>
-                      {ticket.ticket_price !== '0.00' && (
+                      {ticket.tickets && ticket.tickets.some(t => parseFloat(t.price) > 0) && (
                         <Tag color={isPaid ? 'emerald' : 'warning'} className="font-bold uppercase text-[9px] m-0">
                           {isPaid ? 'PAID' : 'PAYMENT PENDING'}
                         </Tag>
@@ -255,7 +266,7 @@ export default function MyTicketsPage() {
             </div>
 
             <div className="w-full p-4 bg-surface-container-low rounded-xl border border-outline-variant/30 text-left text-xs space-y-1 text-foreground font-semibold">
-              <p className="m-0">Ticket: <span className="font-normal text-on-surface-variant">{selectedTicket.ticket_name}</span></p>
+              <p className="m-0">Ticket: <span className="font-normal text-on-surface-variant">{selectedTicket.tickets && selectedTicket.tickets.length > 0 ? selectedTicket.tickets.map(t => t.name).join(', ') : 'Standard Pass'}</span></p>
               <p className="m-0">Email: <span className="font-normal text-on-surface-variant">{selectedTicket.email}</span></p>
               <p className="m-0">Registered: <span className="font-normal text-on-surface-variant">{new Date(selectedTicket.registered_at).toLocaleDateString()}</span></p>
             </div>

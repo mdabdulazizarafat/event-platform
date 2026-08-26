@@ -350,12 +350,16 @@ export class TicketController {
       const query = `
         SELECT DISTINCT r.id, r.event_id, r.email, r.status, r.payment_status, r.qr_token, r.registered_at,
           e.title as event_title, e.date as event_date, e.time as event_time, e.location as event_location, e.slug as event_slug, e.contact_email, e.contact_phone,
-          tt.name as ticket_name, tt.price as ticket_price, tt.currency as ticket_currency,
+          (
+            SELECT json_agg(json_build_object('id', ttt.id, 'name', ttt.name, 'price', ttt.price, 'currency', ttt.currency))
+            FROM registration_ticket_types rtt
+            JOIN ticket_types ttt ON rtt.ticket_type_id = ttt.id
+            WHERE rtt.registration_id = r.id
+          ) as tickets,
           rt.team_name,
           (r.user_id = $1) as is_leader
         FROM registrations r
         JOIN events e ON r.event_id = e.id
-        LEFT JOIN ticket_types tt ON r.ticket_type_id = tt.id
         LEFT JOIN registration_teams rt ON rt.leader_registration_id = r.id
         LEFT JOIN registration_team_members rtm ON rtm.team_id = rt.id
         WHERE r.user_id = $1 OR rtm.username = $1

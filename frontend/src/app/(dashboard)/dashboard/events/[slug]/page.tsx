@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Typography, Tag, Tabs, Select, Table, App, Modal } from 'antd';
+import { Typography, Tag, Tabs, Select, Table, App, Modal, Pagination } from 'antd';
 import {
   Users,
   DollarSign,
@@ -26,13 +26,17 @@ import {
   Shield,
   Ticket,
   Image as ImageIcon,
-  QrCode
+  QrCode,
+  Clock,
+  Mail,
+  Phone
 } from 'lucide-react';
 import StatCard from '@/components/ui/StatCard';
 import Button from '@/components/ui/Button';
 import FormField from '@/components/ui/FormField';
 import StatusChip from '@/components/ui/StatusChip';
 import DataTable from '@/components/ui/DataTable';
+import PageHeader from '@/components/ui/PageHeader';
 
 import type { Event, TicketType, TeamMember, EventActivity } from '@/lib/api';
 import {
@@ -63,11 +67,15 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
   const { user } = useAuth();
 
   // Root Data State
-  const [event, setEvent] = useState<(Event & { id?: number; is_team_member?: boolean; is_registered?: boolean }) | null>(null);
+  const [event, setEvent] = useState<(Event & { id?: number; is_team_member?: boolean; is_registered?: boolean; is_host?: boolean; team_role?: string; }) | null>(null);
   const [tickets, setTickets] = useState<TicketType[]>([]);
   const [scanStats, setScanStats] = useState<any>(null);
   const [scanLogs, setScanLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scanCurrentPage, setScanCurrentPage] = useState(1);
+  const [scanPageSize, setScanPageSize] = useState(10);
+  const [certCurrentPage, setCertCurrentPage] = useState(1);
+  const [certPageSize, setCertPageSize] = useState(10);
   const [activeTab, setActiveTab] = useState('1');
 
   // Handle URL query parameter ?tab=X
@@ -81,11 +89,18 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
     }
   }, []);
 
+  const handleTabChange = (key: string) => {
+    setActiveTab(key);
+    router.push(`?tab=${key}`, { scroll: false });
+  };
+
   // ----------------------------------------------------
   // Tab 2: Participants / Registrations State
   // ----------------------------------------------------
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
+  const [regCurrentPage, setRegCurrentPage] = useState(1);
+  const [regPageSize, setRegPageSize] = useState(10);
   const [registrationSearchQuery, setRegistrationSearchQuery] = useState('');
   const [registrationStatusFilter, setRegistrationStatusFilter] = useState('All');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
@@ -243,8 +258,8 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
         // Fetch Certificates
         loadCertificates();
 
-        // If USER role, fetch registration ticket
-        if (user?.role === 'USER') {
+        // If user is registered, fetch registration ticket details
+        if (eventData.is_registered) {
           const myRegs = await fetchMyRegistrations();
           const thisEventReg = myRegs.find((r: any) => r.event_id === eventData.id || r.event_slug === slug);
           setMyTicket(thisEventReg || null);
@@ -804,58 +819,63 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
 
   return (
     <div className="space-y-6">
-      {/* Header section with back button */}
-      <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-outline-variant/60 pb-5">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push('/dashboard/events')}
-            icon={<ArrowLeft className="w-4 h-4" />}
-          >
-            Back to Directory
-          </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="font-heading text-2xl font-extrabold text-foreground leading-tight m-0">
-                {event.title}
-              </h2>
-              {event.status === 'DRAFT' && <Tag color="default">DRAFT</Tag>}
-              {event.status === 'PUBLISHED' && <Tag color="blue">PUBLISHED (REGISTRATION OPEN)</Tag>}
-              {event.status === 'REGISTRATION_CLOSED' && <Tag color="orange">REGISTRATION CLOSED</Tag>}
-              {event.status === 'LIVE' && <Tag color="green" icon={<Activity size={12} className="mr-1 inline" />}>LIVE</Tag>}
-              {event.status === 'ENDED' && <Tag color="purple">ENDED</Tag>}
-              {event.status === 'ARCHIVED' && <Tag color="default">ARCHIVED</Tag>}
-            </div>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-on-surface-variant mt-1.5 font-medium">
-              <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{event.date}</span>
-              <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{event.locationShort || event.location}</span>
-            </div>
+      {/* Header section */}
+      <PageHeader
+        title={
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/dashboard/events')}
+                icon={<ArrowLeft className="w-4 h-4" />}
+                className="mr-2"
+              >
+                Back
+              </Button>
+              {event.title}
+            </span>
+            {event.status === 'DRAFT' && <Tag color="default">DRAFT</Tag>}
+            {event.status === 'PUBLISHED' && <Tag color="blue">PUBLISHED (REGISTRATION OPEN)</Tag>}
+            {event.status === 'REGISTRATION_CLOSED' && <Tag color="orange">REGISTRATION CLOSED</Tag>}
+            {event.status === 'LIVE' && <Tag color="green" icon={<Activity size={12} className="mr-1 inline" />}>LIVE</Tag>}
+            {event.status === 'ENDED' && <Tag color="purple">ENDED</Tag>}
+            {event.status === 'ARCHIVED' && <Tag color="default">ARCHIVED</Tag>}
           </div>
-        </div>
+        }
+        description={
+          <div className="flex flex-wrap items-center gap-4 text-xs text-on-surface-variant font-medium">
+            <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{event.date}</span>
+            <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{event.locationShort || event.location}</span>
+          </div>
+        }
+        action={
+          (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || event?.is_host || event?.is_team_member) ? (
+            <div className="flex items-center gap-2">
+              {(!event.status || event.status === 'DRAFT') && (
+                <Button variant="primary" size="sm" icon={<Power className="w-4 h-4" />} onClick={() => updateStatus('PUBLISHED')}>
+                  Publish Event
+                </Button>
+              )}
 
-        <div className="flex items-center gap-2">
-          {(!event.status || event.status === 'DRAFT') && (
-            <Button variant="primary" size="sm" icon={<Power className="w-4 h-4" />} onClick={() => updateStatus('PUBLISHED')}>
-              Publish Event
-            </Button>
-          )}
-
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => router.push('/dashboard/scanner')}
-            icon={<Scan className="w-4 h-4" />}
-            disabled={event.status !== 'LIVE' && event.status !== 'PUBLISHED'}
-          >
-            Launch Scanner
-          </Button>
-        </div>
-      </section>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Scan className="w-4 h-4" />}
+                onClick={() => router.push(`/dashboard/events/${slug}/scanner`)}
+                className="flex"
+                disabled={event.status !== 'LIVE' && event.status !== 'PUBLISHED'}
+              >
+                Launch Scanner
+              </Button>
+            </div>
+          ) : undefined
+        }
+      />
 
       {/* TABS LAYOUT */}
-      <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 sm:p-6 shadow-xs">
-        <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
+      <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 sm:p-6 shadow-xs w-full">
+        <Tabs activeKey={activeTab} onChange={handleTabChange} items={[
           // ==========================================
           // Tab 1: Control Center / Stats
           // ==========================================
@@ -995,43 +1015,60 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
                     <span className="text-xs text-on-surface-variant">Loading registrations...</span>
                   </div>
                 ) : (
-                  <DataTable
-                    columns={[
-                      { key: 'full_name', title: 'Name', render: (row: any) => row.full_name || row.user_id },
-                      { key: 'user_id', title: 'Username' },
-                      { key: 'email', title: 'Email Address' },
-                      { key: 'phone', title: 'Phone Number', render: (row: any) => row.phone || '-' },
-                      { key: 'organization', title: 'Organization', render: (row: any) => row.organization || '-' },
-                      { key: 'tshirt_size', title: 'T-Shirt', render: (row: any) => row.tshirt_size || '-' },
-                      { key: 'transaction_id', title: 'TxID', render: (row: any) => row.transaction_id || '-' },
-                      { key: 'ticket_name', title: 'Ticket Tier' },
-                      {
-                        key: 'status',
-                        title: 'Status',
-                        render: (row: any) => <StatusChip status={row.status} label={row.status} />
-                      },
-                      {
-                        key: 'actions',
-                        title: 'Action',
-                        render: (row: any) => (
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-error border-error hover:bg-error/5"
-                              onClick={() => handleCancelRegistration(row.id)}
-                              disabled={row.status === 'CANCELLED'}
-                              icon={<Trash2 size={13} />}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        )
-                      }
-                    ]}
-                    data={filteredRegistrations}
-                    emptyText="No registrations found for this event."
-                  />
+                  <>
+                    <DataTable
+                      columns={[
+                        { key: 'full_name', title: 'Name', render: (row: any) => row.full_name || row.user_id },
+                        { key: 'user_id', title: 'Username' },
+                        { key: 'email', title: 'Email Address' },
+                        { key: 'phone', title: 'Phone Number', render: (row: any) => row.phone || '-' },
+                        { key: 'organization', title: 'Organization', render: (row: any) => row.organization || '-' },
+                        { key: 'tshirt_size', title: 'T-Shirt', render: (row: any) => row.tshirt_size || '-' },
+                        { key: 'transaction_id', title: 'TxID', render: (row: any) => row.transaction_id || '-' },
+                        { key: 'ticket_name', title: 'Ticket Tier' },
+                        {
+                          key: 'status',
+                          title: 'Status',
+                          render: (row: any) => <StatusChip status={row.status} label={row.status} />
+                        },
+                        {
+                          key: 'actions',
+                          title: 'Action',
+                          render: (row: any) => (
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-error border-error hover:bg-error/5"
+                                onClick={() => handleCancelRegistration(row.id)}
+                                disabled={row.status === 'CANCELLED'}
+                                icon={<Trash2 size={13} />}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          )
+                        }
+                      ]}
+                      data={filteredRegistrations.slice((regCurrentPage - 1) * regPageSize, regCurrentPage * regPageSize)}
+                      emptyText="No registrations found for this event."
+                    />
+                    {filteredRegistrations.length > 0 && (
+                      <div className="flex justify-end pt-2">
+                        <Pagination
+                          current={regCurrentPage}
+                          pageSize={regPageSize}
+                          total={filteredRegistrations.length}
+                          onChange={(page, size) => {
+                            setRegCurrentPage(page);
+                            setRegPageSize(size);
+                          }}
+                          showSizeChanger
+                          showTotal={(total) => `Showing ${Math.min(total, (regCurrentPage - 1) * regPageSize + 1)}-${Math.min(total, regCurrentPage * regPageSize)} of ${total} entries`}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )
@@ -1043,7 +1080,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
             key: '3',
             label: 'Edit Details',
             children: (
-              <div className="space-y-6 pt-4 max-w-3xl">
+              <div className="space-y-6 pt-4 w-full">
                 <div className="space-y-4">
                   <FormField label="Event Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
                   
@@ -1156,7 +1193,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
             key: '4',
             label: 'Ticket Tiers',
             children: (
-              <div className="space-y-6 pt-4 max-w-3xl">
+              <div className="space-y-6 pt-4 w-full">
                 <div className="flex justify-between items-center border-b border-outline-variant/40 pb-3">
                   <div>
                     <h4 className="font-bold text-base text-foreground m-0">Configure Pricing & Capacity</h4>
@@ -1210,7 +1247,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
             key: '5',
             label: 'Team Management',
             children: (
-              <div className="space-y-6 pt-4 max-w-4xl">
+              <div className="space-y-6 pt-4 w-full">
                 <div className="flex justify-between items-center border-b border-outline-variant/40 pb-3">
                   <div>
                     <h4 className="font-bold text-base text-foreground m-0">Event Team Access Control</h4>
@@ -1282,7 +1319,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
             key: '6',
             label: 'Activities & Scanning',
             children: (
-              <div className="space-y-6 pt-4 max-w-4xl">
+              <div className="space-y-6 pt-4 w-full">
                 <div className="flex justify-between items-center border-b border-outline-variant/40 pb-3">
                   <div>
                     <h4 className="font-bold text-base text-foreground m-0">Scanning Activities</h4>
@@ -1333,9 +1370,24 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
                         render: (row: any) => new Date(row.scanned_at).toLocaleString()
                       }
                     ]}
-                    data={scanLogs}
+                    data={scanLogs.slice((scanCurrentPage - 1) * scanPageSize, scanCurrentPage * scanPageSize)}
                     emptyText="No scans recorded yet."
                   />
+                  {scanLogs.length > 0 && (
+                    <div className="flex justify-end pt-2">
+                      <Pagination
+                        current={scanCurrentPage}
+                        pageSize={scanPageSize}
+                        total={scanLogs.length}
+                        onChange={(page, size) => {
+                          setScanCurrentPage(page);
+                          setScanPageSize(size);
+                        }}
+                        showSizeChanger
+                        showTotal={(total) => `Showing ${Math.min(total, (scanCurrentPage - 1) * scanPageSize + 1)}-${Math.min(total, scanCurrentPage * scanPageSize)} of ${total} entries`}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -1347,7 +1399,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
             key: '7',
             label: 'Certificates',
             children: (
-              <div className="space-y-6 pt-4 max-w-4xl">
+              <div className="space-y-6 pt-4 w-full">
                 <div className="flex justify-between items-center border-b border-outline-variant/40 pb-3">
                   <div>
                     <h4 className="font-bold text-base text-foreground m-0">Event Certificates</h4>
@@ -1368,15 +1420,32 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
                     {loadingIssuedCerts ? (
                       <div className="text-center text-xs py-4">Loading...</div>
                     ) : (
-                      <DataTable
-                        columns={[
-                          { key: 'participant_name', title: 'Participant', render: (row: any) => row.participant_name || row.issued_to },
-                          { key: 'certificate_type', title: 'Type' },
-                          { key: 'issued_at', title: 'Issued On', render: (row: any) => new Date(row.issued_at).toLocaleDateString() },
-                        ]}
-                        data={issuedCerts}
-                        emptyText="No certificates issued yet."
-                      />
+                      <>
+                        <DataTable
+                          columns={[
+                            { key: 'participant_name', title: 'Participant', render: (row: any) => row.participant_name || row.issued_to },
+                            { key: 'certificate_type', title: 'Type' },
+                            { key: 'issued_at', title: 'Issued On', render: (row: any) => new Date(row.issued_at).toLocaleDateString() },
+                          ]}
+                          data={issuedCerts.slice((certCurrentPage - 1) * certPageSize, certCurrentPage * certPageSize)}
+                          emptyText="No certificates issued yet."
+                        />
+                        {issuedCerts.length > 0 && (
+                          <div className="flex justify-end pt-2">
+                            <Pagination
+                              current={certCurrentPage}
+                              pageSize={certPageSize}
+                              total={issuedCerts.length}
+                              onChange={(page, size) => {
+                                setCertCurrentPage(page);
+                                setCertPageSize(size);
+                              }}
+                              showSizeChanger
+                              showTotal={(total) => `Showing ${Math.min(total, (certCurrentPage - 1) * certPageSize + 1)}-${Math.min(total, certCurrentPage * certPageSize)} of ${total} entries`}
+                            />
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -1390,7 +1459,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
             key: '8',
             label: 'My Ticket',
             children: (
-              <div className="pt-4 max-w-xl">
+              <div className="pt-4 w-full">
                 {myTicket ? (
                   <div className="bento-card p-6 flex flex-col items-center text-center space-y-4">
                     <h4 className="font-bold text-xl text-foreground m-0">{myTicket.ticket_name}</h4>
@@ -1420,17 +1489,94 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
                 )}
               </div>
             )
+          },
+          // ==========================================
+          // Tab 9: Event Overview (Public Details)
+          // ==========================================
+          {
+            key: '9',
+            label: 'Overview',
+            children: event ? (
+              <div className="space-y-6 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Left Description Column */}
+                  <div className="md:col-span-2 space-y-4">
+                    <h3 className="font-heading text-lg font-bold text-foreground m-0">About the Event</h3>
+                    <p className="text-sm text-on-surface-variant leading-relaxed whitespace-pre-wrap">
+                      {event.description || 'No description provided for this event.'}
+                    </p>
+                  </div>
+
+                  {/* Right Metadata Column */}
+                  <div className="space-y-6 p-5 border border-outline-variant/60 rounded-xl bg-surface-container-low/30 h-fit">
+                    <h4 className="font-bold text-sm text-foreground m-0 border-b border-outline-variant/40 pb-2">Event Details</h4>
+                    
+                    <div className="space-y-3 text-xs text-on-surface-variant font-medium">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-primary" />
+                        <div>
+                          <p className="font-bold text-foreground m-0">Date</p>
+                          <p className="m-0 mt-0.5">{event.date}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-primary" />
+                        <div>
+                          <p className="font-bold text-foreground m-0">Time</p>
+                          <p className="m-0 mt-0.5">{event.time}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        <div>
+                          <p className="font-bold text-foreground m-0">Location</p>
+                          <p className="m-0 mt-0.5">{event.location}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {(event.contactEmail || event.contactPhone) && (
+                      <div className="pt-4 border-t border-outline-variant/40 space-y-3">
+                        <h4 className="font-bold text-xs text-foreground m-0">Contact Organizer</h4>
+                        <div className="space-y-2 text-xs text-on-surface-variant">
+                          {event.contactEmail && (
+                            <p className="m-0 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />{event.contactEmail}</p>
+                          )}
+                          {event.contactPhone && (
+                            <p className="m-0 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{event.contactPhone}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : null
           }
         ].filter(tab => {
-          if (user?.role === 'USER') {
-            if (event?.is_team_member && tab.key === '6') return true;
-            if (event?.is_registered && (tab.key === '1' || tab.key === '8')) return true;
-            // If they are not registered and not team member, maybe they shouldn't be here, but let's let them see Overview
-            if (tab.key === '1') return true;
+          const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+          if (isSuperAdmin) return true;
+
+          if (event?.is_host) return true;
+
+          if (event?.is_team_member) {
+            if (event.team_role === 'ORGANIZER') return true;
+            if (event.team_role === 'SCANNER' && (tab.key === '1' || tab.key === '6')) return true;
+            if (event.team_role === 'MANAGER' && (tab.key !== '3' && tab.key !== '4' && tab.key !== '5' && tab.key !== '7')) return true;
             return false;
           }
-          return true;
-        })} />
+
+          if (event?.is_registered) {
+            if (tab.key === '8' || tab.key === '9') return true;
+            return false;
+          }
+
+        }).map((tab, idx) => ({
+          ...tab,
+          key: (idx + 1).toString()
+        }))} />
       </div>
 
       {/* MODALS */}

@@ -13,8 +13,11 @@ export interface User {
   bio?: string;
   role?: string;
   mobile?: string;
+  phone?: string;
   phoneNumber?: string;
   org?: string;
+  organization?: string;
+  jobTitle?: string;
   status?: string;
   dateOfBirth?: string;
   gender?: string;

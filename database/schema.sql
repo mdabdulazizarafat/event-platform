@@ -81,6 +81,13 @@ CREATE INDEX IF NOT EXISTS idx_reg_event_status ON registrations (event_id, stat
 CREATE INDEX IF NOT EXISTS idx_reg_user ON registrations (user_id);
 CREATE INDEX IF NOT EXISTS idx_reg_ticket_type ON registrations (ticket_type_id, event_id) WHERE status != 'CANCELLED';
 
+-- Join table for multiple segment registrations
+CREATE TABLE IF NOT EXISTS registration_ticket_types (
+  registration_id BIGINT REFERENCES registrations(id) ON DELETE CASCADE,
+  ticket_type_id INTEGER REFERENCES ticket_types(id) ON DELETE CASCADE,
+  PRIMARY KEY (registration_id, ticket_type_id)
+);
+
 -- Payment records for paid ticket purchases
 CREATE TABLE IF NOT EXISTS payments (
   id SERIAL PRIMARY KEY,

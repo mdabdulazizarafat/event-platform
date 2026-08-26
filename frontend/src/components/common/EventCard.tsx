@@ -41,7 +41,7 @@ export default function EventCard({
           <img 
             src={event.thumbnail} 
             alt={event.title} 
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            className="w-full h-full object-cover"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary-container/10 flex items-center justify-center text-primary/40">

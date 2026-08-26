@@ -25,6 +25,36 @@ export async function runMigrations() {
       await client.query('ALTER TABLE hosts RENAME TO users');
     }
 
+    // Temporary force alter constraints to add ON UPDATE CASCADE
+    logger.info('Ensuring foreign keys have ON UPDATE CASCADE...');
+    const alterQueries = [
+      `ALTER TABLE events DROP CONSTRAINT IF EXISTS events_host_username_fkey;`,
+      `ALTER TABLE events ADD CONSTRAINT events_host_username_fkey FOREIGN KEY (host_username) REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE;`,
+      `ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_user_id_fkey;`,
+      `ALTER TABLE registrations ADD CONSTRAINT registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE;`,
+      `ALTER TABLE admin_logs DROP CONSTRAINT IF EXISTS admin_logs_admin_username_fkey;`,
+      `ALTER TABLE admin_logs ADD CONSTRAINT admin_logs_admin_username_fkey FOREIGN KEY (admin_username) REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE;`,
+      `ALTER TABLE event_team DROP CONSTRAINT IF EXISTS event_team_username_fkey;`,
+      `ALTER TABLE event_team ADD CONSTRAINT event_team_username_fkey FOREIGN KEY (username) REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE;`,
+      `ALTER TABLE event_team DROP CONSTRAINT IF EXISTS event_team_invited_by_fkey;`,
+      `ALTER TABLE event_team ADD CONSTRAINT event_team_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES users(username) ON UPDATE CASCADE ON DELETE SET NULL;`,
+      `ALTER TABLE activity_scans DROP CONSTRAINT IF EXISTS activity_scans_scanned_by_fkey;`,
+      `ALTER TABLE activity_scans ADD CONSTRAINT activity_scans_scanned_by_fkey FOREIGN KEY (scanned_by) REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE;`,
+      `ALTER TABLE admin_permissions DROP CONSTRAINT IF EXISTS admin_permissions_username_fkey;`,
+      `ALTER TABLE admin_permissions ADD CONSTRAINT admin_permissions_username_fkey FOREIGN KEY (username) REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE;`,
+      `ALTER TABLE admin_permissions DROP CONSTRAINT IF EXISTS admin_permissions_granted_by_fkey;`,
+      `ALTER TABLE admin_permissions ADD CONSTRAINT admin_permissions_granted_by_fkey FOREIGN KEY (granted_by) REFERENCES users(username) ON UPDATE CASCADE ON DELETE SET NULL;`,
+      `ALTER TABLE certificates DROP CONSTRAINT IF EXISTS certificates_issued_to_fkey;`,
+      `ALTER TABLE certificates ADD CONSTRAINT certificates_issued_to_fkey FOREIGN KEY (issued_to) REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE;`,
+      `ALTER TABLE certificates DROP CONSTRAINT IF EXISTS certificates_issued_by_fkey;`,
+      `ALTER TABLE certificates ADD CONSTRAINT certificates_issued_by_fkey FOREIGN KEY (issued_by) REFERENCES users(username) ON UPDATE CASCADE ON DELETE SET NULL;`,
+      `ALTER TABLE registration_team_members DROP CONSTRAINT IF EXISTS registration_team_members_username_fkey;`,
+      `ALTER TABLE registration_team_members ADD CONSTRAINT registration_team_members_username_fkey FOREIGN KEY (username) REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE;`
+    ];
+    for (const q of alterQueries) {
+      await client.query(q).catch(() => {});
+    }
+
     // 3. Ensure users table exists
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -77,7 +107,7 @@ export async function runMigrations() {
         capacity INTEGER NOT NULL DEFAULT 100,
         contact_email VARCHAR(255),
         contact_phone VARCHAR(50),
-        host_username VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+        host_username VARCHAR(100) NOT NULL REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE,
         status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
         form_phone BOOLEAN DEFAULT true,
         form_job_title BOOLEAN DEFAULT true,
@@ -137,7 +167,7 @@ export async function runMigrations() {
         id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
         ticket_type_id INTEGER REFERENCES ticket_types(id),
-        user_id VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+        user_id VARCHAR(100) NOT NULL REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE,
         email VARCHAR(255) NOT NULL,
         status VARCHAR(50) NOT NULL DEFAULT 'CONFIRMED',
         payment_status VARCHAR(50) NOT NULL DEFAULT 'NOT_REQUIRED',
@@ -170,6 +200,15 @@ export async function runMigrations() {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_reg_user ON registrations (user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_reg_ticket_type ON registrations (ticket_type_id, event_id) WHERE status != 'CANCELLED'`);
 
+    // 7.5 Registration Ticket Types Join Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS registration_ticket_types (
+        registration_id BIGINT REFERENCES registrations(id) ON DELETE CASCADE,
+        ticket_type_id INTEGER REFERENCES ticket_types(id) ON DELETE CASCADE,
+        PRIMARY KEY (registration_id, ticket_type_id)
+      )
+    `);
+
     // 8. Ensure payments table exists
     await client.query(`
       CREATE TABLE IF NOT EXISTS payments (
@@ -197,7 +236,7 @@ export async function runMigrations() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS admin_logs (
         id SERIAL PRIMARY KEY,
-        admin_username VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+        admin_username VARCHAR(100) NOT NULL REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE,
         action VARCHAR(100) NOT NULL,
         target_type VARCHAR(50),
         target_id VARCHAR(100),
@@ -211,9 +250,9 @@ export async function runMigrations() {
       CREATE TABLE IF NOT EXISTS event_team (
         id SERIAL PRIMARY KEY,
         event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-        username VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+        username VARCHAR(100) NOT NULL REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE,
         role VARCHAR(20) NOT NULL DEFAULT 'SCANNER',
-        invited_by VARCHAR(100) REFERENCES users(username) ON DELETE SET NULL,
+        invited_by VARCHAR(100) REFERENCES users(username) ON UPDATE CASCADE ON DELETE SET NULL,
         joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(event_id, username)
       )
@@ -242,7 +281,7 @@ export async function runMigrations() {
         registration_id BIGINT NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
         event_id INTEGER NOT NULL REFERENCES events(id),
         activity_id INTEGER NOT NULL REFERENCES event_activities(id) ON DELETE CASCADE,
-        scanned_by VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+        scanned_by VARCHAR(100) NOT NULL REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE,
         scanned_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(registration_id, activity_id)
       )
@@ -254,9 +293,9 @@ export async function runMigrations() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS admin_permissions (
         id SERIAL PRIMARY KEY,
-        username VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+        username VARCHAR(100) NOT NULL REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE,
         permission VARCHAR(50) NOT NULL,
-        granted_by VARCHAR(100) REFERENCES users(username) ON DELETE SET NULL,
+        granted_by VARCHAR(100) REFERENCES users(username) ON UPDATE CASCADE ON DELETE SET NULL,
         granted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(username, permission)
       )
@@ -287,7 +326,7 @@ export async function runMigrations() {
       CREATE TABLE IF NOT EXISTS registration_team_members (
         id SERIAL PRIMARY KEY,
         team_id INTEGER NOT NULL REFERENCES registration_teams(id) ON DELETE CASCADE,
-        username VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+        username VARCHAR(100) NOT NULL REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(team_id, username)
       )
@@ -328,8 +367,8 @@ export async function runMigrations() {
         id SERIAL PRIMARY KEY,
         event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
         registration_id BIGINT NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
-        issued_to VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
-        issued_by VARCHAR(100) NOT NULL REFERENCES users(username) ON DELETE SET NULL,
+        issued_to VARCHAR(100) NOT NULL REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE,
+        issued_by VARCHAR(100) NOT NULL REFERENCES users(username) ON UPDATE CASCADE ON DELETE SET NULL,
         certificate_type VARCHAR(50) NOT NULL DEFAULT 'PARTICIPATION',
         title VARCHAR(255) NOT NULL,
         description TEXT,

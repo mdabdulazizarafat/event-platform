@@ -36,6 +36,9 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Selected tickets state
+  const [selectedTicketIds, setSelectedTicketIds] = useState<number[]>([]);
+
   // Accordion state exactly like wireframe
   const [isDescOpen, setIsDescOpen] = useState(true);
 
@@ -82,6 +85,21 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
     ticketsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const toggleTicket = (id: number) => {
+    setSelectedTicketIds((prev) => 
+      prev.includes(id) ? prev.filter((tId) => tId !== id) : [...prev, id]
+    );
+  };
+
+  const handleConfirmSelection = () => {
+    if (selectedTicketIds.length === 0) {
+      message.warning('Please select at least one segment/ticket to proceed.');
+      return;
+    }
+    const query = selectedTicketIds.join(',');
+    window.location.href = `/events/${slug}/checkout?ticketIds=${query}`;
+  };
+
   const copyPageLink = () => {
     navigator.clipboard.writeText(window.location.href);
     message.success('Link copied to clipboard!');
@@ -114,106 +132,48 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
       <div className="flex-1 text-[#111c2d] flex flex-col">
 
         <main className="flex-grow pb-16">
-          {/* Apple TV Style Hero Banner Section */}
-          <div className="w-full relative group">
-            <div className="relative w-full aspect-[21/9] max-h-[500px] bg-slate-900 overflow-hidden">
-              {/* Slider Images Layer */}
-              {[
-                event.thumbnail || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&h=675&fit=crop',
-                'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?q=80&w=1200&h=675&fit=crop',
-                'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=1200&h=675&fit=crop'
-              ].map((imgUrl, idx) => (
-                <div
-                  key={idx}
-                  className={`absolute inset-0 transition-all duration-[2000ms] ease-in-out ${
-                    currentSlide === idx ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-105 z-0'
-                  }`}
-                >
-                  <img
-                    src={imgUrl}
-                    alt={`${event.title} - Slide ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                  />
+          {/* Static Banner Section */}
+          <div className="w-full relative">
+            <div className="w-full aspect-[21/9] max-h-[400px] bg-slate-900 overflow-hidden relative">
+              <img
+                src={event.thumbnail || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&h=675&fit=crop'}
+                alt={event.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+
+          {/* Event Header Section exactly like Wireframe */}
+          <div className="max-w-6xl mx-auto px-6 pt-6 pb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-3">
+              <h1 className="font-heading text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight m-0">
+                {event.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-5 text-xs font-semibold text-slate-600">
+                <div className="flex items-center gap-1.5">
+                  <MapPin size={14} className="text-slate-400" />
+                  <span>{event.location}</span>
                 </div>
-              ))}
-              
-              {/* Apple TV Style Dark Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-black/10 pointer-events-none z-20" />
-
-              {/* Slider Navigation Arrows */}
-              <button
-                onClick={() => setCurrentSlide((prev) => (prev === 0 ? 2 : prev - 1))}
-                className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/30 text-white flex items-center justify-center backdrop-blur-md border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-30"
-              >
-                <ChevronDown size={24} className="rotate-90" />
-              </button>
-              <button
-                onClick={() => setCurrentSlide((prev) => (prev === 2 ? 0 : prev + 1))}
-                className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/30 text-white flex items-center justify-center backdrop-blur-md border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-30"
-              >
-                <ChevronDown size={24} className="-rotate-90" />
-              </button>
-
-              {/* Slider Indicators */}
-              <div className="absolute bottom-6 right-6 flex items-center gap-2 z-30">
-                {[0, 1, 2].map((idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentSlide(idx)}
-                    className={`h-1.5 rounded-full transition-all duration-300 border-none cursor-pointer ${
-                      currentSlide === idx ? 'w-8 bg-white' : 'w-2 bg-white/40 hover:bg-white/70'
-                    }`}
-                  />
-                ))}
-              </div>
-
-              {/* Content Layer over the Banner */}
-              <div className="absolute bottom-0 left-0 right-0 max-w-6xl mx-auto px-6 pb-12 pt-32 flex flex-col justify-end z-30">
-                <div className="max-w-3xl space-y-5">
-                  <div className="inline-flex items-center gap-2">
-                    <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/30 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">
-                      {(event as any).category || 'Featured Event'}
-                    </span>
-                    <span className="px-3 py-1 bg-primary/80 backdrop-blur-md text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">
-                      Live
-                    </span>
-                  </div>
-                  
-                  <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight m-0 drop-shadow-xl">
-                    {event.title}
-                  </h1>
-
-                  <p className="text-slate-300 text-sm md:text-base font-medium max-w-2xl line-clamp-2 drop-shadow-md">
-                    {event.description}
-                  </p>
-
-                  <div className="flex flex-wrap items-center gap-6 text-sm font-semibold text-slate-200 mt-2">
-                    <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg backdrop-blur-sm">
-                      <MapPin size={16} className="text-white/80" />
-                      <span>{event.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg backdrop-blur-sm">
-                      <CalendarIcon size={16} className="text-white/80" />
-                      <span>{event.date}</span>
-                    </div>
-                    <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg backdrop-blur-sm">
-                      <Clock size={16} className="text-white/80" />
-                      <span>{event.time}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 flex items-center gap-5">
-                    <Button
-                      onClick={scrollToTickets}
-                      variant="primary"
-                      size="lg"
-                      className="rounded-full px-8 py-3 bg-white text-slate-900 hover:bg-slate-100 hover:text-slate-900 border-none font-extrabold shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-transform hover:scale-105 active:scale-95"
-                    >
-                      Buy Ticket Now
-                    </Button>
-                  </div>
+                <div className="flex items-center gap-1.5">
+                  <CalendarIcon size={14} className="text-slate-400" />
+                  <span>{event.date}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock size={14} className="text-slate-400" />
+                  <span>{event.time}</span>
                 </div>
               </div>
+            </div>
+
+            <div className="shrink-0 w-full md:w-auto">
+              <Button
+                onClick={scrollToTickets}
+                variant="primary"
+                size="md"
+                className="w-full md:w-auto rounded-lg px-8 py-2.5 bg-slate-900 text-white hover:bg-slate-800 border-none font-bold transition-all shadow-md"
+              >
+                Buy Ticket Now
+              </Button>
             </div>
           </div>
 
@@ -419,50 +379,81 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                 <p className="text-xs text-on-surface-variant font-semibold m-0">No ticket categories available at this moment.</p>
               </div>
             ) : (
-              /* 3-Column Ticket Cards grid exactly like Wireframe */
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {ticketTypes.map((ticket) => {
-                  const isFree = parseFloat(ticket.price) === 0 || ticket.isFree;
-                  const priceDisplay = isFree ? '৳ 0' : `৳ ${parseFloat(ticket.price).toLocaleString('en-BD')}`;
+              <div className="space-y-8">
+                {/* 3-Column Ticket Cards grid exactly like Wireframe */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {ticketTypes.map((ticket) => {
+                    const isFree = parseFloat(ticket.price) === 0 || ticket.isFree;
+                    const priceDisplay = isFree ? '৳ 0' : `৳ ${parseFloat(ticket.price).toLocaleString('en-BD')}`;
+                    const isSelected = selectedTicketIds.includes(ticket.id);
 
-                  return (
-                    <div
-                      key={ticket.id}
-                      className="bento-card p-5 transition-all flex flex-col justify-between min-h-[140px]"
-                    >
-                      {/* Card Top: Title on left, Price Badge on right exactly like Wireframe */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-extrabold text-slate-900 m-0">
-                            {ticket.name}
-                          </h4>
-                          {ticket.description && (
-                            <p className="text-[11px] text-slate-500 leading-normal m-0 line-clamp-2">
-                              {ticket.description}
-                            </p>
-                          )}
+                    return (
+                      <div
+                        key={ticket.id}
+                        onClick={() => toggleTicket(ticket.id)}
+                        className={`bento-card p-4 transition-all flex flex-col justify-between min-h-[140px] border-2 cursor-pointer rounded-xl bg-white shadow-none ${
+                          isSelected ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-slate-200 hover:border-slate-800'
+                        }`}
+                      >
+                        {/* Card Top: Title on left, Price Badge on right exactly like Wireframe */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <h4 className={`text-sm font-extrabold m-0 ${isSelected ? 'text-primary' : 'text-slate-900'}`}>
+                              {ticket.name}
+                            </h4>
+                            {ticket.description && (
+                              <p className="text-[11px] text-slate-500 leading-normal m-0 line-clamp-2">
+                                {ticket.description}
+                              </p>
+                            )}
+                          </div>
+
+                          <span className={`shrink-0 px-2.5 py-0.5 border font-bold text-[11px] rounded flex items-center ${isSelected ? 'bg-primary border-primary text-white' : 'bg-slate-100 border-slate-300 text-slate-800'}`}>
+                            {priceDisplay}
+                          </span>
                         </div>
 
-                        <span className="shrink-0 px-2.5 py-0.5 bg-white border border-slate-300 text-slate-800 font-bold text-xs rounded-lg shadow-2xs">
-                          {priceDisplay}
-                        </span>
+                        {/* Card Bottom: Click to Select button */}
+                        <div className="mt-5">
+                          <div className="w-full flex">
+                            <Button 
+                              variant={isSelected ? "primary" : "outline"} 
+                              size="md" 
+                              className={`w-full rounded-lg text-xs font-bold py-2 shadow-none flex justify-center items-center pointer-events-none transition-colors ${
+                                isSelected ? 'bg-primary text-white border-primary' : 'bg-white text-slate-700 border-slate-300'
+                              }`}
+                            >
+                              <Plus size={14} className={`mr-1.5 transition-transform ${isSelected ? 'rotate-45' : ''}`} />
+                              <span>{isSelected ? 'Selected' : 'Click to Select'}</span>
+                            </Button>
+                          </div>
+                        </div>
                       </div>
+                    );
+                  })}
+                </div>
 
-                      {/* Card Bottom: Click to Select button */}
-                      <div className="mt-6">
-                        <Link
-                          href={`/events/${slug}/checkout?ticketId=${ticket.id}`}
-                          className="w-full flex"
-                        >
-                          <Button variant="primary" size="md" className="w-full">
-                            <Plus size={14} className="mr-1" />
-                            <span>Click to Select</span>
-                          </Button>
-                        </Link>
+                {/* Confirm Selection Action Bar */}
+                {selectedTicketIds.length > 0 && (
+                  <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50 flex justify-center animate-in slide-in-from-bottom-full duration-300">
+                    <div className="max-w-6xl w-full flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="text-slate-700 font-bold">
+                        <span className="text-primary">{selectedTicketIds.length}</span> {selectedTicketIds.length === 1 ? 'segment' : 'segments'} selected
+                        <div className="text-xs text-slate-500 font-medium mt-0.5">
+                          Total: ৳ {ticketTypes.filter(t => selectedTicketIds.includes(t.id)).reduce((sum, t) => sum + parseFloat(t.price || '0'), 0).toLocaleString('en-BD')}
+                        </div>
                       </div>
+                      <Button
+                        onClick={handleConfirmSelection}
+                        variant="primary"
+                        size="lg"
+                        className="w-full sm:w-auto px-10 py-3 rounded-xl shadow-lg bg-primary hover:bg-primary/90 text-white font-extrabold text-sm border-none"
+                      >
+                        Confirm & Proceed to Checkout
+                      </Button>
                     </div>
-                  );
-                })}
+                  </div>
+                )}
               </div>
             )}
           </div>

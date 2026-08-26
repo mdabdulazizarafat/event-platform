@@ -5,6 +5,7 @@ import { ConfigProvider, Card, Typography, Row, Col, Avatar, Button, Tag, Space 
 import { UserOutlined, CalendarOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import { theme } from '../../../theme/theme';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -32,12 +33,11 @@ export default function HostProfilePage({ params }: { params: Promise<{ username
     }
   };
 
-  const host = hostsData[username] || {
-    name: 'Acme Corporation',
-    handle: `@${username}`,
-    description: 'We organize world-class technology events and workshops for developers and designers.',
-    events: []
-  };
+  const host = hostsData[username];
+
+  if (!host) {
+    notFound();
+  }
 
   return (
     <ConfigProvider theme={theme}>

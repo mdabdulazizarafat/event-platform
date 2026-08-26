@@ -7,13 +7,14 @@ import Button from '@/components/ui/Button';
 import StatusChip from '@/components/ui/StatusChip';
 import PageHeader from '@/components/ui/PageHeader';
 import { Plus, LayoutDashboard, Globe, Calendar, MapPin, Settings, Trash2, User, Scan } from 'lucide-react';
-import { message, Pagination } from 'antd';
+import { App, Pagination } from 'antd';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function EventsDirectoryPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { message } = App.useApp();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -136,17 +137,7 @@ export default function EventsDirectoryPage() {
       title: 'Actions',
       render: (row: any) => (
         <div className="flex gap-2">
-          {user?.role === 'USER' ? (
-            <Link href={`/dashboard/scanner?event=${row.slug}`} passHref>
-              <Button
-                variant="primary"
-                size="sm"
-                icon={<Scan className="w-3.5 h-3.5" />}
-              >
-                Scan QR
-              </Button>
-            </Link>
-          ) : (
+          {user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || row.is_host || row.is_team_member ? (
             <Link href={`/dashboard/events/${row.slug}`} passHref>
               <Button
                 variant="outline"
@@ -156,7 +147,16 @@ export default function EventsDirectoryPage() {
                 Control Panel
               </Button>
             </Link>
-          )}
+          ) : row.is_registered ? (
+            <Link href={`/dashboard/events/${row.slug}`} passHref>
+              <Button
+                variant="outline"
+                size="sm"
+              >
+                Event Overview
+              </Button>
+            </Link>
+          ) : null}
           {user?.role === 'SUPER_ADMIN' && (
             <Button
               variant="danger"
@@ -194,7 +194,7 @@ export default function EventsDirectoryPage() {
         }
       />
 
-      <div className="bento-card overflow-hidden">
+      <section className="space-y-4">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -224,7 +224,7 @@ export default function EventsDirectoryPage() {
             )}
           </>
         )}
-      </div>
+      </section>
     </div>
   );
 }

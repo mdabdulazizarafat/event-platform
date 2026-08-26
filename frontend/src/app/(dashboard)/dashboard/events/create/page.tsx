@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { App } from 'antd';
 import { useAuth } from '@/context/AuthContext';
+import PageHeader from '@/components/ui/PageHeader';
 
 interface TicketTypeInput {
   name: string;
@@ -322,21 +323,16 @@ export default function CreateEventWizardPage() {
   const totalTicketPriceBDT = tickets.reduce((acc, t) => acc + (parseFloat(t.price) || 0), 0);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Title block */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none">
-            Create New Event
-          </h2>
-          <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
-            Configure schedule parameters, upload branding assets, and setup registration details.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>
-          Back to Overview
-        </Button>
-      </div>
+    <div className="space-y-6 w-full">
+      <PageHeader
+        title="Create New Event"
+        description="Configure schedule parameters, upload branding assets, and setup registration details."
+        action={
+          <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/events')} icon={<ArrowLeft className="w-4 h-4" />}>
+            Back to Directory
+          </Button>
+        }
+      />
 
       <StepProgress steps={steps} currentStep={currentStep} onStepClick={handleStepNavigation} />
 

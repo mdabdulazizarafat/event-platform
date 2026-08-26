@@ -13,12 +13,14 @@ export class PaymentController {
   static async initiate(req: Request, res: Response) {
     try {
       const { 
-        eventSlug, ticketTypeId, userId, email, customerName, customerPhone,
+        eventSlug, ticketTypeId, ticketTypeIds: incomingTicketTypeIds, userId, email, customerName, customerPhone,
         jobTitle, organization, tshirtSize, reference, transactionId,
         teamName, teamMembers
       } = req.body;
 
-      if (!eventSlug || !ticketTypeId || !userId || !email || !customerName) {
+      const ticketTypeIds = incomingTicketTypeIds || (ticketTypeId ? [ticketTypeId] : []);
+
+      if (!eventSlug || ticketTypeIds.length === 0 || !userId || !email || !customerName) {
         return res.status(400).json({ error: 'Missing required fields: eventSlug, ticketTypeId, userId, email, and customerName are required.' });
       }
 
@@ -35,7 +37,7 @@ export class PaymentController {
         eventId: event.id,
         eventSlug,
         eventTitle: event.title,
-        ticketTypeId: parseInt(ticketTypeId),
+        ticketTypeIds: ticketTypeIds.map((id: any) => parseInt(id)),
         userId,
         email,
         customerName,

@@ -101,7 +101,7 @@ export default function Navbar() {
   return (
     <header
       id="navbar"
-      className={`fixed top-0 left-0 right-0 z-[100] transition-[padding,background-color,backdrop-filter] duration-300 ${isCompact ? 'navbar-glass py-3' : 'bg-transparent py-5'
+      className={`fixed top-0 left-0 right-0 z-[1000] transition-[padding,background-color,backdrop-filter] duration-300 ${isCompact ? 'navbar-glass py-3' : 'bg-transparent py-5'
         }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between relative z-[101]">
@@ -133,13 +133,13 @@ export default function Navbar() {
               href={href}
               onClick={() => setMenuOpen(false)}
               className={`relative px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${isActive(href)
-                ? 'text-primary bg-transparent'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]'
+                ? '!text-black font-bold bg-transparent'
+                : '!text-black/70 hover:!text-black hover:bg-black/5'
                 }`}
             >
               {label}
               {isActive(href) && (
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-primary" />
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-black" />
               )}
             </Link>
           ))}
@@ -149,7 +149,7 @@ export default function Navbar() {
           {!isLoading && (
             isAuthenticated && user ? (
               <div className="hidden sm:flex items-center gap-2">
-                <Link href="/dashboard" className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden border-2 border-transparent hover:border-primary transition-colors">
+                <Link href="/dashboard" className="w-9 h-9 rounded-full bg-black/10 flex items-center justify-center text-black font-bold overflow-hidden border-2 border-transparent hover:border-black transition-colors">
                   {user.avatar ? (
                     <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                   ) : (
@@ -195,8 +195,8 @@ export default function Navbar() {
                   href={href}
                   onClick={() => setMenuOpen(false)}
                   className={`w-full text-left px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150 cursor-pointer block ${isActive(href)
-                    ? 'text-primary bg-primary/10'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]'
+                    ? '!text-black font-bold bg-black/5'
+                    : '!text-black/70 hover:!text-black hover:bg-black/5'
                     }`}
                 >
                   {label}
@@ -212,13 +212,11 @@ export default function Navbar() {
                     { href: "/dashboard/schedule", label: "My Schedule" },
                     { href: "/dashboard/tickets", label: "My Tickets" },
                     { href: "/dashboard/certificates", label: "Certificates" },
-                    { href: "/dashboard/account", label: "My Account" },
                     ...(user.role === 'ORGANIZER' ? [
                       { href: "/dashboard/events", label: "Events Directory" },
-                      { href: "/dashboard/scanner", label: "QR Scanner" },
                     ] : []),
                     ...(['ADMIN', 'SUPER_ADMIN'].includes(user.role as string) ? [
-                      { href: "/dashboard/users", label: "Accounts" },
+                      { href: "/dashboard/users", label: "Users" },
                       { href: "/dashboard/events", label: "Events Directory" },
                       { href: "/dashboard/finance", label: "Finance Operations" },
                       ...(user.role === 'SUPER_ADMIN' ? [
@@ -232,8 +230,8 @@ export default function Navbar() {
                       href={href}
                       onClick={() => setMenuOpen(false)}
                       className={`w-full text-left px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150 cursor-pointer block ${pathname === href
-                        ? 'text-primary bg-primary/10'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]'
+                        ? '!text-black font-bold bg-black/5'
+                        : '!text-black/70 hover:!text-black hover:bg-black/5'
                         }`}
                     >
                       {label}
@@ -247,7 +245,7 @@ export default function Navbar() {
               {!isLoading && isAuthenticated && user ? (
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-3 mb-2 px-2">
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden">
+                    <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center text-black font-bold overflow-hidden">
                       {user.avatar ? (
                         <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                       ) : (
@@ -259,27 +257,30 @@ export default function Navbar() {
                       <p className="text-xs text-[var(--text-muted)] truncate">{user.email}</p>
                     </div>
                   </div>
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={() => { setMenuOpen(false); logout(); router.push('/sign-in'); }}
-                    className="w-full flex items-center justify-center py-2.5 rounded-md text-sm font-semibold bg-transparent text-secondary border border-secondary/30 hover:bg-secondary/10 transition-colors cursor-pointer"
+                    className="w-full"
                   >
                     Logout
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={() => { setMenuOpen(false); router.push('/sign-in'); }}
-                    className="w-full flex items-center justify-center py-2.5 rounded-md text-sm font-semibold bg-transparent text-secondary border border-secondary/30 hover:bg-secondary/10 transition-colors cursor-pointer"
+                    className="w-full"
                   >
                     Log In
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="primary"
                     onClick={() => { setMenuOpen(false); router.push('/organizer-signup'); }}
-                    className="w-full flex items-center justify-center py-2.5 rounded-md text-sm font-semibold bg-primary text-white hover:bg-primary-600 transition-colors cursor-pointer border-none"
+                    className="w-full"
                   >
                     Register
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

@@ -20,7 +20,7 @@ export default function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const baseStyles = 'inline-flex items-center justify-center font-heading font-semibold rounded-lg transition-all duration-150 focus-ring disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-97 hover:-translate-y-0.5';
+  const baseStyles = 'inline-flex items-center justify-center font-heading font-semibold rounded-lg transition-all duration-150 focus-ring disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
   
   const variants = {
     primary: 'bg-gradient-to-br from-[#2BA361] to-[#4dc487] text-white border-none hover:shadow-[0_4px_12px_rgba(43,163,97,0.25)]',

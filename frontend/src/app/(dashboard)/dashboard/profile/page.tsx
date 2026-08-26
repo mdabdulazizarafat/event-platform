@@ -109,8 +109,8 @@ export default function ProfilePage() {
   // Load user profile details on mount
   useEffect(() => {
     if (user) {
-      setFirstName(user.firstName || user.name?.split(' ')[0] || "");
-      setLastName(user.lastName || user.name?.split(' ').slice(1).join(' ') || "");
+      setFirstName(user.firstName !== undefined ? (user.firstName || "") : (user.name?.split(' ')[0] || ""));
+      setLastName(user.lastName !== undefined ? (user.lastName || "") : (user.name?.split(' ').slice(1).join(' ') || ""));
       setProfileEmail(user.email || "");
       setPhoneNumber(user.mobile || user.phoneNumber || "");
       setDateOfBirth(user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : "");
@@ -458,7 +458,7 @@ export default function ProfilePage() {
       />
       {/* Main Stacked Options */}
       {activeTab === 'Overview' && (
-        <div className="max-w-5xl mx-auto space-y-6 pb-12">
+        <div className="space-y-6 pb-12">
           {/* Top User Profile Header Card */}
           <div className="bento-card p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 bg-white dark:bg-dark-surface border border-outline-variant/30">
             <div className="relative group">

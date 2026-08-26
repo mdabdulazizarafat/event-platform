@@ -107,12 +107,13 @@ export class AuthController {
         return res.status(400).json({ error: 'Email/Username and password are required' });
       }
 
+      const normalizedInput = emailOrUsername.trim().toLowerCase();
       // Lookup user in users database
       const userQuery = `
         SELECT * FROM users 
         WHERE email = $1 OR username = $1;
       `;
-      const userRes = await pool.query(userQuery, [emailOrUsername]);
+      const userRes = await pool.query(userQuery, [normalizedInput]);
       if (userRes.rowCount === 0) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }

@@ -312,6 +312,11 @@ export class EventService {
             WHERE r.event_id = e.id AND r.user_id = $1
           ) as is_registered,
           (
+            SELECT id FROM registrations r 
+            WHERE r.event_id = e.id AND r.user_id = $1
+            LIMIT 1
+          ) as registration_id,
+          (
             SELECT role FROM event_team et 
             WHERE et.event_id = e.id AND et.username = $1
             LIMIT 1

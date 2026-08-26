@@ -7,6 +7,8 @@ import Button from '@/components/ui/Button';
 import { Activity, ArrowLeft, Cpu, Network, Database } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import PageHeader from '@/components/ui/PageHeader';
+import { Pagination } from 'antd';
 
 export default function AdminInfrastructurePage() {
   const router = useRouter();
@@ -14,6 +16,8 @@ export default function AdminInfrastructurePage() {
 
   const [queueSize, setQueueSize] = useState(0);
   const [healthStatus, setHealthStatus] = useState('OPERATIONAL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   if (user && user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
     return <div className="text-center py-20 text-error">Unauthorized Access</div>;
@@ -59,24 +63,10 @@ export default function AdminInfrastructurePage() {
 
   return (
     <div className="space-y-6">
-      <section className="flex items-center gap-3 border-b border-outline-variant/60 pb-5">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.push('/dashboard')}
-          icon={<ArrowLeft className="w-4 h-4" />}
-        >
-          Back
-        </Button>
-        <div>
-          <h2 className="font-heading text-2xl font-extrabold text-foreground leading-tight m-0">
-            Platform Infrastructure & Node Health
-          </h2>
-          <p className="text-on-surface-variant text-sm mt-1.5 mb-0">
-            Real-time telemetry, queue sizes, database connections, and latency responses.
-          </p>
-        </div>
-      </section>
+      <PageHeader
+        title="Platform Infrastructure & Node Health"
+        description="Real-time telemetry, queue sizes, database connections, and latency responses."
+      />
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
@@ -108,7 +98,25 @@ export default function AdminInfrastructurePage() {
         <h3 className="font-heading text-lg font-bold text-foreground m-0">
           Component Telemetry Records
         </h3>
-        <DataTable columns={columns} data={nodes} />
+        <DataTable 
+          columns={columns} 
+          data={nodes.slice((currentPage - 1) * pageSize, currentPage * pageSize)} 
+        />
+        {nodes.length > 0 && (
+          <div className="flex justify-end pt-2">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={nodes.length}
+              onChange={(page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              }}
+              showSizeChanger
+              showTotal={(total) => `Showing ${Math.min(total, (currentPage - 1) * pageSize + 1)}-${Math.min(total, currentPage * pageSize)} of ${total} entries`}
+            />
+          </div>
+        )}
       </section>
     </div>
   );

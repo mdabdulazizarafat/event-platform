@@ -16,7 +16,6 @@ interface EventCardProps {
 export default function EventCard({ event }: EventCardProps) {
   return (
     <Card
-      hoverable
       className="bento-card overflow-hidden flex flex-col h-full group !border-none !bg-transparent"
       styles={{
         body: {
@@ -38,7 +37,7 @@ export default function EventCard({ event }: EventCardProps) {
           <img
             alt={event.title}
             src={event.thumbnail}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+            className="w-full h-full object-cover"
           />
           <div className="absolute top-4 right-4 z-10">
             <span className="text-[10px] font-bold text-foreground bg-surface-container-highest/90 backdrop-blur-md px-3 py-1 rounded-lg uppercase tracking-wider shadow-sm border border-outline-variant">

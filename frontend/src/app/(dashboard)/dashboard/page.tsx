@@ -1,17 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Typography } from 'antd';
-import { 
-  UserPlus, 
-  DollarSign, 
-  CheckCircle, 
-  Activity, 
-  Calendar, 
+import { Typography, Pagination } from 'antd';
+import {
+  UserPlus,
+  DollarSign,
+  CheckCircle,
+  Activity,
+  Calendar,
   Download,
   ChevronDown,
   ArrowRight,
-  Shield, 
+  Shield,
   Users,
   Globe,
   Ticket,
@@ -45,32 +45,42 @@ function AdminDashboardPage() {
   const router = useRouter();
 
   const [stats, setStats] = useState({
-    totalUsers: '3,842',
-    totalEvents: '18',
-    totalRevenue: '৳ 4,82,000',
-    apiHealth: '99.9%'
+    totalUsers: '-',
+    totalEvents: '-',
+    totalRevenue: '-',
+    apiHealth: '-'
   });
 
   const [logs, setLogs] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     async function loadAdminData() {
       try {
-        const res = await fetch('/api/v1/admin/logs');
-        if (res.ok) {
-          const data = await res.json();
-          setLogs(data.slice(0, 5));
+        const [logsRes, statsRes] = await Promise.all([
+          fetch('/api/v1/admin/logs'),
+          fetch('/api/v1/admin/stats')
+        ]);
+
+        if (logsRes.ok) {
+          const data = await logsRes.json();
+          setLogs(data.data ? data.data.slice(0, 5) : data.slice ? data.slice(0, 5) : []); // handle if paginated data or array
         } else {
-          setLogs([
-            { id: 1, action: 'User Sign In', admin_username: 'host-organizer', target_type: 'AUTH', details: { ip: '127.0.0.1' }, created_at: new Date().toISOString() },
-            { id: 2, action: 'Role Update', admin_username: 'super-admin', target_type: 'USER', details: { target: 'jane-doe', role: 'ORGANIZER' }, created_at: new Date().toISOString() },
-          ]);
+          setLogs([]);
+        }
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats({
+            totalUsers: statsData.totalUsers.toLocaleString(),
+            totalEvents: statsData.totalEvents.toLocaleString(),
+            totalRevenue: `৳ ${statsData.totalRevenue.toLocaleString()}`,
+            apiHealth: statsData.apiHealth
+          });
         }
       } catch {
-        setLogs([
-          { id: 1, action: 'User Sign In', admin_username: 'host-organizer', target_type: 'AUTH', details: { ip: '127.0.0.1' }, created_at: new Date().toISOString() },
-          { id: 2, action: 'Role Update', admin_username: 'super-admin', target_type: 'USER', details: { target: 'jane-doe', role: 'ORGANIZER' }, created_at: new Date().toISOString() },
-        ]);
+        setLogs([]);
       }
     }
     loadAdminData();
@@ -134,7 +144,26 @@ function AdminDashboardPage() {
             System Activity Log
           </h3>
         </div>
-        <DataTable columns={columns} data={logs} emptyText="No system logs reported." />
+        <DataTable
+          columns={columns}
+          data={logs.slice((currentPage - 1) * pageSize, currentPage * pageSize)}
+          emptyText="No system logs reported."
+        />
+        {logs.length > 0 && (
+          <div className="flex justify-end pt-2">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={logs.length}
+              onChange={(page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              }}
+              showSizeChanger
+              showTotal={(total) => `Showing ${Math.min(total, (currentPage - 1) * pageSize + 1)}-${Math.min(total, currentPage * pageSize)} of ${total} entries`}
+            />
+          </div>
+        )}
       </section>
     </div>
   );
@@ -143,17 +172,27 @@ function AdminDashboardPage() {
 function UserDashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
-  
+
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [certificatesCount, setCertificatesCount] = useState(0);
+  const [schedulesCount, setSchedulesCount] = useState(0);
 
   useEffect(() => {
     async function loadParticipantData() {
       try {
-        const res = await fetch(`/api/v1/tickets/my-registrations`);
-        if (res.ok) {
-          const registrations = await res.json();
-          const mappedTickets = registrations.map((r: any) => ({
+        const [regRes, certRes] = await Promise.all([
+          fetch(`/api/v1/tickets/my-registrations`),
+          fetch(`/api/v1/certificates/my`)
+        ]);
+
+        let loadedTickets: any[] = [];
+
+        if (regRes.ok) {
+          const registrations = await regRes.json();
+          loadedTickets = registrations.map((r: any) => ({
             id: r.id,
             title: r.event_title,
             slug: r.event_slug,
@@ -161,7 +200,29 @@ function UserDashboardPage() {
             ticketType: r.ticket_name,
             status: r.status,
           }));
-          setTickets(mappedTickets);
+          setTickets(loadedTickets);
+        }
+
+        if (certRes.ok) {
+          const certs = await certRes.json();
+          setCertificatesCount(certs.length);
+        }
+
+        // Fetch schedules for each registered event to sum up total sessions
+        if (loadedTickets.length > 0) {
+          let totalSchedules = 0;
+          await Promise.all(loadedTickets.map(async (t: any) => {
+            try {
+              const schedRes = await fetch(`/api/v1/events/${t.slug}/schedules`);
+              if (schedRes.ok) {
+                const scheds = await schedRes.json();
+                totalSchedules += scheds.length;
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          }));
+          setSchedulesCount(totalSchedules);
         }
       } catch (err) {
         console.error('Failed to load user dashboard info:', err);
@@ -192,10 +253,10 @@ function UserDashboardPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => router.push(`/dashboard/tickets/${row.id}`)}
+          onClick={() => router.push(`/dashboard/events/${row.slug}`)}
           icon={<ExternalLink className="w-3.5 h-3.5" />}
         >
-          View Ticket
+          Event Overview
         </Button>
       )
     }
@@ -204,8 +265,8 @@ function UserDashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Operations Control Center"
-        description="Manage cross-event administration, view global statistics, and configure system settings."
+        title={`Welcome back, ${user?.name?.split(' ')[0] || 'User'}`}
+        description="Access your event passes, review scheduled sessions, and download your earned certificates."
         action={
           <Activity className="w-12 h-12 text-primary opacity-20 hidden sm:block" />
         }
@@ -221,14 +282,14 @@ function UserDashboardPage() {
         />
         <StatCard
           title="Scheduled Sessions"
-          value="1"
+          value={schedulesCount}
           icon={<Calendar size={20} />}
           color="var(--tertiary)"
           bg="rgba(104, 64, 0, 0.05)"
         />
         <StatCard
           title="Certificates Earned"
-          value="0"
+          value={certificatesCount}
           icon={<Award size={20} />}
           color="var(--secondary)"
           bg="rgba(0, 108, 73, 0.05)"
@@ -239,7 +300,26 @@ function UserDashboardPage() {
         <h3 className="font-heading text-lg font-bold text-foreground m-0">
           My Active Registrations
         </h3>
-        <DataTable columns={columns} data={tickets} emptyText="You have no registered event tickets." />
+        <DataTable
+          columns={columns}
+          data={tickets.slice((currentPage - 1) * pageSize, currentPage * pageSize)}
+          emptyText="You have no registered event tickets."
+        />
+        {tickets.length > 0 && (
+          <div className="flex justify-end pt-2">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={tickets.length}
+              onChange={(page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              }}
+              showSizeChanger
+              showTotal={(total) => `Showing ${Math.min(total, (currentPage - 1) * pageSize + 1)}-${Math.min(total, currentPage * pageSize)} of ${total} entries`}
+            />
+          </div>
+        )}
       </section>
     </div>
   );
@@ -263,14 +343,14 @@ function OrganizerDashboardView() {
           fetch('/api/v1/events'),
           fetch('/api/v1/events/dashboard-stats')
         ]);
-        
+
         if (eventsRes.ok) {
           const data = await eventsRes.json();
           const list = Array.isArray(data) ? data : (data.data || []);
           const hostEvents = list.filter((e: any) => e.host_username === user?.username || e.is_team_member);
           setEvents(hostEvents);
         }
-        
+
         if (statsRes.ok) {
           const statsData = await statsRes.json();
           setStats(statsData);
@@ -355,50 +435,51 @@ function OrganizerDashboardView() {
         ) : events.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {events.map((e) => {
-              const statusColor = 
+              const statusColor =
                 e.status === 'LIVE' ? 'text-green-600 bg-green-50 border-green-200' :
-                e.status === 'PUBLISHED' ? 'text-blue-600 bg-blue-50 border-blue-200' :
-                e.status === 'DRAFT' ? 'text-slate-600 bg-slate-50 border-slate-200' :
-                e.status === 'ENDED' ? 'text-purple-600 bg-purple-50 border-purple-200' :
-                'text-gray-600 bg-gray-50 border-gray-200';
+                  e.status === 'PUBLISHED' ? 'text-blue-600 bg-blue-50 border-blue-200' :
+                    e.status === 'DRAFT' ? 'text-slate-600 bg-slate-50 border-slate-200' :
+                      e.status === 'ENDED' ? 'text-purple-600 bg-purple-50 border-purple-200' :
+                        'text-gray-600 bg-gray-50 border-gray-200';
 
               return (
-              <div key={e.id} className="bento-card p-6 bg-surface-container-lowest border border-outline-variant/60 flex flex-col justify-between gap-4">
-                <div className="flex justify-between items-start gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <h4 className="font-heading text-base font-bold text-foreground m-0 leading-tight line-clamp-1">
-                        {e.title}
-                      </h4>
-                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${statusColor} uppercase tracking-wider`}>
-                        {e.status || 'DRAFT'}
-                      </span>
+                <div key={e.id} className="bento-card p-6 bg-surface-container-lowest border border-outline-variant/60 flex flex-col justify-between gap-4">
+                  <div className="flex justify-between items-start gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <h4 className="font-heading text-base font-bold text-foreground m-0 leading-tight line-clamp-1">
+                          {e.title}
+                        </h4>
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${statusColor} uppercase tracking-wider`}>
+                          {e.status || 'DRAFT'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-on-surface-variant font-medium mt-1 mb-0 uppercase tracking-wider">
+                        {e.date} • {e.location.split(',')[0]}
+                      </p>
                     </div>
-                    <p className="text-[11px] text-on-surface-variant font-medium mt-1 mb-0 uppercase tracking-wider">
-                      {e.date} • {e.location.split(',')[0]}
-                    </p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-2 mt-2 pt-4 border-t border-outline-variant/30">
+                    <Link href={`/dashboard/events/${e.slug}`} className="w-full sm:flex-1">
+                      <Button variant="outline" size="sm" className="w-full justify-center">
+                        Control Panel
+                      </Button>
+                    </Link>
+                    <Link href={`/dashboard/events/${e.slug}?tab=3`} className="w-full sm:flex-1">
+                      <Button variant="outline" size="sm" className="w-full justify-center">
+                        Edit
+                      </Button>
+                    </Link>
+                    <Link href={`/dashboard/events/${e.slug}?tab=5`} className="w-full sm:flex-1">
+                      <Button variant="outline" size="sm" className="w-full justify-center">
+                        Team
+                      </Button>
+                    </Link>
                   </div>
                 </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-2 mt-2 pt-4 border-t border-outline-variant/30">
-                  <Link href={`/dashboard/events/${e.slug}`} className="w-full sm:flex-1">
-                    <Button variant="outline" size="sm" className="w-full justify-center">
-                      Control Panel
-                    </Button>
-                  </Link>
-                  <Link href={`/dashboard/events/${e.slug}?tab=3`} className="w-full sm:flex-1">
-                    <Button variant="outline" size="sm" className="w-full justify-center">
-                      Edit
-                    </Button>
-                  </Link>
-                  <Link href={`/dashboard/events/${e.slug}?tab=5`} className="w-full sm:flex-1">
-                    <Button variant="outline" size="sm" className="w-full justify-center">
-                      Team
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            )})}
+              )
+            })}
           </div>
         ) : (
           <div className="text-center py-10 bg-surface-container-low border border-outline-variant rounded-xl text-body-sm text-on-surface-variant italic">

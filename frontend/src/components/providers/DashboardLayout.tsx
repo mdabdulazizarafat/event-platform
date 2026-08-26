@@ -40,7 +40,6 @@ interface NavItem {
 const hostNavItems: NavItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
   { key: 'events', label: 'Events Directory', icon: Globe, href: '/dashboard/events' },
-  { key: 'scanner', label: 'QR Scanner', icon: Scan, href: '/dashboard/scanner' },
   { key: 'schedule', label: 'My Schedule', icon: CalendarDays, href: '/dashboard/schedule' },
   { key: 'certificates', label: 'Certificates', icon: Award, href: '/dashboard/certificates' },
   { key: 'profile', label: 'Profile', icon: Users, href: '/dashboard/profile' },
@@ -49,7 +48,7 @@ const hostNavItems: NavItem[] = [
 // User Navigation
 const userNavItems: NavItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
-  { key: 'schedule', label: 'My Schedule', icon: CalendarDays, href: '/dashboard/schedule' },
+  { key: 'events', label: 'Events Directory', icon: Globe, href: '/dashboard/events' },
   { key: 'certificates', label: 'Certificates', icon: Award, href: '/dashboard/certificates' },
   { key: 'profile', label: 'Profile', icon: Users, href: '/dashboard/profile' },
 ];
@@ -57,7 +56,7 @@ const userNavItems: NavItem[] = [
 // Super Admin Navigation
 const superAdminNavItems: NavItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
-  { key: 'accounts', label: 'Accounts', icon: Users, href: '/dashboard/users' },
+  { key: 'accounts', label: 'Users', icon: Users, href: '/dashboard/users' },
   { key: 'events', label: 'Events Directory', icon: Globe, href: '/dashboard/events' },
   { key: 'finance', label: 'Finance Operations', icon: DollarSign, href: '/dashboard/finance' },
   { key: 'infrastructure', label: 'System Health', icon: Activity, href: '/dashboard/infrastructure' },
@@ -70,7 +69,7 @@ const superAdminNavItems: NavItem[] = [
 // Admin Navigation
 const adminNavItems: NavItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
-  { key: 'accounts', label: 'Accounts', icon: Users, href: '/dashboard/users' },
+  { key: 'accounts', label: 'Users', icon: Users, href: '/dashboard/users' },
   { key: 'events', label: 'Events Directory', icon: Globe, href: '/dashboard/events' },
   { key: 'finance', label: 'Finance Operations', icon: DollarSign, href: '/dashboard/finance' },
   { key: 'schedule', label: 'My Schedule', icon: CalendarDays, href: '/dashboard/schedule' },
@@ -141,8 +140,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     // Guard organizer routes
     if (
-      (pathname.startsWith('/dashboard/events') || 
-       pathname.startsWith('/dashboard/attendees')) && 
+      (pathname.startsWith('/dashboard/events/create') ||
+        pathname.startsWith('/dashboard/attendees')) &&
       !isOrganizer && !isAdmin
     ) {
       router.push('/dashboard');
@@ -162,11 +161,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (user?.role === 'SUPER_ADMIN') return superAdminNavItems;
     if (user?.role === 'ADMIN') return adminNavItems;
     if (user?.role === 'USER') {
-      const items = [...userNavItems];
-      if (hasScannerAccess && !items.some(item => item.key === 'events')) {
-        items.splice(1, 0, { key: 'events', label: 'Scanner Assignments', icon: Scan, href: '/dashboard/events' });
-      }
-      return items;
+      return userNavItems;
     }
     return hostNavItems; // Default to host (ORGANIZER)
   };
@@ -199,33 +194,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-[calc(100vh-64px)] bg-background text-foreground relative">
-      
+
       {/* Mobile Sidebar Overlay */}
-      <div 
+      <div
         className={`lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setSidebarOpen(false)}
       />
 
       {/* Sidebar - 280px fixed width */}
       <aside className={`w-[280px] glass-panel border-r border-outline-variant flex flex-col fixed top-16 bottom-0 left-0 z-50 p-4 transition-transform duration-300 transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        {/* Brand */}
-        <div className="mb-8 px-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#4f46e5] flex items-center justify-center text-white">
-              <Armchair size={20} />
-            </div>
-            <div>
-              <h1 className="font-heading text-lg font-bold text-primary leading-tight">Rong Plan</h1>
-              <p className="font-sans text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
-                {user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
-                  ? 'Admin Portal'
-                  : user?.role === 'USER'
-                  ? 'User Portal'
-                  : 'Organizer Portal'}
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Brand area removed as per design */}
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 overflow-y-auto pr-2 custom-scrollbar">
@@ -237,11 +215,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.key}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all duration-200 active:scale-95 ${
-                  isActive
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all duration-200 active:scale-95 ${isActive
                     ? 'bg-gradient-to-r from-primary/10 to-transparent text-primary border-l-2 border-primary shadow-[inset_2px_0_10px_rgba(123,85,250,0.05)]'
                     : 'text-on-surface-variant hover:bg-surface-container-high hover:text-foreground'
-                }`}
+                  }`}
               >
                 <Icon size={18} />
                 <span>{item.label}</span>
@@ -261,19 +238,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <span>Create New Event</span>
             </button>
           )}
-          
+
           <Link href="#" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high hover:text-foreground rounded-lg px-4 py-2 text-sm font-bold transition-colors">
             <HelpCircle size={18} />
             <span>Support</span>
           </Link>
 
-          <button 
+          <button
             onClick={async () => { setSidebarOpen(false); await logout(); router.push('/sign-in'); }}
             className="w-full flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high hover:text-error rounded-lg px-4 py-2 text-sm font-bold transition-colors border-0 bg-transparent text-left cursor-pointer"
           >
             <LogOut size={18} />
             <span>Sign Out</span>
           </button>
+
+          {/* User Profile */}
+          <div className="mt-4 pt-4 border-t border-outline-variant flex items-center gap-3 px-2">
+            <Avatar size={40} className="bg-primary flex-shrink-0 flex items-center justify-center font-bold text-white">
+              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+            </Avatar>
+            <div className="flex flex-col overflow-hidden">
+              <Text className="font-bold text-sm text-foreground m-0 truncate leading-tight">
+                {user?.name || 'User'}
+              </Text>
+              <Text className="text-xs text-on-surface-variant m-0 truncate">
+                {getRoleLabel()}
+              </Text>
+            </div>
+          </div>
         </div>
       </aside>
 
