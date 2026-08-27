@@ -54,7 +54,7 @@ export default function SignInPage() {
         <div className="w-full max-w-md">
           {error && (
             <Alert
-              message={error}
+              title={error}
               type="error"
               showIcon
               closable

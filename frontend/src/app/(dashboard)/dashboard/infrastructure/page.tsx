@@ -16,6 +16,8 @@ export default function AdminInfrastructurePage() {
 
   const [queueSize, setQueueSize] = useState(0);
   const [healthStatus, setHealthStatus] = useState('OPERATIONAL');
+  const [nodes, setNodes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -24,27 +26,25 @@ export default function AdminInfrastructurePage() {
   }
 
   useEffect(() => {
-    async function fetchStats() {
+    async function fetchHealth() {
       try {
-        const res = await fetch('/api/v1/admin/queue-stats');
+        const res = await fetch('/api/v1/admin/infrastructure/health');
         if (res.ok) {
           const data = await res.json();
-          setQueueSize(data.waiting || 0);
+          setQueueSize(data.queueSize || 0);
+          setHealthStatus(data.healthStatus || 'OPERATIONAL');
+          setNodes(data.nodes || []);
         }
-      } catch {
-        setQueueSize(0);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
     }
-    fetchStats();
-    const interval = setInterval(fetchStats, 5000);
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 10000);
     return () => clearInterval(interval);
   }, []);
-
-  const nodes = [
-    { name: 'Application Server Node 1', status: 'ONLINE', load: '12%', ping: '4ms' },
-    { name: 'Database Cluster (Primary)', status: 'ONLINE', load: '8%', ping: '1ms' },
-    { name: 'Redis Cache (Session Store)', status: 'ONLINE', load: '3%', ping: '1ms' }
-  ];
 
   const columns = [
     { key: 'name', title: 'System Component Node' },
@@ -52,7 +52,9 @@ export default function AdminInfrastructurePage() {
       key: 'status',
       title: 'Status',
       render: (row: any) => (
-        <span className="inline-flex px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-secondary-container/10 text-secondary">
+        <span className={`inline-flex px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+          row.status === 'ONLINE' ? 'bg-secondary-container/10 text-secondary' : 'bg-tertiary/10 text-tertiary'
+        }`}>
           {row.status}
         </span>
       )
@@ -60,6 +62,8 @@ export default function AdminInfrastructurePage() {
     { key: 'load', title: 'Resource Utilization' },
     { key: 'ping', title: 'Latency Response' }
   ];
+
+  const dbNode = nodes.find(n => n.name.includes('Database'));
 
   return (
     <div className="space-y-6">
@@ -78,9 +82,9 @@ export default function AdminInfrastructurePage() {
         />
         <StatCard
           title="Primary Database Node"
-          value="Online"
+          value={dbNode?.status || 'Online'}
           icon={<Database size={20} />}
-          subtitle="Connection pool: 12/50"
+          subtitle={dbNode?.status === 'ONLINE' ? `Latency: ${dbNode.ping}` : 'Database is disconnected'}
           color="var(--secondary)"
           bg="rgba(0, 108, 73, 0.05)"
         />
@@ -88,7 +92,7 @@ export default function AdminInfrastructurePage() {
           title="Overall Health Status"
           value={healthStatus}
           icon={<Activity size={20} />}
-          subtitle="All components fully operational"
+          subtitle={healthStatus === 'OPERATIONAL' ? 'All components fully operational' : 'System is experiencing degraded performance'}
           color="var(--secondary)"
           bg="rgba(0, 108, 73, 0.05)"
         />
@@ -101,6 +105,7 @@ export default function AdminInfrastructurePage() {
         <DataTable 
           columns={columns} 
           data={nodes.slice((currentPage - 1) * pageSize, currentPage * pageSize)} 
+          loading={loading}
         />
         {nodes.length > 0 && (
           <div className="flex justify-end pt-2">

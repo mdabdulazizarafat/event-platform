@@ -13,6 +13,7 @@ interface DataTableProps<T> {
   data: T[];
   emptyText?: string;
   onRowClick?: (row: T) => void;
+  loading?: boolean;
 }
 
 export default function DataTable<T extends { id?: string | number }>({
@@ -20,6 +21,7 @@ export default function DataTable<T extends { id?: string | number }>({
   data,
   emptyText = 'No data available',
   onRowClick,
+  loading,
 }: DataTableProps<T>) {
   return (
     <div className="w-full overflow-x-auto rounded-xl border border-outline-variant bg-surface-container-lowest">
@@ -34,7 +36,13 @@ export default function DataTable<T extends { id?: string | number }>({
           </tr>
         </thead>
         <tbody className="divide-y divide-outline-variant/40">
-          {data.length > 0 ? (
+          {loading ? (
+            <tr>
+              <td colSpan={columns.length} className="px-6 py-10 text-center text-body-sm text-on-surface-variant italic">
+                Loading data...
+              </td>
+            </tr>
+          ) : data.length > 0 ? (
             data.map((row, index) => (
               <tr
                 key={row.id ?? index}

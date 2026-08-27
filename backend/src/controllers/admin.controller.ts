@@ -184,6 +184,34 @@ export class AdminController {
   }
 
   /**
+   * Fetch finance stats and ledger for dashboard.
+   * GET /api/v1/admin/finance/stats
+   */
+  static async getFinanceStats(req: Request, res: Response) {
+    try {
+      const stats = await AdminService.getFinanceStats();
+      return res.status(200).json(stats);
+    } catch (error: any) {
+      logger.error({ err: error }, 'Admin get finance stats error');
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  /**
+   * Fetch real system health telemetry.
+   * GET /api/v1/admin/infrastructure/health
+   */
+  static async getInfrastructureHealth(req: Request, res: Response) {
+    try {
+      const health = await AdminService.getInfrastructureHealth();
+      return res.status(200).json(health);
+    } catch (error: any) {
+      logger.error({ err: error }, 'Admin get infrastructure health error');
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  /**
    * List pending organizer applications.
    * GET /api/v1/admin/organizer-applications
    */
@@ -207,7 +235,7 @@ export class AdminController {
       const adminUsername = req.user!.username;
       const user = await AdminService.approveOrganizer(username, adminUsername);
       return res.status(200).json({
-        message: `Approved organizer application for "${username}".`,
+        message: 'you became an organizer in the ayojok, please follow the  event rules when creat the event.',
         user
       });
     } catch (error: any) {
@@ -226,11 +254,29 @@ export class AdminController {
       const adminUsername = req.user!.username;
       const user = await AdminService.rejectOrganizer(username, adminUsername);
       return res.status(200).json({
-        message: `Rejected organizer application for "${username}". Reverted to PARTICIPANT.`,
+        message: 'Your application was rejected. update your profile and try again.',
         user
       });
     } catch (error: any) {
       logger.error({ err: error }, 'Admin reject organizer error');
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  /**
+   * Suspend an organizer application or privileges.
+   */
+  static async suspendOrganizer(req: Request, res: Response) {
+    try {
+      const { username } = req.params;
+      const adminUsername = req.user!.username;
+      const user = await AdminService.suspendOrganizer(username, adminUsername);
+      return res.status(200).json({
+        message: 'you can not apply for organzier anymore',
+        user
+      });
+    } catch (error: any) {
+      logger.error({ err: error }, 'Admin suspend organizer error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

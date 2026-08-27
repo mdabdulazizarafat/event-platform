@@ -42,8 +42,15 @@ export class AuthController {
       }
 
       // Enforce valid roles for public registration
-      const targetRole = role === 'ORGANIZER' ? 'ORGANIZER' : 'USER';
-      const targetStatus = targetRole === 'ORGANIZER' ? 'PENDING_APPROVAL' : 'ACTIVE';
+      const targetRole = 'USER';
+      const targetStatus = 'ACTIVE';
+
+      // Enforce Service Controls
+      const settingsRes = await pool.query("SELECT value FROM platform_settings WHERE key = 'features'");
+      const features = settingsRes.rows[0]?.value || {};
+      if (features.signUp === false) {
+        return res.status(403).json({ error: 'New account registration is currently disabled.' });
+      }
 
       // Check if username or email is already taken
       const checkUser = await pool.query(
@@ -85,9 +92,7 @@ export class AuthController {
       const newUser = insertRes.rows[0];
 
       return res.status(201).json({
-        message: targetStatus === 'PENDING_APPROVAL'
-          ? 'Organizer application submitted successfully. Pending admin approval.'
-          : 'Registration successful',
+        message: 'Registration successful',
         user: newUser
       });
     } catch (error: any) {
@@ -120,10 +125,20 @@ export class AuthController {
 
       const user = userRes.rows[0];
 
+      const settingsRes = await pool.query("SELECT value FROM platform_settings WHERE key = 'features'");
+      const features = settingsRes.rows[0]?.value || {};
+      if (features.signIn === false && user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Sign in is currently disabled by the administrator.' });
+      }
+
       // Validate credentials using bcrypt
       const isMatch = await bcrypt.compare(password, user.password_hash);
       if (!isMatch) {
         return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      if (user.status === 'SUSPENDED') {
+        return res.status(403).json({ error: 'Your account has been suspended. Please contact the Ayojok support team to resolve this problem.' });
       }
 
       // Sign Stateless JWT via Asymmetric Private Key (RS256)
@@ -133,7 +148,8 @@ export class AuthController {
         role: user.role || 'USER',
         mobile: user.mobile,
         org: user.org,
-        status: user.status || 'ACTIVE'
+        status: user.status || 'ACTIVE',
+        organizerStatus: user.organizer_status
       };
       
       const token = jwt.sign(tokenPayload, getPrivateKey(), {
@@ -159,7 +175,8 @@ export class AuthController {
           role: user.role || 'USER',
           mobile: user.mobile,
           org: user.org,
-          status: user.status || 'ACTIVE'
+          status: user.status || 'ACTIVE',
+          organizerStatus: user.organizer_status
         }
       });
     } catch (error: any) {
@@ -189,7 +206,7 @@ export class AuthController {
     }
     
     try {
-      const userRes = await pool.query('SELECT username, name, first_name as "firstName", last_name as "lastName", email, avatar, bio, role, mobile, org, status, date_of_birth as "dateOfBirth", gender, occupation_type as "occupationType", institution_name as "institutionName", class_level as "classLevel", position, district FROM users WHERE username = $1', [req.user.username]);
+      const userRes = await pool.query('SELECT username, name, first_name as "firstName", last_name as "lastName", email, avatar, bio, role, mobile, org, status, organizer_status as "organizerStatus", rejection_count as "rejectionCount", date_of_birth as "dateOfBirth", gender, occupation_type as "occupationType", institution_name as "institutionName", class_level as "classLevel", position, district FROM users WHERE username = $1', [req.user.username]);
       if (userRes.rowCount === 0) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -278,7 +295,7 @@ export class AuthController {
         UPDATE users
         SET ${setClauses.join(', ')}
         WHERE username = $${paramIndex}
-        RETURNING username, name, first_name as "firstName", last_name as "lastName", email, avatar, bio, mobile, org, role, status, date_of_birth as "dateOfBirth", gender, occupation_type as "occupationType", institution_name as "institutionName", class_level as "classLevel", position, district;
+        RETURNING username, name, first_name as "firstName", last_name as "lastName", email, avatar, bio, mobile, org, role, status, organizer_status as "organizerStatus", rejection_count as "rejectionCount", date_of_birth as "dateOfBirth", gender, occupation_type as "occupationType", institution_name as "institutionName", class_level as "classLevel", position, district;
       `;
       
       const updateRes = await pool.query(query, values);
@@ -321,6 +338,68 @@ export class AuthController {
     } catch (error: any) {
       logger.error({ err: error }, 'Error uploading avatar');
       return res.status(500).json({ error: error.message || 'Upload failed' });
+    }
+  }
+
+  /**
+   * Apply as an organizer
+   * POST /api/v1/auth/apply-organizer
+   */
+  static async applyOrganizer(req: Request, res: Response) {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthenticated' });
+    }
+
+    try {
+      const settingsRes = await pool.query("SELECT value FROM platform_settings WHERE key = 'features'");
+      const features = settingsRes.rows[0]?.value || {};
+      if (features.organizerApplication === false) {
+        return res.status(403).json({ error: 'Organizer applications are currently disabled.' });
+      }
+
+      const userRes = await pool.query('SELECT * FROM users WHERE username = $1', [req.user.username]);
+      if (userRes.rowCount === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const user = userRes.rows[0];
+      if (user.role === 'ORGANIZER') {
+        return res.status(400).json({ error: 'You are already an organizer.' });
+      }
+      // if (user.rejection_count >= 3) {
+      //   return res.status(403).json({ error: 'Your organizer application has been rejected 3 times. You cannot re-apply.' });
+      // }
+      if (['PENDING', 'APPROVED'].includes(user.organizer_status)) {
+        return res.status(400).json({ error: `Your application is currently ${user.organizer_status}.` });
+      }
+
+      // Check profile completion
+      const requiredFields = ['first_name', 'mobile', 'date_of_birth', 'gender', 'district', 'occupation_type', 'institution_name'];
+      for (const field of requiredFields) {
+        if (!user[field]) {
+          return res.status(400).json({ error: `Please complete your profile. Missing: ${field.replace('_', ' ')}` });
+        }
+      }
+      
+      if (user.occupation_type === 'student' && !user.class_level) {
+        return res.status(400).json({ error: 'Please specify your class level.' });
+      }
+      if (user.occupation_type === 'job' && !user.position) {
+        return res.status(400).json({ error: 'Please specify your position.' });
+      }
+
+      const updateRes = await pool.query(
+        `UPDATE users SET organizer_status = 'PENDING', updated_at = CURRENT_TIMESTAMP WHERE username = $1 RETURNING *`,
+        [req.user.username]
+      );
+
+      return res.status(200).json({
+        message: 'Organizer application submitted successfully.',
+        user: { ...updateRes.rows[0], organizerStatus: updateRes.rows[0].organizer_status, rejectionCount: updateRes.rows[0].rejection_count }
+      });
+    } catch (error: any) {
+      logger.error({ err: error }, 'Apply organizer error');
+      return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }
 }

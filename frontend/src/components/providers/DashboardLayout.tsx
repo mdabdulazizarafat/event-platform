@@ -23,7 +23,8 @@ import {
   Award,
   Activity,
   DollarSign,
-  Globe
+  Globe,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -57,12 +58,14 @@ const userNavItems: NavItem[] = [
 const superAdminNavItems: NavItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
   { key: 'accounts', label: 'Users', icon: Users, href: '/dashboard/users' },
+  { key: 'organizer-applications', label: 'Organizer Applications', icon: FileText, href: '/dashboard/organizer-applications' },
   { key: 'events', label: 'Events Directory', icon: Globe, href: '/dashboard/events' },
   { key: 'finance', label: 'Finance Operations', icon: DollarSign, href: '/dashboard/finance' },
   { key: 'infrastructure', label: 'System Health', icon: Activity, href: '/dashboard/infrastructure' },
   { key: 'schedule', label: 'My Schedule', icon: CalendarDays, href: '/dashboard/schedule' },
   { key: 'certificates', label: 'Certificates', icon: Award, href: '/dashboard/certificates' },
   { key: 'profile', label: 'Profile', icon: Users, href: '/dashboard/profile' },
+  { key: 'partners-team', label: 'Partners & Team', icon: Users, href: '/dashboard/partners-team' },
   { key: 'settings', label: 'Platform Settings', icon: Settings, href: '/dashboard/settings' },
 ];
 
@@ -70,6 +73,7 @@ const superAdminNavItems: NavItem[] = [
 const adminNavItems: NavItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
   { key: 'accounts', label: 'Users', icon: Users, href: '/dashboard/users' },
+  { key: 'organizer-applications', label: 'Organizer Applications', icon: FileText, href: '/dashboard/organizer-applications' },
   { key: 'events', label: 'Events Directory', icon: Globe, href: '/dashboard/events' },
   { key: 'finance', label: 'Finance Operations', icon: DollarSign, href: '/dashboard/finance' },
   { key: 'schedule', label: 'My Schedule', icon: CalendarDays, href: '/dashboard/schedule' },
@@ -148,9 +152,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
 
     // Guard admin routes
-    const adminRoutes = ['/dashboard/users', '/dashboard/finance', '/dashboard/infrastructure', '/dashboard/settings'];
+    const adminRoutes = ['/dashboard/users', '/dashboard/finance', '/dashboard/infrastructure', '/dashboard/settings', '/dashboard/organizer-applications', '/dashboard/partners-team'];
     if (adminRoutes.some(route => pathname.startsWith(route)) && !isAdmin) {
       router.push('/dashboard');
+      return;
+    }
+
+    // Guard super admin routes
+    const superAdminRoutes = ['/dashboard/settings', '/dashboard/partners-team'];
+    if (superAdminRoutes.some(route => pathname.startsWith(route)) && user.role !== 'SUPER_ADMIN') {
+      router.push('/dashboard');
+      return;
     }
   }, [user, loading, pathname, router]);
 

@@ -27,6 +27,8 @@ export interface User {
   occupationType?: 'student' | 'job';
   institutionName?: string;
   position?: string;
+  organizerStatus?: string;
+  rejectionCount?: number;
 }
 
 interface AuthContextType {
@@ -54,6 +56,15 @@ interface AuthContextType {
     org?: string;
     role?: string;
     status?: string;
+    firstName?: string;
+    lastName?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    occupationType?: string;
+    institutionName?: string;
+    classLevel?: string;
+    position?: string;
+    district?: string;
   }) => Promise<boolean>;
   refetchUser: () => Promise<void>;
   logout: () => Promise<void>;
@@ -187,6 +198,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     org?: string;
     role?: string;
     status?: string;
+    firstName?: string;
+    lastName?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    occupationType?: string;
+    institutionName?: string;
+    classLevel?: string;
+    position?: string;
+    district?: string;
   }): Promise<boolean> => {
     setLoading(true);
     try {

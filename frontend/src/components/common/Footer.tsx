@@ -20,9 +20,8 @@ export default function Footer() {
           {/* Column 1: Products */}
           <div className="space-y-6">
             <div>
-              <h4 className="font-semibold text-foreground mb-4 text-sm">Ayojok</h4>
+              <h4 className="font-semibold text-foreground mb-4 text-sm">Company</h4>
               <ul className="space-y-3 text-sm font-medium">
-                <li><Link href="/" className="!text-black/70 hover:!text-black transition-colors">Home</Link></li>
                 <li><Link href="/events" className="!text-black/70 hover:!text-black transition-colors">Events</Link></li>
                 <li><Link href="/about" className="!text-black/70 hover:!text-black transition-colors">About</Link></li>
                 <li><Link href="/contact" className="!text-black/70 hover:!text-black transition-colors">Contact</Link></li>
@@ -60,14 +59,12 @@ export default function Footer() {
               <ul className="space-y-3 text-sm font-medium">
                 <li><Link href="/sign-in" className="!text-black/70 hover:!text-black transition-colors flex items-center gap-1 group">Sign in <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
                 <li><Link href="/sign-up" className="!text-black/70 hover:!text-black transition-colors flex items-center gap-1 group">Sign up <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
-                <li><Link href="/organizer-signup" className="!text-black/70 hover:!text-black transition-colors flex items-center gap-1 group">Become an Organizer <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-foreground mb-4 text-sm">Company</h4>
+              <h4 className="font-semibold text-foreground mb-4 text-sm">Community</h4>
               <ul className="space-y-3 text-sm font-medium">
-                <li><Link href="/careers" className="!text-black/70 hover:!text-black transition-colors">Careers</Link></li>
-                <li><Link href="/collaborations" className="!text-black/70 hover:!text-black transition-colors">Collaborations</Link></li>
+                <li><Link href="/partners" className="!text-black/70 hover:!text-black transition-colors">Partners</Link></li>
               </ul>
             </div>
           </div>

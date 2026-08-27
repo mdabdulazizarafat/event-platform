@@ -351,7 +351,7 @@ export class TicketController {
         SELECT DISTINCT r.id, r.event_id, r.email, r.status, r.payment_status, r.qr_token, r.registered_at,
           e.title as event_title, e.date as event_date, e.time as event_time, e.location as event_location, e.slug as event_slug, e.contact_email, e.contact_phone,
           (
-            SELECT json_agg(json_build_object('id', ttt.id, 'name', ttt.name, 'price', ttt.price, 'currency', ttt.currency))
+            SELECT jsonb_agg(json_build_object('id', ttt.id, 'name', ttt.name, 'price', ttt.price, 'currency', ttt.currency))
             FROM registration_ticket_types rtt
             JOIN ticket_types ttt ON rtt.ticket_type_id = ttt.id
             WHERE rtt.registration_id = r.id

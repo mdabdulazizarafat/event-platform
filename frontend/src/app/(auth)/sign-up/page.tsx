@@ -76,7 +76,7 @@ export default function SignUpPage() {
         <div className="w-full max-w-md">
           {error && (
             <Alert
-              message={error}
+              title={error}
               type="error"
               showIcon
               closable
@@ -86,7 +86,7 @@ export default function SignUpPage() {
           )}
           {successMsg && (
             <Alert
-              message={successMsg}
+              title={successMsg}
               type="success"
               showIcon
               className="mb-6 rounded-xl border-emerald-200 text-xs shadow-sm"
@@ -195,10 +195,6 @@ export default function SignUpPage() {
 
             <div className="mt-6 text-center text-sm text-on-surface-variant">
               Already part of the network? <Link href="/sign-in" className="font-bold text-primary hover:underline">Login here</Link>
-            </div>
-            
-            <div className="mt-4 text-center text-sm text-on-surface-variant border-t border-outline-variant/50 pt-4">
-              Looking to host events? <Link href="/organizer-signup" className="font-bold text-emerald-500 hover:underline">Apply as Organizer</Link>
             </div>
           </Form>
         </div>

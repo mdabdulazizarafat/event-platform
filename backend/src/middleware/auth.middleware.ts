@@ -3,10 +3,11 @@ import jwt from 'jsonwebtoken';
 import { getPublicKey } from '../services/crypto.service';
 import { UserPayload } from '../types';
 import { createChildLogger } from '../lib/logger';
+import { pool } from '../db/pool';
 
 const logger = createChildLogger('auth.middleware');
 
-export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
     let token: string | undefined;
 
@@ -28,11 +29,22 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
     // 3. Cryptographically validate token via Asymmetric Public Key
     const decoded = jwt.verify(token, getPublicKey(), { algorithms: ['RS256'] }) as UserPayload;
     
-    // 4. Inject payload context into Express request
+    // 4. Query database to get fresh user status and role (realtime enforcement)
+    const dbUserRes = await pool.query('SELECT status, role FROM users WHERE username = $1', [decoded.username]);
+    if (dbUserRes.rowCount === 0) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+    const dbUser = dbUserRes.rows[0];
+
+    if (dbUser.status === 'SUSPENDED') {
+      return res.status(403).json({ error: 'Your account has been suspended. Please contact the Ayojok support team to resolve this problem.' });
+    }
+
+    // 5. Inject payload context into Express request
     req.user = {
       username: decoded.username,
       email: decoded.email,
-      role: decoded.role,
+      role: dbUser.role || decoded.role,
     };
 
     return next();

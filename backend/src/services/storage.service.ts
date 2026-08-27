@@ -32,9 +32,17 @@ export class StorageService {
   private static publicUrl = process.env.R2_PUBLIC_URL || 'https://mock-public-bucket.r2.dev';
 
   /**
-   * Dynamic WebP compression utility to ensure output buffer is strictly under 100KB.
+   * Dynamic image compression utility to ensure output buffer is strictly under 100KB.
    */
-  private static async compressToWebPUnder100kb(imageBuffer: Buffer, width: number, height: number): Promise<Buffer> {
+  private static async compressImageUnder100kb(imageBuffer: Buffer, width: number, height: number, format: 'webp' | 'png'): Promise<Buffer> {
+    if (format === 'png') {
+      // PNG compression - standard lossless compression
+      return await sharp(imageBuffer)
+        .resize(width, height, { fit: 'inside', withoutEnlargement: true })
+        .png({ compressionLevel: 8, palette: true }) // palette: true enables pngquant-like optimization for small sizes
+        .toBuffer();
+    }
+
     let quality = 80;
     let processed = await sharp(imageBuffer)
       .resize(width, height, { fit: 'inside', withoutEnlargement: true })
@@ -49,6 +57,10 @@ export class StorageService {
         .toBuffer();
     }
     return processed;
+  }
+
+  private static async compressToWebPUnder100kb(imageBuffer: Buffer, width: number, height: number): Promise<Buffer> {
+    return this.compressImageUnder100kb(imageBuffer, width, height, 'webp');
   }
 
   /**
@@ -84,6 +96,24 @@ export class StorageService {
       throw new Error('Event banner upload failed');
     }
   }
+
+  /**
+   * Process and upload a partner logo or team member profile image to R2.
+   * Uploads into the single folder `partners_team/`.
+   */
+  static async uploadPartnerOrTeamImage(filename: string, imageBuffer: Buffer, isPng: boolean = false): Promise<string> {
+    try {
+      const format = isPng ? 'png' : 'webp';
+      const processedBuffer = await this.compressImageUnder100kb(imageBuffer, 800, 800, format);
+      const key = `partners_team/${filename}.${format}`;
+      const url = await this.uploadAsset(key, processedBuffer, `image/${format}`);
+      return `${url}?v=${Date.now()}`;
+    } catch (err: any) {
+      logger.error({ err, filename }, 'Failed to process and upload partner/team image');
+      throw new Error('Partner/Team image upload failed');
+    }
+  }
+
 
   /**
    * Upload an asset buffer to Cloudflare R2 bucket.

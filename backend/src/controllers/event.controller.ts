@@ -190,6 +190,13 @@ export class EventController {
         teamName, teamMembers
       } = req.body;
 
+      // Enforce Service Controls
+      const settingsRes = await pool.query("SELECT value FROM platform_settings WHERE key = 'features'");
+      const features = settingsRes.rows[0]?.value || {};
+      if (features.participantRegistration === false) {
+        return res.status(403).json({ error: 'Participant registrations are currently disabled globally by the administrator.' });
+      }
+
       const ticketTypeIds = incomingTicketTypeIds || (ticketTypeId ? [ticketTypeId] : []);
 
       if (!email || !userId) {

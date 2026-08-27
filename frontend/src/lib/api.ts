@@ -428,9 +428,19 @@ export async function updateProfile(data: {
   }
   return resData;
 }
-
+export async function applyAsOrganizer() {
+  const response = await fetch('/api/v1/auth/apply-organizer', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const resData = await response.json();
+  if (!response.ok) {
+    throw new Error(resData.error || 'Failed to apply as organizer');
+  }
+  return resData;
+}
 export async function fetchPendingOrganizers() {
-  const response = await fetch('/api/v1/admin/organizer-applications');
+  const response = await fetch('/api/v1/admin/organizers/pending');
   if (!response.ok) {
     throw new Error('Failed to load organizer applications');
   }
@@ -438,8 +448,8 @@ export async function fetchPendingOrganizers() {
 }
 
 export async function approveOrganizerApplication(username: string) {
-  const response = await fetch(`/api/v1/admin/organizer-applications/${username}/approve`, {
-    method: 'PUT',
+  const response = await fetch(`/api/v1/admin/organizers/${username}/approve`, {
+    method: 'POST',
   });
   const resData = await response.json();
   if (!response.ok) {
@@ -449,12 +459,23 @@ export async function approveOrganizerApplication(username: string) {
 }
 
 export async function rejectOrganizerApplication(username: string) {
-  const response = await fetch(`/api/v1/admin/organizer-applications/${username}/reject`, {
-    method: 'PUT',
+  const response = await fetch(`/api/v1/admin/organizers/${username}/reject`, {
+    method: 'POST',
   });
   const resData = await response.json();
   if (!response.ok) {
     throw new Error(resData.error || 'Failed to reject organizer');
+  }
+  return resData;
+}
+
+export async function suspendOrganizerApplication(username: string) {
+  const response = await fetch(`/api/v1/admin/organizers/${username}/suspend`, {
+    method: 'POST',
+  });
+  const resData = await response.json();
+  if (!response.ok) {
+    throw new Error(resData.error || 'Failed to suspend organizer');
   }
   return resData;
 }

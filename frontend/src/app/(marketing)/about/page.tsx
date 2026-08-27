@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Target, Users, Zap, Heart } from 'lucide-react';
+import TeamSection from '@/components/marketing/TeamSection';
 
 export const metadata = {
   title: 'About Us | Ayojok',
@@ -85,6 +86,9 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+
+      {/* Team Section */}
+      <TeamSection />
 
       {/* CTA */}
       <section className="max-w-4xl mx-auto px-6 py-16 text-center">

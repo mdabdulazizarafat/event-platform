@@ -29,6 +29,8 @@ router.delete('/events/:id/team/:username', requireGlobalRole(['ADMIN', 'SUPER_A
 // Audit logs & Stats
 router.get('/logs', requireGlobalRole(['SUPER_ADMIN']), AdminController.listLogs);
 router.get('/stats', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.getDashboardStats);
+router.get('/finance/stats', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.getFinanceStats);
+router.get('/infrastructure/health', requireGlobalRole(['SUPER_ADMIN']), AdminController.getInfrastructureHealth);
 
 // Global Platform Settings
 router.get('/settings', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), SettingsController.getSettings);
@@ -36,8 +38,10 @@ router.put('/settings', requireGlobalRole(['SUPER_ADMIN']), SettingsController.u
 
 // Organizer Applications moderation routes
 router.get('/organizer-applications', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.listOrganizerApplications);
-router.put('/organizer-applications/:username/approve', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.approveOrganizer);
-router.put('/organizer-applications/:username/reject', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.rejectOrganizer);
+router.get('/organizers/pending', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.listOrganizerApplications);
+router.post('/organizers/:username/approve', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.approveOrganizer);
+router.post('/organizers/:username/reject', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.rejectOrganizer);
+router.post('/organizers/:username/suspend', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.suspendOrganizer);
 
 
 // Granular admin permissions routes

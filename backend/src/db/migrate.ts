@@ -77,6 +77,8 @@ export async function runMigrations() {
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS mobile VARCHAR(20)').catch(() => {});
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS org VARCHAR(255)').catch(() => {});
     await client.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'").catch(() => {});
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS organizer_status VARCHAR(20) DEFAULT NULL').catch(() => {});
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS rejection_count INT DEFAULT 0').catch(() => {});
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100)').catch(() => {});
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100)').catch(() => {});
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth VARCHAR(50)').catch(() => {});
@@ -376,6 +378,43 @@ export async function runMigrations() {
         issued_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(registration_id, certificate_type)
       )
+    `).catch(() => {});
+
+    // 16.5 Create Partners and Team Members tables
+    logger.info('Applying Partners and Team Members migrations...');
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS partners (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        logo VARCHAR(512),
+        description TEXT,
+        website VARCHAR(512),
+        founder_name VARCHAR(255),
+        founder_title VARCHAR(255),
+        sort_order INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS team_members (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        role VARCHAR(255),
+        image VARCHAR(512),
+        bio TEXT,
+        sort_order INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `).catch(() => {});
+
+    // Ensure role column allows NULLs in existing tables
+    await client.query(`
+      ALTER TABLE team_members ALTER COLUMN role DROP NOT NULL;
     `).catch(() => {});
 
     // 17. Optional environment-driven initial super admin provisioning

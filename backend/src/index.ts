@@ -10,6 +10,7 @@ import paymentRoutes from './routes/payment.routes';
 import adminRoutes from './routes/admin.routes';
 import queueRoutes from './routes/queue-monitor';
 import certificateRoutes from './routes/certificate.routes';
+import partnersTeamRoutes from './routes/partners-team.routes';
 import { runMigrations } from './db/migrate';
 import { startStatusScheduler } from './workers/status-scheduler';
 import logger from './lib/logger';
@@ -34,6 +35,7 @@ app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/admin/queues', queueRoutes);
 app.use('/api/v1/certificates', certificateRoutes);
+app.use('/api/v1', partnersTeamRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {

@@ -90,7 +90,7 @@ export default function MyTicketsPage() {
         <p className="text-sm text-on-surface-variant mt-1.5 mb-0">View your active tickets, scan histories, and checkpoint claim status.</p>
       </div>
 
-      {error && <Alert type="error" message={error} showIcon />}
+      {error && <Alert type="error" title={error} showIcon />}
 
       {tickets.length === 0 ? (
         <div className="bento-card text-center py-12 flex flex-col items-center justify-center">

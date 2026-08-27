@@ -11,6 +11,8 @@ import Button from '@/components/ui/Button';
 const navLinks = [
   { label: 'Home', href: '/' },
   { label: 'Events', href: '/events' },
+  { label: 'Partners', href: '/partners' },
+  { label: 'Team', href: '/about#team' },
   { label: 'About', href: '/about' },
   { label: 'Contact', href: '/contact' },
 ];
@@ -276,7 +278,7 @@ export default function Navbar() {
                   </Button>
                   <Button
                     variant="primary"
-                    onClick={() => { setMenuOpen(false); router.push('/organizer-signup'); }}
+                    onClick={() => { setMenuOpen(false); router.push('/sign-up'); }}
                     className="w-full"
                   >
                     Register

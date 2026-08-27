@@ -67,7 +67,7 @@ export default function TermsAndConditionsPage() {
           <p>
             If you have any questions about these Terms, please contact us at:
             <br />
-            <a href="mailto:legal@rongplan.com" className="text-primary hover:underline">legal@rongplan.com</a>
+            <a href="mailto:ayojok@rongplan.com" className="text-primary hover:underline">legal@rongplan.com</a>
           </p>
         </article>
 

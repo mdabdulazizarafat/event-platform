@@ -10,5 +10,6 @@ router.post('/logout', AuthController.logout);
 router.get('/me', authMiddleware, AuthController.me);
 router.put('/profile', authMiddleware, AuthController.updateProfile);
 router.post('/upload-avatar', authMiddleware, AuthController.uploadAvatar);
+router.post('/apply-organizer', authMiddleware, AuthController.applyOrganizer);
 
 export default router;

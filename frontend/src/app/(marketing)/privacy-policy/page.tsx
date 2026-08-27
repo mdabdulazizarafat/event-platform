@@ -65,7 +65,7 @@ export default function PrivacyPolicyPage() {
           <p>
             If you have any questions about this Privacy Policy, please contact us at:
             <br />
-            <a href="mailto:privacy@rongplan.com" className="text-primary hover:underline">privacy@rongplan.com</a>
+            <a href="mailto:ayojok@rongplan.com" className="text-primary hover:underline">privacy@rongplan.com</a>
           </p>
         </article>
 
