@@ -13,17 +13,17 @@ import {
   InputNumber, 
   Switch, 
   Upload, 
-  message, 
+  App, 
   Popconfirm 
 } from 'antd';
 import { Plus, Edit2, Trash2, Link as LinkIcon, Eye } from 'lucide-react';
 import { UploadOutlined } from '@ant-design/icons';
 
-const { TabPane } = Tabs;
 const { TextArea } = Input;
 
 export default function SuperAdminPartnersTeamPage() {
   const { user } = useAuth();
+  const { message } = App.useApp();
   
   if (user && user.role !== 'SUPER_ADMIN') {
     return <div className="text-center py-20 text-error font-bold">Unauthorized Access - Super Admin Only</div>;
@@ -349,55 +349,67 @@ export default function SuperAdminPartnersTeamPage() {
       />
 
       <div className="bg-card rounded-xl p-6 shadow-ambient">
-        <Tabs activeKey={activeTab} onChange={setActiveTab} className="custom-tabs">
-          <TabPane tab="Partners / Collaborators" key="partners">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="font-heading text-lg font-bold text-foreground m-0">Collaborating Brands</h3>
-                <Button variant="primary" onClick={() => {
-                  setEditingPartner(null);
-                  setLogoUrl('');
-                  partnerForm.resetFields();
-                  setIsPartnerModalOpen(true);
-                }}>
-                  <span className="flex items-center gap-2">
-                    <Plus size={16} /> Add Partner
-                  </span>
-                </Button>
-              </div>
-              <DataTable
-                columns={partnerColumns}
-                data={partners}
-                emptyText="No partners registered yet."
-                loading={loading}
-              />
-            </div>
-          </TabPane>
-
-          <TabPane tab="Team Members / Mentors" key="team">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="font-heading text-lg font-bold text-foreground m-0">Platform Team</h3>
-                <Button variant="primary" onClick={() => {
-                  setEditingTeamMember(null);
-                  setImageUrl('');
-                  teamForm.resetFields();
-                  setIsTeamModalOpen(true);
-                }}>
-                  <span className="flex items-center gap-2">
-                    <Plus size={16} /> Add Team Member
-                  </span>
-                </Button>
-              </div>
-              <DataTable
-                columns={teamColumns}
-                data={team}
-                emptyText="No team members registered yet."
-                loading={loading}
-              />
-            </div>
-          </TabPane>
-        </Tabs>
+        <Tabs 
+          activeKey={activeTab} 
+          onChange={setActiveTab} 
+          className="custom-tabs"
+          items={[
+            {
+              key: 'partners',
+              label: 'Partners / Collaborators',
+              children: (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-heading text-lg font-bold text-foreground m-0">Collaborating Brands</h3>
+                    <Button variant="primary" onClick={() => {
+                      setEditingPartner(null);
+                      setLogoUrl('');
+                      partnerForm.resetFields();
+                      setIsPartnerModalOpen(true);
+                    }}>
+                      <span className="flex items-center gap-2">
+                        <Plus size={16} /> Add Partner
+                      </span>
+                    </Button>
+                  </div>
+                  <DataTable
+                    columns={partnerColumns}
+                    data={partners}
+                    emptyText="No partners registered yet."
+                    loading={loading}
+                  />
+                </div>
+              )
+            },
+            {
+              key: 'team',
+              label: 'Team Members / Mentors',
+              children: (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-heading text-lg font-bold text-foreground m-0">Platform Team</h3>
+                    <Button variant="primary" onClick={() => {
+                      setEditingTeamMember(null);
+                      setImageUrl('');
+                      teamForm.resetFields();
+                      setIsTeamModalOpen(true);
+                    }}>
+                      <span className="flex items-center gap-2">
+                        <Plus size={16} /> Add Team Member
+                      </span>
+                    </Button>
+                  </div>
+                  <DataTable
+                    columns={teamColumns}
+                    data={team}
+                    emptyText="No team members registered yet."
+                    loading={loading}
+                  />
+                </div>
+              )
+            }
+          ]}
+        />
       </div>
 
       {/* Partner Modal */}
@@ -407,7 +419,7 @@ export default function SuperAdminPartnersTeamPage() {
         onCancel={() => setIsPartnerModalOpen(false)}
         onOk={() => partnerForm.submit()}
         okText="Save"
-        destroyOnClose
+        forceRender
       >
         <Form
           form={partnerForm}
@@ -477,7 +489,7 @@ export default function SuperAdminPartnersTeamPage() {
         onCancel={() => setIsTeamModalOpen(false)}
         onOk={() => teamForm.submit()}
         okText="Save"
-        destroyOnClose
+        forceRender
       >
         <Form
           form={teamForm}

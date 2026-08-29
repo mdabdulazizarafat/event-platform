@@ -44,11 +44,20 @@ export class EventTeamService {
    */
   static async getTeam(eventId: number) {
     const query = `
-      SELECT t.*, h.name, h.email, h.avatar, h.bio
+      SELECT t.username, t.role, t.invited_by, t.joined_at, h.name, h.email, h.avatar, h.bio
       FROM event_team t
       JOIN users h ON t.username = h.username
       WHERE t.event_id = $1
-      ORDER BY t.role DESC, t.joined_at ASC;
+      
+      UNION
+      
+      SELECT e.host_username as username, 'ORGANIZER' as role, NULL as invited_by, e.created_at as joined_at,
+             u.name, u.email, u.avatar, u.bio
+      FROM events e
+      JOIN users u ON e.host_username = u.username
+      WHERE e.id = $1 AND e.host_username NOT IN (SELECT username FROM event_team WHERE event_id = $1)
+      
+      ORDER BY role DESC, joined_at ASC;
     `;
     const res = await pool.query(query, [eventId]);
     return res.rows;

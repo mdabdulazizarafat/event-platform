@@ -241,7 +241,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
           const stats = await fetchScanStats(slug);
           setScanStats(stats);
           const logs = await fetchScanLogs(slug);
-          setScanLogs(logs);
+          setScanLogs(Array.isArray(logs) ? logs : (logs?.logs || logs?.data || []));
         } catch {
           setScanStats({ totalCheckedIn: 0, totalRegistered: 0, scanRate: 0 });
         }
@@ -850,7 +850,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
           </div>
         }
         action={
-          (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || event?.is_host || event?.is_team_member) ? (
+          (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || event?.hostUsername === user?.username || event?.is_team_member) ? (
             <div className="flex items-center gap-2">
               {(!event.status || event.status === 'DRAFT') && (
                 <Button variant="primary" size="sm" icon={<Power className="w-4 h-4" />} onClick={() => updateStatus('PUBLISHED')}>
@@ -1559,7 +1559,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
           const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
           if (isSuperAdmin) return true;
 
-          if (event?.is_host) return true;
+          if (event?.hostUsername === user?.username) return true;
 
           if (event?.is_team_member) {
             if (event.team_role === 'ORGANIZER') return true;

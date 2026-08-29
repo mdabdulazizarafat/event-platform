@@ -60,6 +60,7 @@ export interface Event {
   is_private?: boolean;
   event_for?: string;
   student_category?: string;
+  category?: string;
 }
 
 export interface Host {
@@ -91,6 +92,13 @@ function mapBackendEventToFrontend(e: any): Event {
     id: e.id,
     is_registered: e.is_registered,
     is_team_member: e.is_team_member,
+    form_tshirt_size: e.form_tshirt_size,
+    form_reference: e.form_reference,
+    form_transaction_id: e.form_transaction_id,
+    is_private: e.is_private,
+    event_for: e.event_for,
+    student_category: e.student_category,
+    category: e.category || 'Tech',
   };
 }
 

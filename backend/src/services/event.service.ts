@@ -25,6 +25,7 @@ export interface CreateEventInput {
   isPrivate?: boolean;
   eventFor?: string;
   studentCategory?: string;
+  category?: string | string[];
 }
 
 export class EventService {
@@ -47,9 +48,9 @@ export class EventService {
           slug, title, description, thumbnail, date, time, start_date, end_date, 
           registration_deadline, location, capacity, contact_email, contact_phone, 
           host_username, status, form_phone, form_job_title, form_organization, 
-          form_tshirt_size, form_reference, form_transaction_id, is_private, event_for, student_category
+          form_tshirt_size, form_reference, form_transaction_id, is_private, event_for, student_category, category
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
         RETURNING id;
       `;
       const res = await client.query(insertQuery, [
@@ -77,6 +78,7 @@ export class EventService {
         input.isPrivate !== undefined ? input.isPrivate : false,
         input.eventFor || 'BOTH',
         input.studentCategory || null,
+        Array.isArray(input.category) ? input.category.join(',') : (input.category || 'Tech'),
       ]);
       const eventId = res.rows[0].id;
 
@@ -133,6 +135,7 @@ export class EventService {
     isPrivate?: boolean;
     eventFor?: string;
     studentCategory?: string;
+    category?: string | string[];
   }, userRole?: string) {
     const client = await pool.connect();
     try {
@@ -150,9 +153,8 @@ export class EventService {
         }
       }
 
-      if (event.host_username !== hostUsername && userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN') {
-        throw new Error('Unauthorized: Only the event host can modify this event.');
-      }
+      // Authorization is handled by requireEventRole middleware
+      // We no longer need to check if event.host_username === hostUsername
 
       const fieldToColumnMap: Record<string, string> = {
         title: 'title',

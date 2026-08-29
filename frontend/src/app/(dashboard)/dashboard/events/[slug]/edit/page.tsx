@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Typography, message, Tabs, Tag } from 'antd';
+import { Typography, message, Tabs, Tag, Select } from 'antd';
 import { ArrowLeft, Save, Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import FormField from '@/components/ui/FormField';
@@ -39,6 +39,10 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
   const [contactPhone, setContactPhone] = useState('');
   const [status, setStatus] = useState('DRAFT');
   const [isUploading, setIsUploading] = useState(false);
+  
+  const [eventFor, setEventFor] = useState('BOTH');
+  const [studentCategory, setStudentCategory] = useState('');
+  const [category, setCategory] = useState<string[]>([]);
   
   // Registration Form Options
   const [formTshirtSize, setFormTshirtSize] = useState(false);
@@ -108,6 +112,12 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
           setFormTshirtSize(data.form_tshirt_size !== undefined ? data.form_tshirt_size : false);
           setFormReference(data.form_reference !== undefined ? data.form_reference : false);
           setFormTransactionId(data.form_transaction_id !== undefined ? data.form_transaction_id : false);
+          
+          if (data.event_for) setEventFor(data.event_for);
+          if (data.student_category) setStudentCategory(data.student_category);
+          if (data.category) {
+            setCategory(data.category.split(','));
+          }
         } else {
           message.error('Failed to load event details');
           router.push(`/dashboard/events/${slug}`);
@@ -226,7 +236,9 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
           registrationDeadline: new Date(`${registrationDeadlineDate}T${registrationDeadlineTime}:00`).toISOString(),
           location,
           capacity: parseInt(capacity), contactEmail, contactPhone, status,
-          formPhone: true, formJobTitle: true, formOrganization: true, formTshirtSize, formReference, formTransactionId
+          formPhone: true, formJobTitle: true, formOrganization: true, formTshirtSize, formReference, formTransactionId,
+          eventFor, studentCategory: eventFor === 'STUDENT' ? studentCategory : null,
+          category
         })
       });
 
@@ -321,6 +333,64 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
             <FormField label="Start Time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
             <FormField label="End Time" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1 relative mb-6">
+              <label className="text-label-bold text-on-surface-variant font-bold uppercase tracking-wider block">
+                Event For
+              </label>
+              <Select
+                value={eventFor}
+                onChange={(val) => setEventFor(val)}
+                className="w-full !rounded-xl"
+                style={{ width: '100%' }}
+                options={[
+                  { label: 'Both', value: 'BOTH' },
+                  { label: 'Student', value: 'STUDENT' },
+                  { label: 'Job Holder', value: 'JOB_HOLDER' }
+                ]}
+              />
+            </div>
+            {eventFor === 'STUDENT' && (
+              <FormField
+                label="Student Category"
+                value={studentCategory}
+                onChange={(e) => setStudentCategory(e.target.value)}
+                placeholder="e.g. Class 6-8"
+              />
+            )}
+          </div>
+
+          <div className="space-y-1 relative mb-6">
+            <label className="text-label-bold text-on-surface-variant font-bold uppercase tracking-wider block">
+              Event Category <span className="text-destructive">*</span>
+            </label>
+            <Select
+              mode="multiple"
+              maxCount={3}
+              allowClear
+              placeholder="Select up to 3 event categories"
+              className="w-full !rounded-xl"
+              style={{ width: '100%' }}
+              value={category}
+              onChange={(val) => setCategory(val)}
+              options={[
+                { label: 'Conferences', value: 'Conferences' },
+                { label: 'Seminars', value: 'Seminars' },
+                { label: 'Workshops', value: 'Workshops' },
+                { label: 'Panel Discussions', value: 'Panel Discussions' },
+                { label: 'Webinars', value: 'Webinars' },
+                { label: 'Tournaments', value: 'Tournaments' },
+                { label: 'Art Exhibition', value: 'Art Exhibition' },
+                { label: 'Tech', value: 'Tech' },
+                { label: 'Business', value: 'Business' },
+                { label: 'Concerts', value: 'Concerts' },
+                { label: 'Festivals', value: 'Festivals' },
+                { label: 'Meetups', value: 'Meetups' },
+              ]}
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="Registration Deadline Date" type="date" value={registrationDeadlineDate} onChange={(e) => setRegistrationDeadlineDate(e.target.value)} required />
             <FormField label="Registration Deadline Time" type="time" value={registrationDeadlineTime} onChange={(e) => setRegistrationDeadlineTime(e.target.value)} required />

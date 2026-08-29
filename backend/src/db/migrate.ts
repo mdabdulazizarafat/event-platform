@@ -136,6 +136,10 @@ export async function runMigrations() {
     await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS form_tshirt_size BOOLEAN DEFAULT false').catch(() => {});
     await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS form_reference BOOLEAN DEFAULT false').catch(() => {});
     await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS form_transaction_id BOOLEAN DEFAULT false').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT false').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS event_for VARCHAR(50) DEFAULT \'BOTH\'').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS student_category VARCHAR(100)').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT \'Tech\'').catch(() => {});
 
     // 5. Ensure ticket_types table exists
     await client.query(`

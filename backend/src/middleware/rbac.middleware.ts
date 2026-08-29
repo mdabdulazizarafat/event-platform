@@ -41,11 +41,6 @@ export function requireEventRole(allowedRoles: ('ORGANIZER' | 'MANAGER' | 'SCANN
 
     const { username, role: globalRole } = req.user;
 
-    // Platform admins bypass local event checks
-    if (globalRole === 'SUPER_ADMIN' || globalRole === 'ADMIN') {
-      return next();
-    }
-
     // Try to resolve event ID or slug from params/body
     const slug = req.params.slug || req.body.eventSlug || req.query.eventSlug as string;
     const eventIdParam = req.params.eventId || req.body.eventId || req.query.eventId as string;
@@ -72,6 +67,14 @@ export function requireEventRole(allowedRoles: ('ORGANIZER' | 'MANAGER' | 'SCANN
         return res.status(404).json({ error: 'Event context not found for authorization check.' });
       }
 
+      // Inject resolved eventId into request for route handlers to use
+      req.resolvedEventId = eventId;
+
+      // Platform admins bypass local event checks
+      if (globalRole === 'SUPER_ADMIN' || globalRole === 'ADMIN') {
+        return next();
+      }
+
       // Check event_team table for user's role
       const teamRes = await pool.query(
         'SELECT role FROM event_team WHERE event_id = $1 AND username = $2',
@@ -90,9 +93,6 @@ export function requireEventRole(allowedRoles: ('ORGANIZER' | 'MANAGER' | 'SCANN
       if (!userRole || !allowedRoles.includes(userRole)) {
         return res.status(403).json({ error: 'Forbidden: You do not have permissions to manage this event.' });
       }
-
-      // Inject resolved eventId into request for route handlers to use
-      req.resolvedEventId = eventId;
 
       return next();
     } catch (error: any) {

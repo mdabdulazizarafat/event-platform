@@ -107,8 +107,8 @@ function ScrollRow({ children, className = '' }: { children: React.ReactNode; cl
 
 /* ── Apple-style Event Card ── */
 function AppleCard({ event }: { event: Event }) {
-  // Uniform square cards exactly as requested
-  const cardSizing = "shrink-0 w-[85vw] sm:w-[360px] md:w-[420px] lg:w-[460px] aspect-square rounded-[24px] overflow-hidden snap-start block no-underline relative shadow-[0_4px_30px_rgba(0,0,0,0.04)] scroll-ml-6 md:scroll-ml-24";
+  // Uniform square cards exactly as requested (Scaled down to ~80% per user request)
+  const cardSizing = "shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden snap-start block no-underline relative shadow-[0_4px_30px_rgba(0,0,0,0.04)] scroll-ml-6 md:scroll-ml-24";
 
   return (
     <Link
@@ -124,20 +124,22 @@ function AppleCard({ event }: { event: Event }) {
         />
       </div>
 
-      {/* 40% Gradient from top */}
+      {/* Premium Smooth Scrim Overlay (Top Down) for text legibility */}
       <div
-        className="absolute top-0 left-0 right-0 h-[40%] pointer-events-none z-10"
-        style={{ background: 'linear-gradient(to bottom, #ffffff 0%, rgba(255,255,255,0) 100%)' }}
+        className="absolute top-0 left-0 right-0 h-[70%] pointer-events-none z-10"
+        style={{
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,0.15) 70%, transparent 100%)'
+        }}
       />
 
       {/* Text area — top */}
       <div className="absolute top-0 left-0 right-0 p-6 md:p-8 z-20 pointer-events-none flex flex-col justify-start">
-        <span className="text-[13px] md:text-[15px] text-[#6e6e73] font-medium block mb-1">
-          {(event as any).category || 'Tech'}
+        <span className="text-[13px] md:text-[15px] text-white/90 font-medium block mb-1 drop-shadow-sm">
+          {event.category}
         </span>
-        <h3 className="font-heading text-2xl md:text-3xl lg:text-4xl font-bold text-[#1d1d1f] leading-tight tracking-tight m-0">
+        <h4 className="font-heading text-lg md:text-lg lg:text-xl font-bold text-white leading-[1.2] m-0">
           {event.title}
-        </h3>
+        </h4>
       </div>
     </Link>
   );
@@ -176,14 +178,37 @@ function FloatingCard({ card, pos, idx }: { card: { title: string; img: string; 
 
 
 export default function MarketingPage() {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [runningEvents, setRunningEvents] = useState<Event[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<Event[]>([]); // Keep for fallback floating cards
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadEvents() {
       try {
         const data = await getUpcomingEvents();
-        setEvents(data);
+        // Exclude ENDED and ARCHIVED events entirely from home page
+        const activeEvents = data.filter(e => e.status !== 'ENDED' && e.status !== 'ARCHIVED');
+        setEvents(activeEvents);
+
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const currentMonthEvents = activeEvents.filter(e => {
+          if (!e.date) return false;
+          const d = new Date(e.date);
+          return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+        });
+
+        const futureEvents = activeEvents.filter(e => {
+          if (!e.date) return true;
+          const d = new Date(e.date);
+          return d.getMonth() !== currentMonth || d.getFullYear() !== currentYear;
+        });
+
+        setRunningEvents(currentMonthEvents);
+        setUpcomingEvents(futureEvents);
       } catch (err) {
         console.error('Failed to load events:', err);
       } finally {
@@ -384,9 +409,11 @@ export default function MarketingPage() {
             </div>
           ) : (
             <ScrollRow className="px-6 md:px-24 gap-6 pb-4">
-              {events.map((event, idx) => (
+              {runningEvents.length > 0 ? runningEvents.map((event, idx) => (
                 <AppleCard key={`running-${event.slug}`} event={event} />
-              ))}
+              )) : (
+                <div className="w-full py-10 text-center text-on-surface-variant italic">No events happening this month.</div>
+              )}
             </ScrollRow>
           )}
         </section>
@@ -406,9 +433,11 @@ export default function MarketingPage() {
             </div>
           ) : (
             <ScrollRow className="px-6 md:px-24 gap-6 pb-4">
-              {events.map((event, idx) => (
+              {upcomingEvents.length > 0 ? upcomingEvents.map((event, idx) => (
                 <AppleCard key={`upcoming-${event.slug}`} event={event} />
-              ))}
+              )) : (
+                <div className="w-full py-10 text-center text-on-surface-variant italic">No upcoming events found.</div>
+              )}
             </ScrollRow>
           )}
         </section>
@@ -428,7 +457,7 @@ export default function MarketingPage() {
               return (
                 <div
                   key={idx}
-                  className="shrink-0 w-[85vw] sm:w-[360px] md:w-[420px] lg:w-[460px] aspect-square rounded-[24px] overflow-hidden bg-white snap-start p-8 md:p-12 flex flex-col shadow-[0_4px_30px_rgba(0,0,0,0.06)] scroll-ml-6 md:scroll-ml-24"
+                  className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white snap-start p-6 md:p-8 flex flex-col shadow-[0_4px_30px_rgba(0,0,0,0.06)] scroll-ml-6 md:scroll-ml-24"
                 >
                   <div className="w-16 h-16 rounded-full bg-[#f5f5f7] flex items-center justify-center mb-8">
                     <Icon size={28} className="text-[#1d1d1f]" />
