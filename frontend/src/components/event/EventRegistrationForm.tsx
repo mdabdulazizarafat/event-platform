@@ -174,7 +174,7 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
         // Paid ticket — initiate SSLCommerz payment
         const result = await initiatePayment({
           eventSlug: event.slug,
-          ticketTypeId: selectedTicket.id,
+          ticketTypeIds: [selectedTicket.id],
           userId: activeUserId,
           email: registeredData.email,
           customerName: registeredData.fullName,

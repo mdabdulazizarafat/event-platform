@@ -74,7 +74,7 @@ export default function SecurePaymentPage({ params }: { params: Promise<{ slug: 
         // Paid Ticket Flow
         const result = await initiatePayment({
           eventSlug: slug,
-          ticketTypeId: ticket.id,
+          ticketTypeIds: [ticket.id],
           userId: user.username,
           email: email,
           customerName: fullName,
