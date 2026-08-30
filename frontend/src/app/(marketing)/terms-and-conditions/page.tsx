@@ -6,7 +6,7 @@ export const metadata = {
 };
 
 export default function TermsAndConditionsPage() {
-  const lastUpdated = "August 12, 2026";
+  const lastUpdated = "August 31, 2026";
 
   return (
     <div className="min-h-screen bg-background pt-24 pb-16">
@@ -20,54 +20,59 @@ export default function TermsAndConditionsPage() {
 
         {/* Content */}
         <article className="prose prose-slate prose-lg max-w-none text-on-surface-variant font-sans">
+          <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">1. Overview & Acceptance of Terms</h2>
           <p>
-            Welcome to <strong>Ayojok</strong>. These Terms and Conditions govern your use of our website and services. By accessing or using our platform, you agree to be bound by these terms.
+            Welcome to <strong>Ayojok</strong>. These Terms & Conditions ("Terms") constitute a legally binding agreement between you ("User," "Customer," or "you") and Ayojok ("Company," "we," "our," or "us"). These Terms govern your access to and use of our website, event management software, and all related technical services.
+          </p>
+          <p>
+            By purchasing tickets, registering an account, or interacting with our platform, you acknowledge that you have read, understood, and agree to be legally bound by these Terms.
           </p>
 
-          <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">1. Acceptance of Terms</h2>
+          <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">2. Products & Services Provided</h2>
           <p>
-            By creating an account, hosting an event, or purchasing a ticket, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions and our Privacy Policy.
-          </p>
-
-          <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">2. Account Responsibilities</h2>
-          <p>
-            You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You agree to notify us immediately of any unauthorized use of your account.
-          </p>
-
-          <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">3. Event Hosting (Organizers)</h2>
-          <p>
-            If you are an organizer hosting an event through Ayojok:
+            Ayojok specializes in comprehensive event management and ticketing solutions. Our platform includes, but is not limited to:
           </p>
           <ul className="list-disc pl-6 space-y-2 mb-6">
-            <li>You are solely responsible for your event and ensuring it complies with all local laws and regulations.</li>
-            <li>You must accurately describe the event, including any fees, location details, and refund policies.</li>
-            <li>Ayojok is not responsible for the execution, quality, or safety of any event hosted on our platform.</li>
+            <li>Digital event discovery and ticket purchasing.</li>
+            <li>Cloud-hosted organizer dashboards for managing events and attendees.</li>
+            <li>Secure QR-code ticket generation and scanning software.</li>
           </ul>
-
-          <h2 className="text-2xl font-bold text-[#0a2540] mt-10 mb-4">4. Purchasing Tickets (Attendees)</h2>
           <p>
-            If you are purchasing a ticket through Ayojok:
+            We reserve the right to modify, upgrade, suspend, or discontinue any aspect of our software features at our discretion, without prior notice.
           </p>
+
+          <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">3. User Responsibilities & Conduct</h2>
           <ul className="list-disc pl-6 space-y-2 mb-6">
-            <li>You agree to pay all charges incurred by you or any users of your account at the prices in effect when such charges are incurred.</li>
-            <li>Refund policies are set by the individual Event Organizers. Ayojok does not issue refunds unless directed by the Organizer or required by law.</li>
+            <li><strong>Accuracy of Information:</strong> You agree to provide true, accurate, and complete information during registration.</li>
+            <li><strong>Lawful Usage:</strong> You agree not to use Ayojok for any unlawful, deceptive, fraudulent, or harmful purposes, including creating fake events.</li>
+            <li><strong>Content Restrictions:</strong> Organizers are solely liable for the content of their events. You strictly agree not to host material that is offensive, defamatory, obscene, or violating any laws.</li>
           </ul>
 
-          <h2 className="text-2xl font-bold text-[#0a2540] mt-10 mb-4">5. Intellectual Property</h2>
+          <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">4. Orders, Payments, & Ticketing</h2>
           <p>
-            All content, features, and functionality on the platform (including text, graphics, logos, and software) are owned by Ayojok and are protected by international copyright, trademark, and other intellectual property laws.
+            Prices for event tickets are specified on our platform by the respective organizers. Payment must be cleared in full through our authorized payment processing gateways before a ticket is issued. Ayojok acts as an intermediary ticketing platform; specific refund policies for events are determined by the event organizers.
           </p>
 
-          <h2 className="text-2xl font-bold text-[#0a2540] mt-10 mb-4">6. Limitation of Liability</h2>
+          <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">5. Limitation of Liability</h2>
           <p>
-            In no event shall Ayojok, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the Service.
+            To the maximum extent permitted by applicable law, Ayojok shall not be liable for any indirect, incidental, special, or consequential damages resulting from the use or inability to use our platform, cancellation of events by organizers, or any disputes between attendees and organizers.
           </p>
 
-          <h2 className="text-2xl font-bold text-[#0a2540] mt-10 mb-4">7. Contact Us</h2>
+          <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">6. Intellectual Property Rights</h2>
+          <p>
+            All branding elements, source code, and user interface designs created by Ayojok are the exclusive intellectual property of Ayojok. Users retain full ownership of the text and images they personally upload to their event profiles.
+          </p>
+
+          <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">7. Governing Law & Jurisdiction</h2>
+          <p>
+            These Terms & Conditions shall be governed by, construed, and enforced in accordance with the laws of the People's Republic of Bangladesh. Disputes shall be brought exclusively before the courts of law located in Dhaka, Bangladesh.
+          </p>
+
+          <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">8. Contact Us</h2>
           <p>
             If you have any questions about these Terms, please contact us at:
             <br />
-            <a href="mailto:ayojok@rongplan.com" className="text-primary hover:underline">legal@rongplan.com</a>
+            <a href="mailto:support@ayojok.com" className="text-primary hover:underline">support@ayojok.com</a>
           </p>
         </article>
 

@@ -62,12 +62,21 @@ export default function SignInPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send code.');
+      
+      let data;
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      }
+      
+      if (!res.ok) {
+        throw new Error((data && data.error) ? data.error : `Server error: ${res.status}. Please try again later.`);
+      }
+      
       setForgotSuccess('If your email is registered, a verification code has been sent.');
       setForgotStep(2);
     } catch (err: any) {
-      setForgotError(err.message);
+      setForgotError(err.message || 'An unexpected error occurred while communicating with the server.');
     } finally {
       setForgotLoading(false);
     }
@@ -87,8 +96,17 @@ export default function SignInPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail, code: forgotCode, newPassword }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to reset password.');
+      
+      let data;
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      }
+      
+      if (!res.ok) {
+        throw new Error((data && data.error) ? data.error : `Server error: ${res.status}. Please try again later.`);
+      }
+      
       setForgotSuccess('Password reset successfully. You can now log in.');
       setTimeout(() => {
         setIsForgotModalVisible(false);
@@ -99,7 +117,7 @@ export default function SignInPage() {
         setForgotSuccess(null);
       }, 2000);
     } catch (err: any) {
-      setForgotError(err.message);
+      setForgotError(err.message || 'An unexpected error occurred while communicating with the server.');
     } finally {
       setForgotLoading(false);
     }
