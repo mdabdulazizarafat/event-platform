@@ -124,10 +124,12 @@ export default function PartnersTeamDashboard() {
             message.success('Profile photo uploaded successfully');
           }
         } else {
-          message.error(data.error || 'Upload failed');
+          message.error(data.error || `Upload failed: ${response.status} ${response.statusText}`);
+          console.error("Upload API Error:", data);
         }
-      } catch (err) {
-        message.error('Upload failed');
+      } catch (err: any) {
+        message.error(`Upload failed: ${err.message || 'Network error'}`);
+        console.error("Upload Catch Error:", err);
       } finally {
         setUploadingLogo(false);
         setUploadingImage(false);
