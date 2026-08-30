@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Typography, message, Tabs, Tag, Select } from 'antd';
 import { ArrowLeft, Save, Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -22,7 +22,9 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('1');
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') || '1';
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
   
   // Form State
   const [title, setTitle] = useState('');
@@ -161,6 +163,11 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      message.error('File size must be under 5MB');
+      return;
+    }
 
     setIsUploading(true);
     const reader = new FileReader();
@@ -597,7 +604,14 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 sm:p-8 shadow-xs">
-          <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={(key) => {
+              setActiveTab(key);
+              router.replace(`/dashboard/events/${slug}/edit?tab=${key}`, { scroll: false });
+            }} 
+            items={tabItems} 
+          />
         </div>
         
         {/* Right Side Live Preview Panel */}

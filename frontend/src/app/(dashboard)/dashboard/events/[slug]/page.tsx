@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Typography, Tag, Tabs, Select, Table, App, Modal, Pagination } from 'antd';
 import {
   Users,
@@ -76,22 +76,13 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
   const [scanPageSize, setScanPageSize] = useState(10);
   const [certCurrentPage, setCertCurrentPage] = useState(1);
   const [certPageSize, setCertPageSize] = useState(10);
-  const [activeTab, setActiveTab] = useState('1');
-
-  // Handle URL query parameter ?tab=X
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const tabParam = urlParams.get('tab');
-      if (tabParam) {
-        setActiveTab(tabParam);
-      }
-    }
-  }, []);
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') || '1';
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
 
   const handleTabChange = (key: string) => {
     setActiveTab(key);
-    router.push(`?tab=${key}`, { scroll: false });
+    router.push(`/dashboard/events/${slug}?tab=${key}`, { scroll: false });
   };
 
   // ----------------------------------------------------

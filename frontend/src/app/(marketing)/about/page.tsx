@@ -5,7 +5,7 @@ import TeamSection from '@/components/marketing/TeamSection';
 
 export const metadata = {
   title: 'About Us | Ayojok',
-  description: 'Learn about Ayojok and our mission to simplify event management.',
+  description: 'Ayojok was built with a simple goal: to make event management seamless, beautiful and accessible for everyone',
 };
 
 export default function AboutPage() {
@@ -33,7 +33,7 @@ export default function AboutPage() {
             </span>
           </h1>
           <p className="text-xl text-on-surface-variant max-w-2xl mx-auto mb-10 leading-relaxed font-sans">
-            Ayojok was built with a simple goal: to make event management seamless, beautiful, and accessible for everyone from solo organizers to large enterprises.
+            Ayojok was built with a simple goal: to make event management seamless, beautiful and accessible for everyone from solo organizers to large enterprises.
           </p>
         </div>
       </section>
@@ -103,7 +103,7 @@ export default function AboutPage() {
               href="/sign-up"
               className="inline-flex items-center justify-center bg-gradient-to-br from-primary to-secondary hover:opacity-90 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg transition-all"
             >
-              Get Started for Free
+              Get Started
             </Link>
           </div>
         </div>

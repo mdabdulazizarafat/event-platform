@@ -19,13 +19,10 @@ export default function ContactPage() {
 
         <div className="max-w-7xl mx-auto px-6 py-16 text-center z-10 relative">
           <h1 className="text-display-ticket text-foreground mb-6">
-            Get in Touch <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-              We&apos;re Here to Help
-            </span>
+            Get in <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Touch</span>
           </h1>
           <p className="text-xl text-on-surface-variant max-w-2xl mx-auto mb-10 leading-relaxed font-sans">
-            Reach out to us anytime! Whether you have questions, feedback, or just want to say hello.
+            Reach out to us anytime. Whether you have questions, feedback or just want to say hello.
           </p>
         </div>
       </section>

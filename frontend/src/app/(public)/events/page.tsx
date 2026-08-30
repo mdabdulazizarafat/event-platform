@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import EventCard from '@/components/common/EventCard';
+import AppleCard from '@/components/common/AppleCard';
+import ScrollRow from '@/components/common/ScrollRow';
 import type { Event } from '@/lib/api';
 import { getUpcomingEvents } from '@/lib/api';
 import { Search, Calendar, MapPin, SlidersHorizontal } from 'lucide-react';
@@ -102,18 +103,15 @@ export default function EventsDiscoveryPage() {
 
           <div className="max-w-7xl mx-auto px-6 py-16 text-center z-10 relative">
             <h1 className="text-display-ticket text-foreground mb-6">
-              Explore Upcoming <br className="hidden md:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-                Events Near You
-              </span>
+              Explore <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Upcoming Events</span>
             </h1>
             <p className="text-xl text-on-surface-variant max-w-2xl mx-auto mb-10 leading-relaxed font-sans">
-              Discover conferences, seminars, workshops, and competitions hosted by community organizers near you.
+              Discover conferences, seminars, workshops and competitions hosted by community organizers.
             </p>
           </div>
         </section>
 
-        <div className="max-w-6xl mx-auto px-6 py-10">
+        <div className="w-full py-10">
 
           {/* Filter bar 
         <section className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 mb-10 shadow-xs space-y-4">
@@ -198,29 +196,39 @@ export default function EventsDiscoveryPage() {
           </div>
         </section>*/}
 
-          {/* Bento Events Grid */}
+          {/* Categorized Events Rows */}
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
               <span className="text-body-sm text-on-surface-variant">Loading event catalog...</span>
             </div>
           ) : filteredEvents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredEvents.map((event) => {
+            <div className="flex flex-col space-y-16 mt-8">
+              {['Technology', 'Education', 'Design', 'Business'].map((category) => {
                 const getEventCategory = (e: Event) => {
                   if (e.slug.includes('tech')) return 'Technology';
                   if (e.slug.includes('knowledge') || e.slug.includes('fiesta')) return 'Education';
                   if (e.slug.includes('design') || e.slug.includes('ui-ux')) return 'Design';
                   return 'Business';
                 };
+
+                const categoryEvents = filteredEvents.filter(e => getEventCategory(e) === category);
+
+                if (categoryEvents.length === 0) return null;
+
                 return (
-                  <div key={event.slug} className="h-full">
-                    <EventCard
-                      event={event}
-                      category={getEventCategory(event)}
-                      isLive={event.slug.includes('gregorian') || event.slug.includes('tech')}
-                    />
-                  </div>
+                  <section key={category} className="overflow-hidden">
+                    <div className="px-6 md:px-24 mb-6">
+                      <h2 className="m-0 text-[28px] md:text-[36px] font-extrabold tracking-tight" style={{ color: '#1d1d1f' }}>
+                        {category} Events.
+                      </h2>
+                    </div>
+                    <ScrollRow className="px-6 md:px-24 gap-6 pb-4">
+                      {categoryEvents.map((event) => (
+                        <AppleCard key={event.slug} event={event} />
+                      ))}
+                    </ScrollRow>
+                  </section>
                 );
               })}
             </div>
@@ -231,18 +239,6 @@ export default function EventsDiscoveryPage() {
               <p className="text-body-sm text-on-surface-variant mt-3 max-w-md mx-auto">
                 We couldn't find any events matching your current search parameters. Try adjusting your query or resetting your filters.
               </p>
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('All');
-                  setSelectedLocation('All');
-                  setSelectedStatus('All');
-                  setSortOrder('Date (Soonest)');
-                }}
-                className="mt-6 px-6 py-2.5 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors cursor-pointer border-none"
-              >
-                Clear All Filters
-              </button>
             </div>
           )}
         </div>

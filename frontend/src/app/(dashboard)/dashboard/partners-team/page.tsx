@@ -1,35 +1,40 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import PageHeader from '@/components/ui/PageHeader';
 import DataTable from '@/components/ui/DataTable';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
-import { 
-  Tabs, 
-  Modal, 
-  Form, 
-  Input, 
-  InputNumber, 
-  Switch, 
-  Upload, 
-  App, 
-  Popconfirm 
+import {
+  Tabs,
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  Switch,
+  Upload,
+  App,
+  Popconfirm,
+  Select
 } from 'antd';
 import { Plus, Edit2, Trash2, Link as LinkIcon, Eye } from 'lucide-react';
 import { UploadOutlined } from '@ant-design/icons';
 
 const { TextArea } = Input;
 
-export default function SuperAdminPartnersTeamPage() {
+export default function PartnersTeamDashboard() {
   const { user } = useAuth();
   const { message } = App.useApp();
-  
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') || 'partners';
+
   if (user && user.role !== 'SUPER_ADMIN') {
     return <div className="text-center py-20 text-error font-bold">Unauthorized Access - Super Admin Only</div>;
   }
 
-  const [activeTab, setActiveTab] = useState('partners');
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
   const [partners, setPartners] = useState<any[]>([]);
   const [team, setTeam] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +44,7 @@ export default function SuperAdminPartnersTeamPage() {
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<any>(null);
   const [editingTeamMember, setEditingTeamMember] = useState<any>(null);
-  
+
   // Form hooks
   const [partnerForm] = Form.useForm();
   const [teamForm] = Form.useForm();
@@ -86,6 +91,11 @@ export default function SuperAdminPartnersTeamPage() {
 
   // Image Upload helper
   const handleCustomUpload = async (file: File, type: 'logo' | 'image') => {
+    if (file.size > 5 * 1024 * 1024) {
+      message.error('File size must be under 5MB');
+      return false;
+    }
+    
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = async () => {
@@ -168,6 +178,7 @@ export default function SuperAdminPartnersTeamPage() {
       website: record.website,
       founder_name: record.founder_name,
       founder_title: record.founder_title,
+      category: record.category || 'Other Organizations',
       sort_order: record.sort_order,
       is_active: record.is_active
     });
@@ -257,8 +268,8 @@ export default function SuperAdminPartnersTeamPage() {
       ) : <span className="text-gray-400 text-xs">No Logo</span>
     },
     { key: 'name', title: 'Partner Name' },
-    { 
-      key: 'website', 
+    {
+      key: 'website',
       title: 'Website',
       render: (row: any) => row.website ? (
         <a href={row.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline text-xs">
@@ -266,9 +277,10 @@ export default function SuperAdminPartnersTeamPage() {
         </a>
       ) : '-'
     },
-    { 
-      key: 'founder', 
-      title: 'Founder Info', 
+    { key: 'category', title: 'Category' },
+    {
+      key: 'founder',
+      title: 'Founder Info',
       render: (row: any) => row.founder_name ? `${row.founder_name} (${row.founder_title || 'Founder'})` : '-'
     },
     { key: 'sort_order', title: 'Sort Order' },
@@ -276,9 +288,8 @@ export default function SuperAdminPartnersTeamPage() {
       key: 'is_active',
       title: 'Status',
       render: (row: any) => (
-        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-          row.is_active ? 'bg-primary-50 text-primary' : 'bg-surface-300 text-text-muted'
-        }`}>
+        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${row.is_active ? 'bg-primary-50 text-primary' : 'bg-surface-300 text-text-muted'
+          }`}>
           {row.is_active ? 'Active' : 'Inactive'}
         </span>
       )
@@ -316,9 +327,8 @@ export default function SuperAdminPartnersTeamPage() {
       key: 'is_active',
       title: 'Status',
       render: (row: any) => (
-        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-          row.is_active ? 'bg-primary-50 text-primary' : 'bg-surface-300 text-text-muted'
-        }`}>
+        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${row.is_active ? 'bg-primary-50 text-primary' : 'bg-surface-300 text-text-muted'
+          }`}>
           {row.is_active ? 'Active' : 'Inactive'}
         </span>
       )
@@ -348,10 +358,13 @@ export default function SuperAdminPartnersTeamPage() {
         description="Manage the brands that collaborate with us, and the team behind the Ayojok platform."
       />
 
-      <div className="bg-card rounded-xl p-6 shadow-ambient">
-        <Tabs 
-          activeKey={activeTab} 
-          onChange={setActiveTab} 
+      <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 sm:p-6 shadow-xs w-full">
+        <Tabs
+          activeKey={activeTab}
+          onChange={(key) => {
+            setActiveTab(key);
+            router.push(`/dashboard/partners-team?tab=${key}`, { scroll: false });
+          }}
           className="custom-tabs"
           items={[
             {
@@ -425,13 +438,13 @@ export default function SuperAdminPartnersTeamPage() {
           form={partnerForm}
           layout="vertical"
           onFinish={handlePartnerSubmit}
-          initialValues={{ sort_order: 0, is_active: true }}
+          initialValues={{ category: 'Other Organizations', sort_order: 0, is_active: true }}
           className="mt-4"
         >
           <Form.Item name="name" label="Partner Brand Name" rules={[{ required: true, message: 'Please input partner brand name' }]}>
             <Input placeholder="e.g. Aimspire Co., Ltd." />
           </Form.Item>
-          
+
           <Form.Item label="Upload Brand Logo">
             <div className="flex items-center gap-4">
               <Upload
@@ -455,7 +468,16 @@ export default function SuperAdminPartnersTeamPage() {
           </Form.Item>
 
           <Form.Item name="website" label="Website URL">
-            <Input placeholder="e.g. https://website.com" prefix={<LinkIcon size={14} className="text-gray-400" />} />
+            <Input placeholder="e.g. https://ayojok.rongplan.com" prefix={<LinkIcon size={14} className="text-gray-400" />} />
+          </Form.Item>
+
+          <Form.Item name="category" label="Partner Category" rules={[{ required: true, message: 'Please select a category' }]}>
+            <Select>
+              <Select.Option value="Educational Institutions">Educational Institutions</Select.Option>
+              <Select.Option value="Clubs">Clubs</Select.Option>
+              <Select.Option value="Companies">Companies</Select.Option>
+              <Select.Option value="Other Organizations">Other Organizations</Select.Option>
+            </Select>
           </Form.Item>
 
           <Form.Item name="description" label="Short Description">
@@ -505,7 +527,7 @@ export default function SuperAdminPartnersTeamPage() {
           <Form.Item name="role" label="Designation / Role">
             <Input placeholder="e.g. Co-founder & CEO, Brain Station 23" />
           </Form.Item>
- 
+
           <Form.Item label="Upload Portrait Photo">
             <div className="flex items-center gap-4">
               <Upload

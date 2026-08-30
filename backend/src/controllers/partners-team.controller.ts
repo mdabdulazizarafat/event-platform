@@ -25,14 +25,14 @@ export class PartnersTeamController {
 
   static async createPartner(req: Request, res: Response) {
     try {
-      const { name, logo, description, website, founder_name, founder_title, sort_order, is_active } = req.body;
+      const { name, logo, description, website, founder_name, founder_title, category, sort_order, is_active } = req.body;
       if (!name || !logo) {
         return res.status(400).json({ error: 'Partner name and logo image are required' });
       }
 
       const query = `
-        INSERT INTO partners (name, logo, description, website, founder_name, founder_title, sort_order, is_active)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO partners (name, logo, description, website, founder_name, founder_title, category, sort_order, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *;
       `;
       const values = [
@@ -42,6 +42,7 @@ export class PartnersTeamController {
         website || null,
         founder_name || null,
         founder_title || null,
+        category || 'Other Organizations',
         sort_order !== undefined ? parseInt(sort_order) : 0,
         is_active !== undefined ? !!is_active : true
       ];
@@ -57,7 +58,7 @@ export class PartnersTeamController {
   static async updatePartner(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { name, logo, description, website, founder_name, founder_title, sort_order, is_active } = req.body;
+      const { name, logo, description, website, founder_name, founder_title, category, sort_order, is_active } = req.body;
 
       if (!id) {
         return res.status(400).json({ error: 'Partner ID is required' });
@@ -71,10 +72,11 @@ export class PartnersTeamController {
             website = COALESCE($4, website),
             founder_name = COALESCE($5, founder_name),
             founder_title = COALESCE($6, founder_title),
-            sort_order = COALESCE($7, sort_order),
-            is_active = COALESCE($8, is_active),
+            category = COALESCE($7, category),
+            sort_order = COALESCE($8, sort_order),
+            is_active = COALESCE($9, is_active),
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = $9
+        WHERE id = $10
         RETURNING *;
       `;
       const values = [
@@ -84,6 +86,7 @@ export class PartnersTeamController {
         website || null,
         founder_name || null,
         founder_title || null,
+        category || null,
         sort_order !== undefined ? parseInt(sort_order) : null,
         is_active !== undefined ? !!is_active : null,
         parseInt(id)

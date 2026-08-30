@@ -395,6 +395,7 @@ export async function runMigrations() {
         website VARCHAR(512),
         founder_name VARCHAR(255),
         founder_title VARCHAR(255),
+        category VARCHAR(255) DEFAULT 'Other Organizations',
         sort_order INTEGER DEFAULT 0,
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -418,8 +419,28 @@ export async function runMigrations() {
 
     // Ensure role column allows NULLs in existing tables
     await client.query(`
-      ALTER TABLE team_members ALTER COLUMN role DROP NOT NULL;
+      ALTER TABLE team_members
+      ALTER COLUMN role DROP NOT NULL
     `).catch(() => {});
+
+    // Ensure partners table has category column
+    await client.query(`
+      ALTER TABLE partners ADD COLUMN IF NOT EXISTS category VARCHAR(255) DEFAULT 'Other Organizations'
+    `).catch(() => {});
+
+    // 16.6 Create Verification Codes Table for Authentication OTPs
+    logger.info('Applying Verification Codes migration...');
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS verification_codes (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) NOT NULL,
+        code VARCHAR(6) NOT NULL,
+        purpose VARCHAR(50) NOT NULL,
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `).catch(() => {});
+    await client.query('CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes (email)').catch(() => {});
 
     // 17. Optional environment-driven initial super admin provisioning
     if (process.env.INITIAL_ADMIN_USERNAME && process.env.INITIAL_ADMIN_EMAIL && process.env.INITIAL_ADMIN_PASSWORD) {

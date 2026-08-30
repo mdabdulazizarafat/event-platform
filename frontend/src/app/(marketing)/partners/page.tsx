@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
+import ScrollRow from '@/components/common/ScrollRow';
+import PartnerCard from '@/components/common/PartnerCard';
 
 export default function PartnersPage() {
   const [partners, setPartners] = useState<any[]>([]);
@@ -49,87 +50,45 @@ export default function PartnersPage() {
             </span>
           </h1>
           <p className="text-xl text-on-surface-variant max-w-2xl mx-auto mb-10 leading-relaxed font-sans">
-            We collaborate with educational institutions, clubs, companies and other organizations, to make the event accessible and enjoyable for everyone.
+            We collaborate with educational institutions, clubs, companies and other organizations, to make the event accessible and seamless for everyone.
           </p>
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-20">
-
+      <div className="w-full relative z-20">
         {/* Content Section */}
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 border-4 border-[#72be44] border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : partners.length === 0 ? (
-          <div className="text-center py-20 bg-[#f8f9fa] rounded-2xl border border-gray-200">
+          <div className="text-center py-20 mx-6 bg-[#f8f9fa] rounded-2xl border border-gray-200">
             <p className="text-gray-500 font-medium">No partners listed at this moment.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {partners.map((partner) => (
-              <div
-                key={partner.id}
-                className="flex flex-col justify-between p-6 bg-[#f8f9fa] rounded-2xl border border-gray-100 shadow-sm"
-              >
-                <div className="space-y-4">
-                  {/* Logo Container */}
-                  <div className="h-16 w-32 bg-transparent flex items-center justify-start overflow-hidden py-2">
-                    {partner.logo ? (
-                      <img
-                        src={partner.logo}
-                        alt={`${partner.name} logo`}
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    ) : (
-                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center">
-                        Logo
-                      </div>
-                    )}
+          <div className="flex flex-col space-y-16 mt-8">
+            {['Educational Institutions', 'Clubs', 'Companies', 'Other Organizations'].map((category) => {
+              const categoryPartners = partners.filter((p) => (p.category || 'Other Organizations') === category);
+
+              if (categoryPartners.length === 0) return null;
+
+              return (
+                <section key={category} className="overflow-hidden">
+                  <div className="px-6 md:px-24 mb-6">
+                    <h2 className="m-0 text-[28px] md:text-[36px] font-extrabold tracking-tight" style={{ color: '#1d1d1f' }}>
+                      {category}.
+                    </h2>
                   </div>
-
-                  {/* Title & Description */}
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-bold text-[#1a1a1a] m-0 leading-snug">
-                      {partner.name}
-                    </h3>
-                    {partner.description && (
-                      <p className="text-sm text-gray-600 leading-relaxed m-0 line-clamp-5">
-                        {partner.description}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Website Link */}
-                  {partner.website && (
-                    <div className="pt-1">
-                      <a
-                        href={partner.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm font-semibold text-[#72be44] hover:underline"
-                      >
-                        Website
-                      </a>
-                    </div>
-                  )}
-                </div>
-
-                {/* Founder Info Divider and Content */}
-                {partner.founder_name && (
-                  <div className="mt-6 pt-4 border-t border-gray-200/60 text-xs">
-                    <span className="text-gray-400 block font-medium mb-1">Founder</span>
-                    <span className="text-[#1a1a1a] font-bold block leading-tight">
-                      {partner.founder_name}{partner.founder_title ? `, ${partner.founder_title}` : ''}
-                    </span>
-                  </div>
-                )}
-
-              </div>
-            ))}
+                  <ScrollRow className="px-6 md:px-24 gap-6 pb-4">
+                    {categoryPartners.map((partner) => (
+                      <PartnerCard key={partner.id} partner={partner} />
+                    ))}
+                  </ScrollRow>
+                </section>
+              );
+            })}
           </div>
         )}
-
       </div>
     </div>
   );

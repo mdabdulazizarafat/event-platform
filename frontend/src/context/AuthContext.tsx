@@ -43,6 +43,7 @@ interface AuthContextType {
     lastName?: string;
     email: string;
     password: string;
+    code: string;
     role?: 'USER' | 'ORGANIZER';
     mobile?: string;
     org?: string;
@@ -162,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     lastName?: string;
     email: string;
     password: string;
+    code: string;
     role?: 'USER' | 'ORGANIZER';
     mobile?: string;
     org?: string;

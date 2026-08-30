@@ -120,6 +120,11 @@ export default function CreateEventWizardPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 5 * 1024 * 1024) {
+      message.error('File size must be under 5MB');
+      return;
+    }
+
     setIsUploading(true);
     const reader = new FileReader();
     reader.onload = (event) => {

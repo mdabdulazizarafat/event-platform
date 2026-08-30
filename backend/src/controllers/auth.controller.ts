@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../db/pool';
 import { getPrivateKey } from '../services/crypto.service';
+import { EmailService } from '../services/email.service';
 import { createChildLogger } from '../lib/logger';
 
 const logger = createChildLogger('auth.controller');
@@ -14,14 +15,26 @@ export class AuthController {
    */
   static async register(req: Request, res: Response) {
     try {
-      let { username, name, firstName, lastName, email, password, role, mobile, org } = req.body;
+      let { username, name, firstName, lastName, email, password, role, mobile, org, code } = req.body;
 
-      if (!firstName || !email || !password) {
-        return res.status(400).json({ error: 'First Name, email, and password are required' });
+      if (!firstName || !email || !password || !code) {
+        return res.status(400).json({ error: 'First Name, email, password, and verification code are required' });
       }
 
       if (password.length < 8) {
         return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+      }
+
+      // Verify OTP code
+      const emailLower = email.toLowerCase().trim();
+      const codeCheck = await pool.query(
+        `SELECT * FROM verification_codes 
+         WHERE email = $1 AND code = $2 AND purpose = 'SIGNUP' AND expires_at > CURRENT_TIMESTAMP`,
+        [emailLower, code]
+      );
+
+      if (codeCheck.rowCount === 0) {
+        return res.status(400).json({ error: 'Invalid or expired verification code.' });
       }
 
       const derivedName = name || `${firstName} ${lastName || ''}`.trim();
@@ -90,6 +103,9 @@ export class AuthController {
       ]);
 
       const newUser = insertRes.rows[0];
+
+      // Delete the used verification code
+      await pool.query('DELETE FROM verification_codes WHERE email = $1 AND purpose = $2', [emailLower, 'SIGNUP']);
 
       return res.status(201).json({
         message: 'Registration successful',
@@ -399,6 +415,114 @@ export class AuthController {
       });
     } catch (error: any) {
       logger.error({ err: error }, 'Apply organizer error');
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  /**
+   * Send Signup Verification Code
+   * POST /api/v1/auth/send-signup-code
+   */
+  static async sendSignupCode(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      const emailLower = email.toLowerCase().trim();
+      const checkUser = await pool.query('SELECT 1 FROM users WHERE email = $1', [emailLower]);
+      if ((checkUser.rowCount ?? 0) > 0) {
+        return res.status(400).json({ error: 'Email is already registered.' });
+      }
+
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      await pool.query(
+        `INSERT INTO verification_codes (email, code, purpose, expires_at) 
+         VALUES ($1, $2, 'SIGNUP', CURRENT_TIMESTAMP + INTERVAL '10 minutes')`,
+        [emailLower, code]
+      );
+
+      await EmailService.sendVerificationCode(emailLower, code, 'SIGNUP');
+
+      return res.status(200).json({ message: 'Verification code sent successfully.' });
+    } catch (error: any) {
+      logger.error({ err: error }, 'Send signup code error');
+      return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  /**
+   * Reset Password Endpoint
+   * POST /api/v1/auth/reset-password
+   * If only 'email' is provided, it sends an OTP code.
+   * If 'email', 'code', and 'newPassword' are provided, it verifies the code and resets the password.
+   */
+  static async resetPassword(req: Request, res: Response) {
+    try {
+      const { email, code, newPassword } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      const emailLower = email.toLowerCase().trim();
+
+      // Step 1: Send OTP code if only email is provided
+      if (!code && !newPassword) {
+        const checkUser = await pool.query('SELECT 1 FROM users WHERE email = $1', [emailLower]);
+        if (checkUser.rowCount === 0) {
+          // Return success even if user doesn't exist to prevent email enumeration
+          return res.status(200).json({ message: 'If your email is registered, a verification code has been sent.' });
+        }
+
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        await pool.query(
+          `INSERT INTO verification_codes (email, code, purpose, expires_at) 
+           VALUES ($1, $2, 'PASSWORD_RESET', CURRENT_TIMESTAMP + INTERVAL '10 minutes')`,
+          [emailLower, otpCode]
+        );
+
+        await EmailService.sendVerificationCode(emailLower, otpCode, 'PASSWORD_RESET');
+
+        return res.status(200).json({ message: 'If your email is registered, a verification code has been sent.' });
+      }
+
+      // Step 2: Verify code and reset password
+      if (!code || !newPassword) {
+        return res.status(400).json({ error: 'Code and new password are required for reset' });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+      }
+
+      const codeCheck = await pool.query(
+        `SELECT * FROM verification_codes 
+         WHERE email = $1 AND code = $2 AND purpose = 'PASSWORD_RESET' AND expires_at > CURRENT_TIMESTAMP`,
+        [emailLower, code]
+      );
+
+      if (codeCheck.rowCount === 0) {
+        return res.status(400).json({ error: 'Invalid or expired verification code.' });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+      const updateRes = await pool.query(
+        'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE email = $2 RETURNING 1',
+        [hashedPassword, emailLower]
+      );
+
+      if (updateRes.rowCount === 0) {
+        return res.status(404).json({ error: 'User not found.' });
+      }
+
+      await pool.query('DELETE FROM verification_codes WHERE email = $1 AND purpose = $2', [emailLower, 'PASSWORD_RESET']);
+
+      return res.status(200).json({ message: 'Password reset successfully. You can now login.' });
+    } catch (error: any) {
+      logger.error({ err: error }, 'Reset password error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
     }
   }

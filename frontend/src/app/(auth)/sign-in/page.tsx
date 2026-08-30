@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Form, Input, Alert } from 'antd';
+import { Form, Input, Alert, Modal } from 'antd';
 import { EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
@@ -13,6 +13,16 @@ export default function SignInPage() {
   const { login, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Forgot Password State
+  const [isForgotModalVisible, setIsForgotModalVisible] = useState(false);
+  const [forgotStep, setForgotStep] = useState<1 | 2>(1);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotCode, setForgotCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
 
   // Redirect if already authenticated
   React.useEffect(() => {
@@ -35,6 +45,63 @@ export default function SignInPage() {
       setError(err.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendForgotCode = async () => {
+    if (!forgotEmail) {
+      setForgotError('Please enter your email.');
+      return;
+    }
+    setForgotLoading(true);
+    setForgotError(null);
+    setForgotSuccess(null);
+    try {
+      const res = await fetch('/api/v1/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send code.');
+      setForgotSuccess('If your email is registered, a verification code has been sent.');
+      setForgotStep(2);
+    } catch (err: any) {
+      setForgotError(err.message);
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!forgotCode || !newPassword) {
+      setForgotError('Please enter both the verification code and your new password.');
+      return;
+    }
+    setForgotLoading(true);
+    setForgotError(null);
+    setForgotSuccess(null);
+    try {
+      const res = await fetch('/api/v1/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail, code: forgotCode, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to reset password.');
+      setForgotSuccess('Password reset successfully. You can now log in.');
+      setTimeout(() => {
+        setIsForgotModalVisible(false);
+        setForgotStep(1);
+        setForgotEmail('');
+        setForgotCode('');
+        setNewPassword('');
+        setForgotSuccess(null);
+      }, 2000);
+    } catch (err: any) {
+      setForgotError(err.message);
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -108,9 +175,19 @@ export default function SignInPage() {
 
             <div className="mt-4 text-center space-y-3">
               <div>
-                <Link href="#" className="text-xs text-on-surface-variant hover:text-primary transition-colors">
+                <a 
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsForgotModalVisible(true);
+                    setForgotStep(1);
+                    setForgotError(null);
+                    setForgotSuccess(null);
+                  }}
+                  className="text-xs text-on-surface-variant hover:text-primary transition-colors"
+                >
                   Forgot your password?
-                </Link>
+                </a>
               </div>
               <div className="text-sm text-on-surface-variant">
                 New to Rong Plan? <Link href="/sign-up" className="font-bold text-primary hover:underline">Open account</Link>
@@ -118,6 +195,79 @@ export default function SignInPage() {
             </div>
           </Form>
         </div>
+
+        <Modal
+          title={<span className="font-bold text-lg text-foreground">Reset Password</span>}
+          open={isForgotModalVisible}
+          onCancel={() => setIsForgotModalVisible(false)}
+          footer={null}
+          destroyOnHidden
+          className="rounded-xl overflow-hidden"
+        >
+          <div className="py-4">
+            {forgotError && <Alert type="error" title={forgotError} className="mb-4 text-xs rounded-lg" showIcon />}
+            {forgotSuccess && <Alert type="success" title={forgotSuccess} className="mb-4 text-xs rounded-lg" showIcon />}
+            
+            {forgotStep === 1 ? (
+              <div className="space-y-4">
+                <p className="text-sm text-on-surface-variant">Enter your email address and we'll send you a 6-digit verification code to reset your password.</p>
+                <div>
+                  <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">Email Address</label>
+                  <Input 
+                    value={forgotEmail} 
+                    onChange={(e) => setForgotEmail(e.target.value)} 
+                    placeholder="hello@email.com"
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+                <Button 
+                  variant="primary" 
+                  className="w-full mt-2" 
+                  onClick={handleSendForgotCode} 
+                  loading={forgotLoading}
+                >
+                  SEND VERIFICATION CODE
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-on-surface-variant">Enter the 6-digit code sent to <span className="font-semibold">{forgotEmail}</span>.</p>
+                <div>
+                  <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">Verification Code</label>
+                  <Input 
+                    value={forgotCode} 
+                    onChange={(e) => setForgotCode(e.target.value)} 
+                    placeholder="123456"
+                    maxLength={6}
+                    className="h-11 rounded-xl tracking-widest text-center text-lg font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">New Password</label>
+                  <Input.Password 
+                    value={newPassword} 
+                    onChange={(e) => setNewPassword(e.target.value)} 
+                    placeholder="••••••••"
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+                <Button 
+                  variant="primary" 
+                  className="w-full mt-2" 
+                  onClick={handleResetPassword} 
+                  loading={forgotLoading}
+                >
+                  RESET PASSWORD
+                </Button>
+                <div className="text-center mt-2">
+                  <button onClick={() => setForgotStep(1)} className="text-xs text-primary hover:underline">
+                    Back to email input
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
       </main>
     </div>
   );

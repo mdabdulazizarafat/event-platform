@@ -1,0 +1,1 @@
+export const metadata = { title: 'Sign In | Ayojok', description: 'Access your Rong Plan account.' }; export default function Layout({ children }: { children: React.ReactNode }) { return children; }

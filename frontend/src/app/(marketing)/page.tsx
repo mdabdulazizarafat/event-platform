@@ -14,137 +14,10 @@ import {
 } from 'lucide-react';
 import type { Event } from '@/lib/api';
 import { getUpcomingEvents } from '@/lib/api';
+import AppleCard from '@/components/common/AppleCard';
+import ScrollRow from '@/components/common/ScrollRow';
 
-/* ── Apple-style horizontal scroll row with nav arrows ── */
-function ScrollRow({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const checkScroll = useCallback(() => {
-    if (!ref.current) return;
-    const { scrollLeft, scrollWidth, clientWidth } = ref.current;
-    setCanScrollLeft(scrollLeft > 2);
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 2);
-  }, []);
-
-  useEffect(() => {
-    checkScroll();
-    const el = ref.current;
-    if (el) {
-      el.addEventListener('scroll', checkScroll, { passive: true });
-      window.addEventListener('resize', checkScroll);
-    }
-    return () => {
-      el?.removeEventListener('scroll', checkScroll);
-      window.removeEventListener('resize', checkScroll);
-    };
-  }, [checkScroll, children]);
-
-  const scroll = (dir: 'left' | 'right') => {
-    if (!ref.current) return;
-    const el = ref.current;
-    const amount = Math.min(el.clientWidth * 0.6, 500); // Slower, smaller increments
-    const start = el.scrollLeft;
-    const target = dir === 'left' ? start - amount : start + amount;
-    const duration = 800; // 800ms for an even smoother, buttery glide
-    const startTime = performance.now();
-
-    const animateScroll = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // easeInOutCubic for a very organic start and stop
-      const ease = progress < 0.5
-        ? 4 * progress * progress * progress
-        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-
-      el.scrollLeft = start + (target - start) * ease;
-
-      if (progress < 1) {
-        requestAnimationFrame(animateScroll);
-      } else {
-        checkScroll();
-      }
-    };
-
-    requestAnimationFrame(animateScroll);
-  };
-
-  return (
-    <div className="relative group/scroll">
-      <div
-        ref={ref}
-        className={`flex overflow-x-auto snap-x snap-mandatory md:snap-none hide-scrollbar scroll-px-6 md:scroll-px-24 ${className}`}
-      >
-        {children}
-      </div>
-
-      {/* Left Arrow */}
-      {canScrollLeft && (
-        <button
-          onClick={() => scroll('left')}
-          className="absolute left-6 md:left-12 top-1/2 -translate-y-1/2 z-10 w-14 h-14 rounded-full bg-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.1)] border border-black/5 flex items-center justify-center text-slate-600 hover:text-slate-900 cursor-pointer opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-300"
-          aria-label="Scroll left"
-        >
-          <ChevronLeft size={28} />
-        </button>
-      )}
-
-      {/* Right Arrow */}
-      {canScrollRight && (
-        <button
-          onClick={() => scroll('right')}
-          className="absolute right-6 md:right-12 top-1/2 -translate-y-1/2 z-10 w-14 h-14 rounded-full bg-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.1)] border border-black/5 flex items-center justify-center text-slate-600 hover:text-slate-900 cursor-pointer opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-300"
-          aria-label="Scroll right"
-        >
-          <ChevronRight size={28} />
-        </button>
-      )}
-    </div>
-  );
-}
-
-/* ── Apple-style Event Card ── */
-function AppleCard({ event }: { event: Event }) {
-  // Uniform square cards exactly as requested (Scaled down to ~80% per user request)
-  const cardSizing = "shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden snap-start block no-underline relative shadow-[0_4px_30px_rgba(0,0,0,0.04)] scroll-ml-6 md:scroll-ml-24";
-
-  return (
-    <Link
-      href={`/events/${event.slug}`}
-      className={`${cardSizing} bg-white`}
-    >
-      {/* 100% Image area */}
-      <div className="absolute inset-0 w-full h-full z-0">
-        <img
-          src={event.thumbnail || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&h=800&fit=crop'}
-          alt={event.title}
-          className="w-full h-full object-cover"
-        />
-      </div>
-
-      {/* Premium Smooth Scrim Overlay (Top Down) for text legibility */}
-      <div
-        className="absolute top-0 left-0 right-0 h-[70%] pointer-events-none z-10"
-        style={{
-          background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,0.15) 70%, transparent 100%)'
-        }}
-      />
-
-      {/* Text area — top */}
-      <div className="absolute top-0 left-0 right-0 p-6 md:p-8 z-20 pointer-events-none flex flex-col justify-start">
-        <span className="text-[13px] md:text-[15px] text-white/90 font-medium block mb-1 drop-shadow-sm">
-          {event.category}
-        </span>
-        <h4 className="font-heading text-lg md:text-lg lg:text-xl font-bold text-white leading-[1.2] m-0">
-          {event.title}
-        </h4>
-      </div>
-    </Link>
-  );
-}
-
+/* ── Floating Luma-style card component ── */
 
 /* ── Floating Luma-style card component ── */
 function FloatingCard({ card, pos, idx }: { card: { title: string; img: string; slug: string | null }; pos: { posClass: string; anim: string; sizeClass: string }; idx: number }) {
@@ -297,12 +170,12 @@ export default function MarketingPage() {
   `;
 
   const offerings = [
-    { title: 'Easy Ticket Purchase', desc: 'Browse, and purchase tickets for a variety of events, from concerts to conferences, all from your device.', icon: Ticket },
-    { title: 'Instant Ticket Delivery', desc: 'Receive your tickets immediately upon purchase via email or WhatsApp.', icon: Zap },
-    { title: 'Multiple Payment Methods', desc: 'Enjoy flexible payment options with bKash, Nagad, Upay, Visa, Mastercard, and more.', icon: CreditCard },
-    { title: 'Tickipass Feature', desc: 'Access purchased tickets instantly with Tickipass, displaying QR codes from your device.', icon: Smartphone },
-    { title: 'Comprehensive Dashboard', desc: 'Access real-time sales reports and attendance data through our user-friendly dashboard.', icon: LayoutDashboard },
-    { title: 'Smooth Scanning', desc: 'Streamline the entry process with our efficient ticket scanning system.', icon: ShieldCheck },
+    { title: 'Easy Ticket Purchase', desc: 'Browse, and purchase tickets for a variety of events, from concerts to conferences.', icon: Ticket },
+    { title: 'Check In Process', desc: 'Quickly and easily do check in, food, gifts distribution and many more operations.', icon: Zap },
+    { title: 'Payment Methods', desc: 'Enjoy flexible payment options with bKash, Nagad, Upay, Visa, Mastercard and many more.', icon: CreditCard },
+    { title: 'Certified Events', desc: 'Buy tickets for verified and authorized events.', icon: Smartphone },
+    { title: 'Dashboard', desc: 'Access real-time data of all events through the dashboard.', icon: LayoutDashboard },
+    { title: 'Privacy', desc: 'Your personal information is kept safe with us.', icon: ShieldCheck },
   ];
 
   return (
@@ -363,7 +236,7 @@ export default function MarketingPage() {
 
             <div className="mt-8 flex flex-col sm:flex-row gap-4 items-center">
               <Link
-                href="/organizer-signup"
+                href="/sign-in"
                 className="bg-gradient-to-r from-[#2BA361] to-[#F7BB16] !text-white transition-all px-8 py-3.5 rounded-full font-bold shadow-[0_4px_20px_rgba(0,0,0,0.1)] inline-block text-[15px]"
               >
                 Create Your First Event
@@ -446,8 +319,8 @@ export default function MarketingPage() {
         <section className="pt-8 pb-16 overflow-hidden">
           <div className="px-6 md:px-24 mb-6">
             <h2 className="m-0 text-[28px] md:text-[36px] font-extrabold tracking-tight" style={{ color: '#1d1d1f' }}>
-              Our Offerings.{' '}
-              <span style={{ color: '#6e6e73' }}>Features that make ayojok the perfect choice.</span>
+              Ayojok Features.{' '}
+              <span style={{ color: '#6e6e73' }}> That make ayojok the perfect choice.</span>
             </h2>
           </div>
 
