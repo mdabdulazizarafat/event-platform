@@ -528,7 +528,9 @@ export default function ProfilePage() {
                 </p>
               )}
               <p className="text-sm font-medium text-text-muted mt-1 mb-0">
-                {institutionName || user?.org || '-'}
+                {user?.occupationType === 'student'
+                  ? `${user?.classLevel || 'N/A'}, ${user?.institutionName || 'N/A'}`
+                  : `${user?.position || 'N/A'}, ${user?.institutionName || 'N/A'}`}
               </p>
             </div>
           </div>
@@ -692,449 +694,449 @@ export default function ProfilePage() {
             </div>
           </section>
 
-              {/* Organizer Application Section in separate card */}
-              {!isPlatformAdmin && !isOrganizer && isProfileComplete && (
-                <section className="bento-card p-6 md:p-8 bg-white dark:bg-dark-surface border border-outline-variant/30">
-                  <div className="mb-6 border-b border-outline-variant/30 pb-4">
-                    <h4 className="font-heading text-lg font-bold text-primary flex items-center gap-2 m-0">
-                      <span>Organizer Application</span>
-                    </h4>
-                  </div>
-                  <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant/30">
-                    {user?.organizerStatus ? (
+          {/* Organizer Application Section in separate card */}
+          {!isPlatformAdmin && !isOrganizer && isProfileComplete && (
+            <section className="bento-card p-6 md:p-8 bg-white dark:bg-dark-surface border border-outline-variant/30">
+              <div className="mb-6 border-b border-outline-variant/30 pb-4">
+                <h4 className="font-heading text-lg font-bold text-primary flex items-center gap-2 m-0">
+                  <span>Organizer Application</span>
+                </h4>
+              </div>
+              <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant/30">
+                {user?.organizerStatus ? (
+                  <div>
+                    <p className="text-sm font-bold text-foreground mb-2">Application Status: <Tag color={
+                      user.organizerStatus === 'APPROVED' ? 'green' :
+                        user.organizerStatus === 'REJECTED' ? 'red' : 'blue'
+                    }>{user.organizerStatus}</Tag></p>
+                    {user.organizerStatus === 'PENDING' && <p className="text-xs text-on-surface-variant m-0">Your application is currently under review by our team.</p>}
+                    {user.organizerStatus === 'REJECTED' && (
                       <div>
-                        <p className="text-sm font-bold text-foreground mb-2">Application Status: <Tag color={
-                          user.organizerStatus === 'APPROVED' ? 'green' :
-                          user.organizerStatus === 'REJECTED' ? 'red' : 'blue'
-                        }>{user.organizerStatus}</Tag></p>
-                        {user.organizerStatus === 'PENDING' && <p className="text-xs text-on-surface-variant m-0">Your application is currently under review by our team.</p>}
-                        {user.organizerStatus === 'REJECTED' && (
-                          <div>
-                            <p className="text-xs text-on-surface-variant m-0 mb-4">Your application was rejected. update your profile and try again.</p>
-                            <Button variant="primary" onClick={handleApplyOrganizer} loading={applying}>Apply as Organizer</Button>
-                          </div>
-                        )}
-                        {user.organizerStatus === 'SUSPENDED' && (
-                          <p className="text-xs text-red-500 font-bold m-0 mt-4">you can not apply for organzier anymore</p>
-                        )}
-                        {user.organizerStatus === 'APPROVED' && (
-                          <p className="text-xs text-green-600 m-0 mt-4">you became an organizer in the ayojok, please follow the  event rules when creat the event.</p>
-                        )}
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-sm text-on-surface-variant mb-4">You can apply to become an organizer to organize events on Rong Plan.</p>
+                        <p className="text-xs text-on-surface-variant m-0 mb-4">Your application was rejected. update your profile and try again.</p>
                         <Button variant="primary" onClick={handleApplyOrganizer} loading={applying}>Apply as Organizer</Button>
                       </div>
                     )}
-                  </div>
-                </section>
-              )}
-
-              {/* 1. SUPER ADMIN / ADMIN Platform Moderation panel */}
-              {isPlatformAdmin && (
-                <section className="bento-card p-6 space-y-6">
-                  <div className="flex items-center gap-2 border-b border-outline-variant/30 pb-4 mb-2">
-                    <Shield className="text-primary" size={20} />
-                    <h4 className="font-heading text-base font-bold text-foreground m-0">Platform Administration</h4>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {isSuperAdmin && (
-                      <Link href="/dashboard/admin/accounts">
-                        <div className="p-4 rounded-xl border border-outline-variant/50 hover:bg-surface-container-low transition-colors cursor-pointer flex justify-between items-center">
-                          <div>
-                            <p className="text-xs font-bold text-foreground m-0">User Accounts Directory</p>
-                            <p className="text-[10px] text-on-surface-variant m-0 mt-0.5">Moderate roles and permissions.</p>
-                          </div>
-                          <ArrowRight size={16} className="text-primary" />
-                        </div>
-                      </Link>
+                    {user.organizerStatus === 'SUSPENDED' && (
+                      <p className="text-xs text-red-500 font-bold m-0 mt-4">you can not apply for organzier anymore</p>
                     )}
-                    <Link href="/dashboard/admin/events">
-                      <div className="p-4 rounded-xl border border-outline-variant/50 hover:bg-surface-container-low transition-colors cursor-pointer flex justify-between items-center">
-                        <div>
-                          <p className="text-xs font-bold text-foreground m-0">Events Moderation Directory</p>
-                          <p className="text-[10px] text-on-surface-variant m-0 mt-0.5">Moderate/Delete platform events.</p>
-                        </div>
-                        <ArrowRight size={16} className="text-primary" />
-                      </div>
-                    </Link>
-                    <Link href="/dashboard/organizer-applications">
-                      <div className="p-4 rounded-xl border border-outline-variant/50 hover:bg-surface-container-low transition-colors cursor-pointer flex justify-between items-center">
-                        <div>
-                          <p className="text-xs font-bold text-foreground m-0">Organizer Applications</p>
-                          <p className="text-[10px] text-on-surface-variant m-0 mt-0.5">Review and moderate applications.</p>
-                        </div>
-                        <ArrowRight size={16} className="text-primary" />
-                      </div>
-                    </Link>
+                    {user.organizerStatus === 'APPROVED' && (
+                      <p className="text-xs text-green-600 m-0 mt-4">you became an organizer in the ayojok, please follow the  event rules when creat the event.</p>
+                    )}
                   </div>
+                ) : (
+                  <div>
+                    <p className="text-sm text-on-surface-variant mb-4">You can apply to become an organizer to organize events on Rong Plan.</p>
+                    <Button variant="primary" onClick={handleApplyOrganizer} loading={applying}>Apply as Organizer</Button>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
 
-                  {/* Audit Logs for Super Admin */}
-                  {isSuperAdmin && (
-                    <div className="space-y-3 pt-2 border-t border-outline-variant/30">
-                      <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
-                        <ClipboardList size={14} /> Recent Audit Trails
-                      </span>
-                      {loadingLogs ? (
-                        <div className="py-4 text-center"><Spin size="small" /></div>
-                      ) : auditLogs.length === 0 ? (
-                        <div className="text-center py-4 bg-surface-container-low rounded-xl border border-outline-variant/20 text-xs italic text-on-surface-variant/70">
-                          No recent actions recorded.
-                        </div>
-                      ) : (
-                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                          {auditLogs.map((log) => (
-                            <div key={log.id} className="p-2.5 rounded-lg bg-surface-container-low border border-outline-variant/20 flex flex-col sm:flex-row justify-between sm:items-center gap-1.5 text-[11px]">
-                              <div>
-                                <span className="font-bold text-foreground">{log.admin_username}</span>
-                                <span className="text-on-surface-variant"> performed </span>
-                                <span className="font-semibold text-primary font-mono">{log.action}</span>
-                                {log.target_type && (
-                                  <>
-                                    <span className="text-on-surface-variant"> on {log.target_type} </span>
-                                    <span className="font-mono text-foreground font-semibold">({log.target_id})</span>
-                                  </>
-                                )}
-                              </div>
-                              <span className="text-[10px] text-on-surface-variant/60 whitespace-nowrap">
-                                {new Date(log.created_at).toLocaleTimeString()}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+          {/* 1. SUPER ADMIN / ADMIN Platform Moderation panel */}
+          {isPlatformAdmin && (
+            <section className="bento-card p-6 space-y-6">
+              <div className="flex items-center gap-2 border-b border-outline-variant/30 pb-4 mb-2">
+                <Shield className="text-primary" size={20} />
+                <h4 className="font-heading text-base font-bold text-foreground m-0">Platform Administration</h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {isSuperAdmin && (
+                  <Link href="/dashboard/admin/accounts">
+                    <div className="p-4 rounded-xl border border-outline-variant/50 hover:bg-surface-container-low transition-colors cursor-pointer flex justify-between items-center">
+                      <div>
+                        <p className="text-xs font-bold text-foreground m-0">User Accounts Directory</p>
+                        <p className="text-[10px] text-on-surface-variant m-0 mt-0.5">Moderate roles and permissions.</p>
+                      </div>
+                      <ArrowRight size={16} className="text-primary" />
                     </div>
-                  )}
-                </section>
-              )}
-
-              {/* 2. EVENT MANAGER: Scanners listing page */}
-              {managedEvents.length > 0 && (
-                <section className="bento-card p-6 space-y-4">
-                  <div className="flex items-center gap-2 border-b border-outline-variant/30 pb-4 mb-2">
-                    <Scan className="text-primary" size={20} />
-                    <h4 className="font-heading text-base font-bold text-foreground m-0">My Gate Scanning Clearances</h4>
+                  </Link>
+                )}
+                <Link href="/dashboard/admin/events">
+                  <div className="p-4 rounded-xl border border-outline-variant/50 hover:bg-surface-container-low transition-colors cursor-pointer flex justify-between items-center">
+                    <div>
+                      <p className="text-xs font-bold text-foreground m-0">Events Moderation Directory</p>
+                      <p className="text-[10px] text-on-surface-variant m-0 mt-0.5">Moderate/Delete platform events.</p>
+                    </div>
+                    <ArrowRight size={16} className="text-primary" />
                   </div>
-                  <p className="text-xs text-on-surface-variant m-0">
-                    You are registered as a local manager for the following events. Access the door-side ticket QR scanner checkpoints:
-                  </p>
+                </Link>
+                <Link href="/dashboard/organizer-applications">
+                  <div className="p-4 rounded-xl border border-outline-variant/50 hover:bg-surface-container-low transition-colors cursor-pointer flex justify-between items-center">
+                    <div>
+                      <p className="text-xs font-bold text-foreground m-0">Organizer Applications</p>
+                      <p className="text-[10px] text-on-surface-variant m-0 mt-0.5">Review and moderate applications.</p>
+                    </div>
+                    <ArrowRight size={16} className="text-primary" />
+                  </div>
+                </Link>
+              </div>
 
-                  {loadingManagedEvents ? (
-                    <div className="py-4 text-center"><Spin /></div>
+              {/* Audit Logs for Super Admin */}
+              {isSuperAdmin && (
+                <div className="space-y-3 pt-2 border-t border-outline-variant/30">
+                  <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
+                    <ClipboardList size={14} /> Recent Audit Trails
+                  </span>
+                  {loadingLogs ? (
+                    <div className="py-4 text-center"><Spin size="small" /></div>
+                  ) : auditLogs.length === 0 ? (
+                    <div className="text-center py-4 bg-surface-container-low rounded-xl border border-outline-variant/20 text-xs italic text-on-surface-variant/70">
+                      No recent actions recorded.
+                    </div>
                   ) : (
-                    <div className="grid grid-cols-1 gap-3">
-                      {managedEvents.map((evt) => (
-                        <div key={evt.id} className="p-4 rounded-xl border border-outline-variant/60 flex justify-between items-center bg-surface-container-low">
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                      {auditLogs.map((log) => (
+                        <div key={log.id} className="p-2.5 rounded-lg bg-surface-container-low border border-outline-variant/20 flex flex-col sm:flex-row justify-between sm:items-center gap-1.5 text-[11px]">
                           <div>
-                            <h5 className="font-heading text-sm font-bold text-foreground m-0 leading-tight">{evt.title}</h5>
-                            <div className="flex gap-2 items-center mt-1 text-[10px] text-on-surface-variant uppercase font-semibold">
-                              <Calendar size={11} />
-                              <span>{evt.date} • {evt.time}</span>
-                            </div>
+                            <span className="font-bold text-foreground">{log.admin_username}</span>
+                            <span className="text-on-surface-variant"> performed </span>
+                            <span className="font-semibold text-primary font-mono">{log.action}</span>
+                            {log.target_type && (
+                              <>
+                                <span className="text-on-surface-variant"> on {log.target_type} </span>
+                                <span className="font-mono text-foreground font-semibold">({log.target_id})</span>
+                              </>
+                            )}
                           </div>
-                          <Link href={`/dashboard/scanner?event=${evt.slug}`}>
-                            <button className="bg-primary text-white hover:opacity-95 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all border-none cursor-pointer">
-                              <Scan size={14} /> Scan Checkpoint
-                            </button>
-                          </Link>
+                          <span className="text-[10px] text-on-surface-variant/60 whitespace-nowrap">
+                            {new Date(log.created_at).toLocaleTimeString()}
+                          </span>
                         </div>
                       ))}
                     </div>
                   )}
-                </section>
+                </div>
               )}
+            </section>
+          )}
 
-              {/* 3. ORGANIZER: Event Management & Teams */}
-              {isOrganizer && (
-                <>
-                  <section className="bento-card p-6">
-                    <div className="flex items-center justify-between border-b border-outline-variant/30 pb-4 mb-6">
-                      <h4 className="font-heading text-base font-bold text-foreground flex items-center gap-2 m-0">
-                        <SettingsIcon className="text-primary" size={20} />
-                        <span>Event Setup Configuration</span>
-                      </h4>
-                      <Button variant="primary" size="sm" onClick={handleSaveEvent} loading={savingEvent} disabled={!selectedEvent}>
-                        Save Changes
-                      </Button>
-                    </div>
+          {/* 2. EVENT MANAGER: Scanners listing page */}
+          {managedEvents.length > 0 && (
+            <section className="bento-card p-6 space-y-4">
+              <div className="flex items-center gap-2 border-b border-outline-variant/30 pb-4 mb-2">
+                <Scan className="text-primary" size={20} />
+                <h4 className="font-heading text-base font-bold text-foreground m-0">My Gate Scanning Clearances</h4>
+              </div>
+              <p className="text-xs text-on-surface-variant m-0">
+                You are registered as a local manager for the following events. Access the door-side ticket QR scanner checkpoints:
+              </p>
 
-                    {events.length > 1 && (
-                      <div className="mb-4">
-                        <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Select Event Workspace</label>
-                        <Select
-                          value={selectedEvent?.slug}
-                          onChange={(slug) => setSelectedEvent(events.find(e => e.slug === slug))}
-                          className="w-full h-10 rounded-lg"
-                        >
-                          {events.map((e) => (
-                            <Select.Option key={e.id} value={e.slug}>{e.title}</Select.Option>
-                          ))}
-                        </Select>
-                      </div>
-                    )}
-
-                    {events.length === 0 ? (
-                      <div className="text-center py-6 bg-surface-container-low rounded-xl border border-outline-variant/30 text-xs italic text-on-surface-variant">
-                        No created events found. Create an event from the sidebar first.
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
-                          <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Event Name</label>
-                          <Input
-                            value={eventFormValues.title}
-                            onChange={(e) => setEventFormValues({ ...eventFormValues, title: e.target.value })}
-                            className="h-10 rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Date</label>
-                          <Input
-                            value={eventFormValues.date}
-                            onChange={(e) => setEventFormValues({ ...eventFormValues, date: e.target.value })}
-                            className="h-10 rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Time / Timezone</label>
-                          <Input
-                            value={eventFormValues.time}
-                            onChange={(e) => setEventFormValues({ ...eventFormValues, time: e.target.value })}
-                            className="h-10 rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Contact Email</label>
-                          <Input
-                            prefix={<Mail className="text-on-surface-variant" size={16} />}
-                            value={eventFormValues.contactEmail}
-                            onChange={(e) => setEventFormValues({ ...eventFormValues, contactEmail: e.target.value })}
-                            className="h-10 rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Contact Phone</label>
-                          <Input
-                            prefix={<Phone className="text-on-surface-variant" size={16} />}
-                            value={eventFormValues.contactPhone}
-                            onChange={(e) => setEventFormValues({ ...eventFormValues, contactPhone: e.target.value })}
-                            className="h-10 rounded-lg"
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Venue Location</label>
-                          <Input
-                            prefix={<MapPin className="text-on-surface-variant" size={16} />}
-                            value={eventFormValues.location}
-                            onChange={(e) => setEventFormValues({ ...eventFormValues, location: e.target.value })}
-                            className="h-10 rounded-lg"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </section>
-
-                  <section className="bento-card p-6">
-                    <div className="flex items-center justify-between mb-6">
+              {loadingManagedEvents ? (
+                <div className="py-4 text-center"><Spin /></div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3">
+                  {managedEvents.map((evt) => (
+                    <div key={evt.id} className="p-4 rounded-xl border border-outline-variant/60 flex justify-between items-center bg-surface-container-low">
                       <div>
-                        <h4 className="font-heading text-base font-bold text-foreground flex items-center gap-2 m-0">
-                          <Users className="text-primary" size={20} />
-                          <span>Collaborative Team Management</span>
-                        </h4>
-                        <p className="text-xs text-on-surface-variant m-0 mt-1">Configure event manager scan permissions.</p>
+                        <h5 className="font-heading text-sm font-bold text-foreground m-0 leading-tight">{evt.title}</h5>
+                        <div className="flex gap-2 items-center mt-1 text-[10px] text-on-surface-variant uppercase font-semibold">
+                          <Calendar size={11} />
+                          <span>{evt.date} • {evt.time}</span>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => setIsInviteModalOpen(true)}
-                        disabled={!selectedEvent}
-                        className="bg-primary text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 hover:shadow-lg transition-all border-none cursor-pointer text-xs disabled:opacity-50"
-                      >
-                        <UserPlus size={14} />
-                        <span>Invite Member</span>
-                      </button>
+                      <Link href={`/dashboard/scanner?event=${evt.slug}`}>
+                        <button className="bg-primary text-white hover:opacity-95 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all border-none cursor-pointer">
+                          <Scan size={14} /> Scan Checkpoint
+                        </button>
+                      </Link>
                     </div>
-
-                    <div className="overflow-x-auto">
-                      {loadingTeam ? (
-                        <div className="flex justify-center py-8">
-                          <Spin />
-                        </div>
-                      ) : team.length === 0 ? (
-                        <div className="text-center py-8 text-on-surface-variant/60 italic text-xs">
-                          No team members registered.
-                        </div>
-                      ) : (
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className="border-b border-outline-variant/50">
-                              <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Member</th>
-                              <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Role</th>
-                              <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Joined</th>
-                              <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider text-right">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-outline-variant/30">
-                            {team.map((member) => (
-                              <tr key={member.username} className="hover:bg-surface-container-low transition-colors">
-                                <td className="py-3">
-                                  <div className="flex items-center gap-3">
-                                    <Avatar src={member.avatar || undefined} className="bg-primary-container text-white font-bold">
-                                      {member.name ? member.name.charAt(0).toUpperCase() : member.username.charAt(0).toUpperCase()}
-                                    </Avatar>
-                                    <div>
-                                      <p className="text-xs font-bold text-foreground m-0">{member.name || member.username}</p>
-                                      <p className="text-[10px] text-on-surface-variant m-0 mt-0.5">{member.email}</p>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="py-3">
-                                  <Tag color={member.role === 'ORGANIZER' ? 'blue' : 'green'} className="font-bold text-[10px]">
-                                    {member.role}
-                                  </Tag>
-                                </td>
-                                <td className="py-3 text-[11px] text-on-surface-variant">
-                                  {new Date(member.joined_at).toLocaleDateString()}
-                                </td>
-                                <td className="py-3 text-right">
-                                  {member.role !== 'ORGANIZER' && (
-                                    <button
-                                      onClick={() => handleRemoveMember(member.username)}
-                                      className="p-1 hover:bg-error-container/20 rounded transition-colors text-error border-none bg-transparent cursor-pointer"
-                                      title="Remove member"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </section>
-                </>
+                  ))}
+                </div>
               )}
-            </div>
+            </section>
+          )}
+
+          {/* 3. ORGANIZER: Event Management & Teams */}
+          {isOrganizer && (
+            <>
+              <section className="bento-card p-6">
+                <div className="flex items-center justify-between border-b border-outline-variant/30 pb-4 mb-6">
+                  <h4 className="font-heading text-base font-bold text-foreground flex items-center gap-2 m-0">
+                    <SettingsIcon className="text-primary" size={20} />
+                    <span>Event Setup Configuration</span>
+                  </h4>
+                  <Button variant="primary" size="sm" onClick={handleSaveEvent} loading={savingEvent} disabled={!selectedEvent}>
+                    Save Changes
+                  </Button>
+                </div>
+
+                {events.length > 1 && (
+                  <div className="mb-4">
+                    <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Select Event Workspace</label>
+                    <Select
+                      value={selectedEvent?.slug}
+                      onChange={(slug) => setSelectedEvent(events.find(e => e.slug === slug))}
+                      className="w-full h-10 rounded-lg"
+                    >
+                      {events.map((e) => (
+                        <Select.Option key={e.id} value={e.slug}>{e.title}</Select.Option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+
+                {events.length === 0 ? (
+                  <div className="text-center py-6 bg-surface-container-low rounded-xl border border-outline-variant/30 text-xs italic text-on-surface-variant">
+                    No created events found. Create an event from the sidebar first.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Event Name</label>
+                      <Input
+                        value={eventFormValues.title}
+                        onChange={(e) => setEventFormValues({ ...eventFormValues, title: e.target.value })}
+                        className="h-10 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Date</label>
+                      <Input
+                        value={eventFormValues.date}
+                        onChange={(e) => setEventFormValues({ ...eventFormValues, date: e.target.value })}
+                        className="h-10 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Time / Timezone</label>
+                      <Input
+                        value={eventFormValues.time}
+                        onChange={(e) => setEventFormValues({ ...eventFormValues, time: e.target.value })}
+                        className="h-10 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Contact Email</label>
+                      <Input
+                        prefix={<Mail className="text-on-surface-variant" size={16} />}
+                        value={eventFormValues.contactEmail}
+                        onChange={(e) => setEventFormValues({ ...eventFormValues, contactEmail: e.target.value })}
+                        className="h-10 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Contact Phone</label>
+                      <Input
+                        prefix={<Phone className="text-on-surface-variant" size={16} />}
+                        value={eventFormValues.contactPhone}
+                        onChange={(e) => setEventFormValues({ ...eventFormValues, contactPhone: e.target.value })}
+                        className="h-10 rounded-lg"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block font-bold text-on-surface-variant text-xs mb-1.5">Venue Location</label>
+                      <Input
+                        prefix={<MapPin className="text-on-surface-variant" size={16} />}
+                        value={eventFormValues.location}
+                        onChange={(e) => setEventFormValues({ ...eventFormValues, location: e.target.value })}
+                        className="h-10 rounded-lg"
+                      />
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              <section className="bento-card p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h4 className="font-heading text-base font-bold text-foreground flex items-center gap-2 m-0">
+                      <Users className="text-primary" size={20} />
+                      <span>Collaborative Team Management</span>
+                    </h4>
+                    <p className="text-xs text-on-surface-variant m-0 mt-1">Configure event manager scan permissions.</p>
+                  </div>
+                  <button
+                    onClick={() => setIsInviteModalOpen(true)}
+                    disabled={!selectedEvent}
+                    className="bg-primary text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 hover:shadow-lg transition-all border-none cursor-pointer text-xs disabled:opacity-50"
+                  >
+                    <UserPlus size={14} />
+                    <span>Invite Member</span>
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  {loadingTeam ? (
+                    <div className="flex justify-center py-8">
+                      <Spin />
+                    </div>
+                  ) : team.length === 0 ? (
+                    <div className="text-center py-8 text-on-surface-variant/60 italic text-xs">
+                      No team members registered.
+                    </div>
+                  ) : (
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-outline-variant/50">
+                          <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Member</th>
+                          <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Role</th>
+                          <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Joined</th>
+                          <th className="pb-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-outline-variant/30">
+                        {team.map((member) => (
+                          <tr key={member.username} className="hover:bg-surface-container-low transition-colors">
+                            <td className="py-3">
+                              <div className="flex items-center gap-3">
+                                <Avatar src={member.avatar || undefined} className="bg-primary-container text-white font-bold">
+                                  {member.name ? member.name.charAt(0).toUpperCase() : member.username.charAt(0).toUpperCase()}
+                                </Avatar>
+                                <div>
+                                  <p className="text-xs font-bold text-foreground m-0">{member.name || member.username}</p>
+                                  <p className="text-[10px] text-on-surface-variant m-0 mt-0.5">{member.email}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3">
+                              <Tag color={member.role === 'ORGANIZER' ? 'blue' : 'green'} className="font-bold text-[10px]">
+                                {member.role}
+                              </Tag>
+                            </td>
+                            <td className="py-3 text-[11px] text-on-surface-variant">
+                              {new Date(member.joined_at).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 text-right">
+                              {member.role !== 'ORGANIZER' && (
+                                <button
+                                  onClick={() => handleRemoveMember(member.username)}
+                                  className="p-1 hover:bg-error-container/20 rounded transition-colors text-error border-none bg-transparent cursor-pointer"
+                                  title="Remove member"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </section>
+            </>
+          )}
+        </div>
       )}
 
-            {/* Security Settings Tab */}
-            {activeTab === 'Security' && (
-              <Card className="rounded-xl border border-outline-variant bg-white" styles={{ body: { padding: '24px' } }}>
-                <h4 className="font-heading text-base font-bold text-foreground flex items-center gap-2 border-b border-outline-variant/30 pb-4 mb-6">
-                  <Lock className="text-primary" size={20} />
-                  <span>Security Configurations</span>
-                </h4>
+      {/* Security Settings Tab */}
+      {activeTab === 'Security' && (
+        <Card className="rounded-xl border border-outline-variant bg-white" styles={{ body: { padding: '24px' } }}>
+          <h4 className="font-heading text-base font-bold text-foreground flex items-center gap-2 border-b border-outline-variant/30 pb-4 mb-6">
+            <Lock className="text-primary" size={20} />
+            <span>Security Configurations</span>
+          </h4>
 
-                <Form form={securityForm} layout="vertical" className="max-w-md space-y-4" requiredMark={false}>
-                  <Form.Item label={<span className="font-bold text-on-surface-variant text-xs">Current Password</span>} name="currentPassword">
-                    <Input.Password className="h-10 rounded-lg" />
-                  </Form.Item>
-                  <Form.Item label={<span className="font-bold text-on-surface-variant text-xs">New Password</span>} name="newPassword">
-                    <Input.Password className="h-10 rounded-lg" />
-                  </Form.Item>
-                  <Form.Item label={<span className="font-bold text-on-surface-variant text-xs">Confirm New Password</span>} name="confirmPassword">
-                    <Input.Password className="h-10 rounded-lg" />
-                  </Form.Item>
-                  <Button variant="primary" onClick={() => message.info('Password credentials updates are handled via verification emails.')}>
-                    Update Password Credentials
-                  </Button>
-                </Form>
-              </Card>
-            )}
+          <Form form={securityForm} layout="vertical" className="max-w-md space-y-4" requiredMark={false}>
+            <Form.Item label={<span className="font-bold text-on-surface-variant text-xs">Current Password</span>} name="currentPassword">
+              <Input.Password className="h-10 rounded-lg" />
+            </Form.Item>
+            <Form.Item label={<span className="font-bold text-on-surface-variant text-xs">New Password</span>} name="newPassword">
+              <Input.Password className="h-10 rounded-lg" />
+            </Form.Item>
+            <Form.Item label={<span className="font-bold text-on-surface-variant text-xs">Confirm New Password</span>} name="confirmPassword">
+              <Input.Password className="h-10 rounded-lg" />
+            </Form.Item>
+            <Button variant="primary" onClick={() => message.info('Password credentials updates are handled via verification emails.')}>
+              Update Password Credentials
+            </Button>
+          </Form>
+        </Card>
+      )}
 
-            {/* Preferences / Notifications Settings Tab */}
-            {activeTab === 'Preferences' && (
-              <Card className="rounded-xl border border-outline-variant bg-white" styles={{ body: { padding: '24px' } }}>
-                <h4 className="font-heading text-base font-bold text-foreground flex items-center gap-2 border-b border-outline-variant/30 pb-4 mb-6">
-                  <Bell className="text-primary" size={20} />
-                  <span>Notification & Sync Preferences</span>
-                </h4>
+      {/* Preferences / Notifications Settings Tab */}
+      {activeTab === 'Preferences' && (
+        <Card className="rounded-xl border border-outline-variant bg-white" styles={{ body: { padding: '24px' } }}>
+          <h4 className="font-heading text-base font-bold text-foreground flex items-center gap-2 border-b border-outline-variant/30 pb-4 mb-6">
+            <Bell className="text-primary" size={20} />
+            <span>Notification & Sync Preferences</span>
+          </h4>
 
-                <div className="space-y-6 max-w-xl">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold text-foreground m-0">Transactional Check-in Sync Alerts</p>
-                      <p className="text-[11px] text-on-surface-variant m-0 mt-0.5">Receive immediate notification updates on gates activity scans.</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold text-foreground m-0">Event Updates & Schedule Modifications</p>
-                      <p className="text-[11px] text-on-surface-variant m-0 mt-0.5">Notify me regarding event sessions and schedule modifications.</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold text-foreground m-0">System Infrastructure Outages</p>
-                      <p className="text-[11px] text-on-surface-variant m-0 mt-0.5">Critical notifications on system upgrades or platform outages.</p>
-                    </div>
-                    <Switch />
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* Invite Member Modal */}
-            <Modal
-              title={<span className="font-heading font-extrabold text-lg">Invite Event Manager/Scanner</span>}
-              open={isInviteModalOpen}
-              onCancel={() => { setIsInviteModalOpen(false); setInviteUsername(''); setInviteRole('SCANNER'); }}
-              footer={[
-                <Button key="cancel" variant="outline" onClick={() => { setIsInviteModalOpen(false); setInviteUsername(''); setInviteRole('SCANNER'); }}>
-                  Cancel
-                </Button>,
-                <Button
-                  key="submit"
-                  variant="primary"
-                  loading={inviting}
-                  onClick={handleInvite}
-                  disabled={!inviteUsername.trim()}
-                >
-                  Invite
-                </Button>
-              ]}
-              centered
-            >
-              <div className="space-y-4 py-2">
-                <p className="text-xs text-on-surface-variant leading-relaxed">
-                  Invite an existing user on the platform to help manage registrations, scan tickets, or co-organize.
-                </p>
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant mb-1.5">Username/ID</label>
-                  <Input
-                    value={inviteUsername}
-                    onChange={(e) => setInviteUsername(e.target.value)}
-                    placeholder="e.g. volunteer-user"
-                    className="h-10 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant mb-1.5">Team Role</label>
-                  <Select
-                    value={inviteRole}
-                    onChange={(val) => setInviteRole(val)}
-                    className="w-full h-10 rounded-lg"
-                  >
-                    <Select.Option value="ORGANIZER">Co-Organizer (Organizer privilege)</Select.Option>
-                    <Select.Option value="SCANNER">Event Scanner (QR scan privilege)</Select.Option>
-                  </Select>
-                </div>
+          <div className="space-y-6 max-w-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-foreground m-0">Transactional Check-in Sync Alerts</p>
+                <p className="text-[11px] text-on-surface-variant m-0 mt-0.5">Receive immediate notification updates on gates activity scans.</p>
               </div>
-            </Modal>
+              <Switch defaultChecked />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-foreground m-0">Event Updates & Schedule Modifications</p>
+                <p className="text-[11px] text-on-surface-variant m-0 mt-0.5">Notify me regarding event sessions and schedule modifications.</p>
+              </div>
+              <Switch defaultChecked />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-foreground m-0">System Infrastructure Outages</p>
+                <p className="text-[11px] text-on-surface-variant m-0 mt-0.5">Critical notifications on system upgrades or platform outages.</p>
+              </div>
+              <Switch />
+            </div>
+          </div>
+        </Card>
+      )}
 
-            {/* Avatar Cropper Modal */}
-            {cropperOpen && (
-              <AvatarCropper
-                open={cropperOpen}
-                imageSrc={cropperImageSrc}
-                onClose={() => setCropperOpen(false)}
-                onSave={handleCropperSave}
-              />
-            )}
+      {/* Invite Member Modal */}
+      <Modal
+        title={<span className="font-heading font-extrabold text-lg">Invite Event Manager/Scanner</span>}
+        open={isInviteModalOpen}
+        onCancel={() => { setIsInviteModalOpen(false); setInviteUsername(''); setInviteRole('SCANNER'); }}
+        footer={[
+          <Button key="cancel" variant="outline" onClick={() => { setIsInviteModalOpen(false); setInviteUsername(''); setInviteRole('SCANNER'); }}>
+            Cancel
+          </Button>,
+          <Button
+            key="submit"
+            variant="primary"
+            loading={inviting}
+            onClick={handleInvite}
+            disabled={!inviteUsername.trim()}
+          >
+            Invite
+          </Button>
+        ]}
+        centered
+      >
+        <div className="space-y-4 py-2">
+          <p className="text-xs text-on-surface-variant leading-relaxed">
+            Invite an existing user on the platform to help manage registrations, scan tickets, or co-organize.
+          </p>
+          <div>
+            <label className="block text-xs font-bold text-on-surface-variant mb-1.5">Username/ID</label>
+            <Input
+              value={inviteUsername}
+              onChange={(e) => setInviteUsername(e.target.value)}
+              placeholder="e.g. volunteer-user"
+              className="h-10 rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-on-surface-variant mb-1.5">Team Role</label>
+            <Select
+              value={inviteRole}
+              onChange={(val) => setInviteRole(val)}
+              className="w-full h-10 rounded-lg"
+            >
+              <Select.Option value="ORGANIZER">Co-Organizer (Organizer privilege)</Select.Option>
+              <Select.Option value="SCANNER">Event Scanner (QR scan privilege)</Select.Option>
+            </Select>
+          </div>
         </div>
-      );
+      </Modal>
+
+      {/* Avatar Cropper Modal */}
+      {cropperOpen && (
+        <AvatarCropper
+          open={cropperOpen}
+          imageSrc={cropperImageSrc}
+          onClose={() => setCropperOpen(false)}
+          onSave={handleCropperSave}
+        />
+      )}
+    </div>
+  );
 }
