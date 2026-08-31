@@ -36,7 +36,7 @@ export const WelcomeEmail = ({
     <!-- HEADER -->
     <tr>
       <td align="center" class="header-pad" style="padding:32px 40px 20px 40px;background-color:#FAFAFA;">
-        <img src="https://image.ayojok.com/logo/black-logo-36f83cd2-ad3a-4a82-bda0-5d79920820b8.svg" alt="Ayojok" width="130" style="height:auto;max-width:130px;display:block;margin:0 auto;">
+        <img src="https://ayojok.rongplan.com/ayojok-logo.svg" alt="Ayojok" width="130" style="height:auto;max-width:130px;display:block;margin:0 auto;">
       </td>
     </tr>
 
@@ -64,7 +64,7 @@ export const WelcomeEmail = ({
     <!-- FOOTER -->
     <tr>
       <td class="footer-pad" style="padding:32px;background-color:#FAFAFA;border-top:1px solid rgba(43,163,97,0.15);">
-        <img src="https://image.ayojok.com/logo/black-logo-36f83cd2-ad3a-4a82-bda0-5d79920820b8.svg" alt="Ayojok" width="90" style="height:auto;max-width:90px;display:block;margin-bottom:14px;">
+        <img src="https://ayojok.rongplan.com/ayojok-logo.svg" alt="Ayojok" width="90" style="height:auto;max-width:90px;display:block;margin-bottom:14px;">
         <div style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:12px;color:rgba(13,14,19,0.30);line-height:1.7;margin-bottom:20px;">
           &copy; 2026 <strong style="color:rgba(13,14,19,0.42);">Ayojok</strong>. All rights reserved.<br>
           Dhaka, Bangladesh.<br><br>

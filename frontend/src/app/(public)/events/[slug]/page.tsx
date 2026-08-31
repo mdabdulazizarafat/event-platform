@@ -86,7 +86,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
   };
 
   const toggleTicket = (id: number) => {
-    setSelectedTicketIds((prev) => 
+    setSelectedTicketIds((prev) =>
       prev.includes(id) ? prev.filter((tId) => tId !== id) : [...prev, id]
     );
   };
@@ -133,100 +133,60 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
 
         <main className="flex-grow pb-16">
           {/* Static Banner Section */}
-          <div className="w-full relative">
-            <div className="w-full aspect-[21/9] max-h-[400px] bg-slate-900 overflow-hidden relative">
+          <div className="w-full relative h-[300px] md:h-[450px] lg:h-[500px] overflow-hidden bg-black">
+            {/* Blurred Background */}
+            <div
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50 blur-xl scale-110"
+              style={{ backgroundImage: `url(${event.thumbnail || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&h=675&fit=crop'})` }}
+            />
+            {/* Centered Clear Image */}
+            <div className="absolute inset-0 flex items-center justify-center p-4">
               <img
                 src={event.thumbnail || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&h=675&fit=crop'}
                 alt={event.title}
-                className="w-full h-full object-cover"
+                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl relative z-10"
               />
             </div>
           </div>
 
           {/* Event Header Section exactly like Wireframe */}
-          <div className="max-w-6xl mx-auto px-6 pt-6 pb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="space-y-3">
-              <h1 className="font-heading text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight m-0">
-                {event.title}
-              </h1>
-              <div className="flex flex-wrap items-center gap-5 text-xs font-semibold text-slate-600">
-                <div className="flex items-center gap-1.5">
-                  <MapPin size={14} className="text-slate-400" />
-                  <span>{event.location}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CalendarIcon size={14} className="text-slate-400" />
-                  <span>{event.date}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Clock size={14} className="text-slate-400" />
-                  <span>{event.time}</span>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-8 relative z-20">
+            <div className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
+              <div className="space-y-2">
+                <h1 className="font-heading text-2xl md:text-3xl font-bold text-slate-900 m-0">
+                  {event.title}
+                </h1>
+                <div className="text-sm text-slate-700">
+                  {event.date} | {event.time} | {event.location}
                 </div>
               </div>
-            </div>
 
-            <div className="shrink-0 w-full md:w-auto">
-              <Button
-                onClick={scrollToTickets}
-                variant="primary"
-                size="md"
-                className="w-full md:w-auto rounded-lg px-8 py-2.5 bg-slate-900 text-white hover:bg-slate-800 border-none font-bold transition-all shadow-md"
-              >
-                Buy Ticket Now
-              </Button>
+              <div className="shrink-0 w-full md:w-auto">
+                <Button
+                  onClick={scrollToTickets}
+                  className="w-full md:w-auto rounded-lg px-8 py-2.5 bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition-colors border-none"
+                >
+                  Book Yours
+                </Button>
+              </div>
             </div>
           </div>
 
           {/* Two-Column Layout Section exactly like Wireframe */}
-          <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mt-8">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-3 gap-6 items-start mt-6">
 
-            {/* LEFT COLUMN: Event Description Card (8/12 width) */}
-            <div className="lg:col-span-8 space-y-6">
-              <div className="bento-card overflow-hidden">
-                <button
-                  onClick={() => setIsDescOpen(!isDescOpen)}
-                  className="w-full px-7 py-6 flex items-center justify-between text-left font-bold text-sm text-foreground hover:text-primary transition-colors cursor-pointer border-none bg-transparent"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <FileText size={18} className="text-slate-400" />
-                    <span className="font-heading font-extrabold text-base">Event Description</span>
-                  </div>
-                  <ChevronDown
-                    size={18}
-                    className={`text-slate-400 shrink-0 transition-transform duration-300 ${isDescOpen ? 'rotate-180 text-[#7C3AED]' : ''}`}
-                  />
-                </button>
+            {/* LEFT COLUMN: Event Description Card */}
+            <div className="md:col-span-2 space-y-6">
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-6 py-5 border-b border-slate-100">
+                  <h3 className="text-lg font-medium text-slate-900 m-0">About the Event</h3>
+                </div>
 
-                <div
-                  className={`transition-all duration-300 ease-in-out overflow-hidden ${isDescOpen ? 'max-h-[2500px] border-t border-slate-100' : 'max-h-0'
-                    }`}
-                >
-                  <div className="px-7 py-6 space-y-4 text-xs text-slate-600 leading-relaxed font-medium">
+                <div className="px-6 py-5">
+                  <div className="space-y-4 text-sm text-slate-700 leading-relaxed">
                     <p className="m-0 whitespace-pre-line">{event.description}</p>
 
-                    {slug === '6th-gregorian-knowledge-fiesta-2026' && (
-                      <div className="pt-4 space-y-3 border-t border-slate-100">
-                        <p className="font-bold text-slate-800 m-0">Event Date: 28th - 29th August, 2026</p>
 
-                        <div className="space-y-1">
-                          <p className="font-bold text-slate-800 m-0">Category:</p>
-                          <ul className="list-disc list-inside space-y-1 pl-1 text-slate-600">
-                            <li>Kids: (Class I to II)</li>
-                            <li>Primary: (Class III to V)</li>
-                            <li>Junior: (Class VI to VIII)</li>
-                            <li>Secondary: (Class IX to X)</li>
-                            <li>Higher Secondary: (Class XI to XII)</li>
-                          </ul>
-                        </div>
-
-                        <div className="space-y-1 pt-2">
-                          <p className="font-bold text-slate-800 m-0">Solo Quiz:</p>
-                          <p className="m-0 text-slate-600">
-                            A grand test of erudition! This segment challenges participants to navigate a vast landscape of general knowledge, science, and history.
-                          </p>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -238,10 +198,10 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                     <CalendarDays size={20} className="text-primary" />
                     Event Schedule
                   </h3>
-                  
+
                   <div className="space-y-4">
                     {schedules.map((schedule) => (
-                      <div 
+                      <div
                         key={schedule.id}
                         className="bento-card p-5 bg-white border border-outline-variant/60 hover:shadow-md hover:border-primary/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group"
                       >
@@ -252,7 +212,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                           <h4 className="font-heading text-lg font-bold text-foreground m-0 mt-1">
                             {schedule.title}
                           </h4>
-                          
+
                           <div className="flex flex-wrap items-center gap-4 text-xs text-on-surface-variant font-medium">
                             <span className="flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-md">
                               <Clock className="w-3.5 h-3.5 text-primary/70" />
@@ -264,7 +224,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                             </span>
                           </div>
                         </div>
-                        
+
                         {schedule.speaker && (
                           <div className="flex items-center gap-3 md:border-l md:border-outline-variant/60 md:pl-6">
                             <div className="w-10 h-10 rounded-full bg-primary-container/20 border border-primary/20 flex items-center justify-center text-primary font-bold text-sm">
@@ -283,47 +243,43 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
               )}
             </div>
 
-            {/* RIGHT COLUMN: Sidebar Cards (4/12 width) exactly like Wireframe */}
-            <div className="lg:col-span-4 space-y-6">
+            {/* RIGHT COLUMN: Sidebar Cards */}
+            <div className="md:col-span-1 space-y-6">
 
               {/* Card 2: Share Event */}
-              <div className="bento-card p-6 space-y-4">
-                <h4 className="text-xs font-extrabold text-foreground m-0">
-                  Share Event
-                </h4>
+              <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
+                <h3 className="text-base font-medium text-slate-900 m-0">
+                  Share the Event
+                </h3>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-2 gap-3">
                   <a
                     href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="py-2.5 px-3 bg-white border border-slate-200/80 hover:border-slate-400 rounded-xl text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors no-underline"
+                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors no-underline hover:bg-slate-300"
                   >
-                    <FacebookOutlined style={{ fontSize: '13px', color: '#2563eb' }} />
-                    <span>Facebook</span>
+                    Facebook
                   </a>
                   <a
                     href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(event.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="py-2.5 px-3 bg-white border border-slate-200/80 hover:border-slate-400 rounded-xl text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors no-underline"
+                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors no-underline hover:bg-slate-300"
                   >
-                    <TwitterOutlined style={{ fontSize: '13px', color: '#0ea5e9' }} />
-                    <span>X</span>
+                    X
                   </a>
                   <a
                     href={`mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                    className="py-2.5 px-3 bg-white border border-slate-200/80 hover:border-slate-400 rounded-xl text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors no-underline"
+                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors no-underline hover:bg-slate-300"
                   >
-                    <Mail size={13} />
-                    <span>Email</span>
+                    Email
                   </a>
                   <button
                     onClick={copyPageLink}
-                    className="py-2.5 px-3 bg-white border border-slate-200/80 hover:border-slate-400 rounded-xl text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors cursor-pointer hover:bg-slate-300"
                   >
-                    <Link2 size={13} />
-                    <span>Copy Link</span>
+                    Copy link
                   </button>
                 </div>
 
@@ -331,30 +287,54 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                   href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-2.5 bg-white border border-slate-200/80 hover:border-slate-400 rounded-xl text-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition-colors no-underline block"
+                  className="w-full mt-3 py-2 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors no-underline hover:bg-slate-300"
                 >
-                  <CalendarPlus size={14} />
-                  <span>Add to Google Calendar</span>
+                  Add to Calendar
                 </a>
               </div>
 
-              {/* Card 3: Host Info */}
-              <div className="bento-card p-6 space-y-3">
-                <h4 className="text-xs font-extrabold text-foreground m-0">
-                  Host Info
-                </h4>
-                <div className="space-y-1 text-xs text-slate-600">
-                  <div className="font-bold text-slate-800">
-                    {event.hostUsername || 'Gregorian Quiz Club'}
+              {/* Organizer Info Card */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4 mt-6">
+                <h3 className="text-base font-medium text-slate-900 m-0">
+                  Organizer Info
+                </h3>
+
+                <div className="bg-slate-200 p-3 rounded-lg text-sm text-slate-800 space-y-0.5">
+                  <div className="font-medium">
+                    {event.hostUsername || 'Unknown Organizer'}
                   </div>
-                  <div className="text-slate-500 font-medium">
-                    {event.contactPhone || '+880 1712-345678'}
-                  </div>
-                  <div className="text-slate-500 font-medium">
-                    {event.contactEmail || 'info@gregorianfiesta.org'}
-                  </div>
+                  {event.contactEmail && (
+                    <div className="text-xs text-slate-600">
+                      {event.contactEmail}
+                    </div>
+                  )}
+                  {event.contactPhone && (
+                    <div className="text-xs text-slate-600">
+                      {event.contactPhone}
+                    </div>
+                  )}
                 </div>
+
+                {(event as any).organizers && (event as any).organizers.length > 0 && (event as any).organizers.map((org: any, idx: number) => (
+                  <div key={idx} className="bg-slate-200 p-3 rounded-lg text-sm text-slate-800 space-y-0.5">
+                    <div className="font-medium">
+                      {org.name} <span className="text-xs text-slate-500 font-normal">({org.role || 'co-organizer'})</span>
+                    </div>
+                    {org.email && (
+                      <div className="text-xs text-slate-600">
+                        {org.email}
+                      </div>
+                    )}
+                    {org.phone && (
+                      <div className="text-xs text-slate-600">
+                        {org.phone}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
+
+
 
             </div>
 
@@ -391,40 +371,34 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                       <div
                         key={ticket.id}
                         onClick={() => toggleTicket(ticket.id)}
-                        className={`bento-card p-4 transition-all flex flex-col justify-between min-h-[140px] border-2 cursor-pointer rounded-xl bg-white shadow-none ${
-                          isSelected ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-slate-200 hover:border-slate-800'
-                        }`}
+                        className={`p-4 transition-all flex flex-col justify-between min-h-[120px] border cursor-pointer rounded-xl bg-white shadow-sm ${isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-slate-100 hover:border-slate-200'
+                          }`}
                       >
-                        {/* Card Top: Title on left, Price Badge on right exactly like Wireframe */}
+                        {/* Card Top: Title on left, Price Badge on right */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1">
-                            <h4 className={`text-sm font-extrabold m-0 ${isSelected ? 'text-primary' : 'text-slate-900'}`}>
+                            <h4 className={`text-sm font-bold m-0 ${isSelected ? 'text-primary' : 'text-slate-900'}`}>
                               {ticket.name}
                             </h4>
-                            {ticket.description && (
-                              <p className="text-[11px] text-slate-500 leading-normal m-0 line-clamp-2">
-                                {ticket.description}
-                              </p>
-                            )}
+                            <p className="text-[10px] text-slate-400 leading-normal m-0 line-clamp-2">
+                              {ticket.description || "General Access to the event."}
+                            </p>
                           </div>
 
-                          <span className={`shrink-0 px-2.5 py-0.5 border font-bold text-[11px] rounded flex items-center ${isSelected ? 'bg-primary border-primary text-white' : 'bg-slate-100 border-slate-300 text-slate-800'}`}>
+                          <span className="shrink-0 px-1.5 py-0.5 border border-slate-200 text-[10px] font-medium rounded text-slate-600 bg-white">
                             {priceDisplay}
                           </span>
                         </div>
 
                         {/* Card Bottom: Click to Select button */}
-                        <div className="mt-5">
+                        <div className="mt-4">
                           <div className="w-full flex">
-                            <Button 
-                              variant={isSelected ? "primary" : "outline"} 
-                              size="md" 
-                              className={`w-full rounded-lg text-xs font-bold py-2 shadow-none flex justify-center items-center pointer-events-none transition-colors ${
-                                isSelected ? 'bg-primary text-white border-primary' : 'bg-white text-slate-700 border-slate-300'
-                              }`}
+                            <Button
+                              size="md"
+                              className={`w-full rounded-md text-[11px] font-medium py-2 shadow-none flex justify-center items-center pointer-events-none transition-colors border-none ${isSelected ? 'bg-primary/90 text-white' : 'bg-[#4ade80] hover:bg-[#22c55e] text-white'
+                                }`}
                             >
-                              <Plus size={14} className={`mr-1.5 transition-transform ${isSelected ? 'rotate-45' : ''}`} />
-                              <span>{isSelected ? 'Selected' : 'Click to Select'}</span>
+                              <span>{isSelected ? 'Selected' : '+ Click to Select'}</span>
                             </Button>
                           </div>
                         </div>

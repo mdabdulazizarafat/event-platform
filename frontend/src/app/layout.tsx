@@ -20,6 +20,9 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Rong Plan - Event Platform",
   description: "Seamless event management and dynamic ticket registration.",
+  icons: {
+    icon: "/ayojokFavicon.svg",
+  },
 };
 
 export default function RootLayout({
