@@ -106,6 +106,9 @@ export class AuthController {
 
       // Delete the used verification code
       await pool.query('DELETE FROM verification_codes WHERE email = $1 AND purpose = $2', [emailLower, 'SIGNUP']);
+      
+      // Send Welcome Email
+      await EmailService.sendWelcomeEmail(emailLower, newUser.username);
 
       return res.status(201).json({
         message: 'Registration successful',
@@ -186,13 +189,24 @@ export class AuthController {
         user: {
           username: user.username,
           name: user.name,
+          firstName: user.first_name,
+          lastName: user.last_name,
           email: user.email,
           avatar: user.avatar,
+          bio: user.bio,
           role: user.role || 'USER',
           mobile: user.mobile,
           org: user.org,
           status: user.status || 'ACTIVE',
-          organizerStatus: user.organizer_status
+          organizerStatus: user.organizer_status,
+          rejectionCount: user.rejection_count,
+          dateOfBirth: user.date_of_birth,
+          gender: user.gender,
+          occupationType: user.occupation_type,
+          institutionName: user.institution_name,
+          classLevel: user.class_level,
+          position: user.position,
+          district: user.district
         }
       });
     } catch (error: any) {

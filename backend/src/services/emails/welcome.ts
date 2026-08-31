@@ -1,7 +1,7 @@
-export function getOtpVerificationHtml(data: {
-  otp_code: string;
-  purpose_text: string;
-  support_email: string;
+export function getWelcomeEmailHtml(data: {
+  username: string;
+  email: string;
+  login_url: string;
 }) {
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -10,7 +10,7 @@ export function getOtpVerificationHtml(data: {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="x-apple-disable-message-reformatting" />
-    <title>Verify your Bangla Innovator email — Bangla Innovator</title>
+    <title>Welcome to Bangla Innovator — Bangla Innovator</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
@@ -28,9 +28,6 @@ export function getOtpVerificationHtml(data: {
     </style>
   </head>
   <body style="margin:0;padding:0;background-color:#FAFAFA;">
-    <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
-      Your verification code is ${data.otp_code}.
-    </div>
     <table
       role="presentation"
       cellpadding="0"
@@ -68,14 +65,13 @@ export function getOtpVerificationHtml(data: {
                 <div
                   style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:30px;font-weight:700;color:#0d0e13;line-height:1.15;letter-spacing:-0.02em;margin:0 0 12px 0;"
                 >
-                  Verify Your <span style="color:#2BA361;">Email</span>
+                  Welcome <span style="color:#2BA361;">Aboard</span>
                 </div>
                 <p
                   style="margin:0 0 24px 0;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:15px;color:rgba(13,14,19,0.58);line-height:1.6;font-weight:400;"
                 >
-                  Hi there,<br /><br />
-                  Thank you for joining Bangla Innovator. To ${data.purpose_text}, please
-                  use the 6-digit verification code below. This code will expire in <strong>10 minutes</strong>.
+                  We're thrilled to have you here. Your account has been successfully created. Explore our platform and
+                  connect with the community.
                 </p>
 
                 <table
@@ -91,27 +87,51 @@ export function getOtpVerificationHtml(data: {
                       <div
                         style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;color:rgba(13,14,19,0.32);text-transform:uppercase;letter-spacing:1.5px;padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid rgba(43,163,97,0.15);"
                       >
-                        Security Notice
+                        Profile Information
                       </div>
-                      <p
-                        style="margin:0 0 12px 0;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#0d0e13;font-weight:500;line-height:1.6;"
-                      >
-                        If you didn't request this code, you can safely ignore this email.
-                      </p>
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                        <tr>
+                          <td
+                            width="60"
+                            style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:rgba(13,14,19,0.38);font-weight:500;vertical-align:top;padding-bottom:10px;"
+                          >
+                            User:
+                          </td>
+                          <td
+                            style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#0d0e13;font-weight:600;vertical-align:top;padding-bottom:10px;"
+                          >
+                            ${data.username}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            width="60"
+                            style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:rgba(13,14,19,0.38);font-weight:500;vertical-align:top;padding-bottom:6px;"
+                          >
+                            Email:
+                          </td>
+                          <td
+                            style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#0d0e13;font-weight:600;vertical-align:top;padding-bottom:6px;"
+                          >
+                            ${data.email}
+                          </td>
+                        </tr>
+                      </table>
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
 
-            <!-- CODE BLOCK -->
+            <!-- CTA -->
             <tr>
-              <td class="cta-pad" align="center" style="padding:20px 32px 32px 32px;background-color:#ffffff;">
-                <div
-                  style="display:inline-block;background-color:#FAFAFA;color:#2BA361;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:32px;font-weight:700;letter-spacing:6px;padding:16px 40px;border-radius:8px;border:2px dashed #2BA361;"
+              <td class="cta-pad" style="padding:20px 32px 32px 32px;background-color:#ffffff;">
+                <a
+                  href="${data.login_url}"
+                  class="cta-btn"
+                  style="display:inline-block;background-color:#2BA361;color:#ffffff;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:15px;font-weight:600;text-decoration:none;padding:14px 40px;border-radius:6px;"
+                  >Log In</a
                 >
-                  ${data.otp_code}
-                </div>
               </td>
             </tr>
 
@@ -133,8 +153,7 @@ export function getOtpVerificationHtml(data: {
                   &copy; ${new Date().getFullYear()} <strong style="color:rgba(13,14,19,0.42);">Bangla Innovator</strong>. All rights
                   reserved.<br />
                   Dhaka, Bangladesh.<br /><br />
-                  You received this because an account registration or password reset was requested for
-                  <strong>Bangla Innovator</strong> using this email.
+                  You received this because you registered on <strong>Bangla Innovator</strong>.
                 </div>
               </td>
             </tr>

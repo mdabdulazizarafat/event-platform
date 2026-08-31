@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 import { createChildLogger } from '../lib/logger';
-import { getParticipantEmailHtml, getCancelEmailHtml, getOtpVerificationHtml } from './emails';
+import { getParticipantEmailHtml, getCancelEmailHtml, getOtpVerificationHtml, getWelcomeEmailHtml } from './emails';
 
 const logger = createChildLogger('email.service');
 
@@ -131,7 +131,7 @@ export class EmailService {
    * Sends OTP verification code email via Resend
    */
   static async sendVerificationCode(email: string, code: string, purpose: 'SIGNUP' | 'PASSWORD_RESET'): Promise<void> {
-    const purposeText = purpose === 'SIGNUP' ? 'verify your email and complete your registration' : 'reset your password';
+    const purposeText = purpose === 'SIGNUP' ? 'complete your registration and secure your account' : 'reset your password';
     const htmlContent = getOtpVerificationHtml({
       otp_code: code,
       purpose_text: purposeText,
@@ -139,7 +139,7 @@ export class EmailService {
     });
 
     const client = getResendClient();
-    const subject = purpose === 'SIGNUP' ? 'Verify your Ayojok Account' : 'Reset your Ayojok Password';
+    const subject = purpose === 'SIGNUP' ? 'Verify your Bangla Innovator email' : 'Reset your Bangla Innovator Password';
 
     if (!client) {
       logger.info({ to: email, subject, code }, 'Mock OTP email sent (no Resend key)');
@@ -161,6 +161,42 @@ export class EmailService {
       logger.info({ id: data?.id, to: email, purpose }, 'Resend OTP email sent successfully');
     } catch (err: any) {
       logger.error({ err }, 'Resend OTP delivery failed');
+    }
+  }
+
+  /**
+   * Sends Welcome email via Resend
+   */
+  static async sendWelcomeEmail(email: string, username: string): Promise<void> {
+    const htmlContent = getWelcomeEmailHtml({
+      email,
+      username,
+      login_url: 'https://banglainnovator.com/login'
+    });
+
+    const client = getResendClient();
+    const subject = 'Welcome to Bangla Innovator';
+
+    if (!client) {
+      logger.info({ to: email, subject }, 'Mock Welcome email sent (no Resend key)');
+      return;
+    }
+
+    try {
+      const { data, error } = await client.emails.send({
+        from: this.fromEmail,
+        to: [email],
+        subject,
+        html: htmlContent,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      logger.info({ id: data?.id, to: email }, 'Resend Welcome email sent successfully');
+    } catch (err: any) {
+      logger.error({ err }, 'Resend Welcome email delivery failed');
     }
   }
 }
