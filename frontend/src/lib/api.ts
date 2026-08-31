@@ -43,7 +43,7 @@ export interface Event {
   location: string;
   description: string;
   thumbnail: string;
-  hostUsername: string;
+  organizerUsername: string;
   contactEmail?: string;
   contactPhone?: string;
   passType?: string;
@@ -61,35 +61,53 @@ export interface Event {
   event_for?: string;
   student_category?: string;
   category?: string;
+  organizer?: any;
 }
 
-export interface Host {
+export interface Organizer {
   username: string;
   name: string;
+  first_name?: string;
+  last_name?: string;
   avatar: string;
   bio: string;
 }
 
 
 function mapBackendEventToFrontend(e: any): Event {
+  let resolvedOrganizer = e.organizer || e.org || e.host || null;
+  if (!resolvedOrganizer && e.organizer_username && (e.organizer_first_name || e.organizer_name)) {
+    resolvedOrganizer = {
+      username: e.organizer_username,
+      name: e.organizer_name || e.organizer_username,
+      first_name: e.organizer_first_name,
+      last_name: e.organizer_last_name,
+      email: e.organizer_email,
+      phone: e.organizer_phone,
+      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&h=200&fit=crop',
+      bio: 'Event Organizer on Rong Plan.',
+    };
+  }
+
   return {
+    id: e.id,
     slug: e.slug || '',
     title: e.title || 'Untitled Event',
+    description: e.description || e.title || '',
+    thumbnail: e.thumbnail || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=800&h=450&fit=crop',
     date: e.date || '',
     time: e.time || '',
     location: e.location || '',
     locationShort: (e.location || '').split(',')[0],
     attendeesCount: e.attendees_count || '1.2k+',
-    description: e.description || e.title || '',
-    thumbnail: e.thumbnail || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=800&h=450&fit=crop',
-    hostUsername: e.host_username || e.hostUsername || 'gregorian-quiz-club',
+    organizerUsername: e.organizer_username || e.organizerUsername,
+    organizer: resolvedOrganizer,
     contactEmail: e.contact_email || e.contactEmail,
     contactPhone: e.contact_phone || e.contactPhone,
     status: e.status || 'PUBLISHED',
     capacity: e.capacity || 100,
     passType: 'Standard Access',
     gate: 'Main Gate',
-    id: e.id,
     is_registered: e.is_registered,
     is_team_member: e.is_team_member,
     form_tshirt_size: e.form_tshirt_size,
@@ -132,34 +150,14 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
   return null;
 }
 
-export async function getHostByUsername(username: string): Promise<Host | null> {
-  try {
-    const response = await fetch(`/api/v1/auth/users/${username}`);
-    if (response.ok) {
-      const data = await response.json();
-      if (data && data.username) {
-        return {
-          username: data.username,
-          name: data.name || data.username,
-          avatar: data.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&h=200&fit=crop',
-          bio: data.bio || 'Event Organizer on Rong Plan.',
-        };
-      }
-    }
-  } catch {
-    // Error fetching host
-  }
-  return null;
-}
-
-export async function getEventsByHost(hostUsername: string): Promise<Event[]> {
+export async function getEventsByOrganizer(organizerUsername: string): Promise<Event[]> {
   try {
     const response = await fetch('/api/v1/events');
     if (response.ok) {
       const data = await response.json();
       const eventsArray = Array.isArray(data) ? data : (data.data || data.events || []);
       if (eventsArray.length > 0) {
-        const filtered = eventsArray.filter((e: any) => (e.host_username || e.hostUsername) === hostUsername);
+        const filtered = eventsArray.filter((e: any) => (e.organizer_username || e.organizerUsername) === organizerUsername);
         if (filtered.length > 0) {
           return filtered.map(mapBackendEventToFrontend);
         }

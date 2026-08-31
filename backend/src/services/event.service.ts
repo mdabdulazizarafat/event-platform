@@ -9,7 +9,7 @@ export interface CreateEventInput {
   capacity: number;
   contactEmail?: string;
   contactPhone?: string;
-  hostUsername: string;
+  organizerUsername: string;
   description?: string;
   thumbnail?: string;
   status?: string;
@@ -47,7 +47,7 @@ export class EventService {
         INSERT INTO events (
           slug, title, description, thumbnail, date, time, start_date, end_date, 
           registration_deadline, location, capacity, contact_email, contact_phone, 
-          host_username, status, form_phone, form_job_title, form_organization, 
+          organizer_username, status, form_phone, form_job_title, form_organization, 
           form_tshirt_size, form_reference, form_transaction_id, is_private, event_for, student_category, category
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
@@ -67,7 +67,7 @@ export class EventService {
         input.capacity,
         input.contactEmail || null,
         input.contactPhone || null,
-        input.hostUsername,
+        input.organizerUsername,
         input.status || 'DRAFT',
         input.formPhone !== undefined ? input.formPhone : true,
         input.formJobTitle !== undefined ? input.formJobTitle : true,
@@ -90,7 +90,7 @@ export class EventService {
         VALUES ($1, $2, 'ORGANIZER')
         ON CONFLICT (event_id, username) DO NOTHING;
       `;
-      await client.query(teamQuery, [eventId, input.hostUsername]);
+      await client.query(teamQuery, [eventId, input.organizerUsername]);
 
       // 4. Automatically create default Check-in, Food, Gift, and Certificate activities
       const defaultActivities = ['Check-in', 'Food', 'Gift', 'Certificate'];
@@ -112,7 +112,7 @@ export class EventService {
     }
   }
 
-  static async updateEvent(slug: string, hostUsername: string, input: { 
+  static async updateEvent(slug: string, organizerUsername: string, input: { 
     title?: string; 
     description?: string; 
     thumbnail?: string; 
@@ -154,7 +154,7 @@ export class EventService {
       }
 
       // Authorization is handled by requireEventRole middleware
-      // We no longer need to check if event.host_username === hostUsername
+      // We no longer need to check if event.organizer_username === organizerUsername
 
       const fieldToColumnMap: Record<string, string> = {
         title: 'title',
@@ -269,7 +269,7 @@ export class EventService {
       values.push(username);
       const uIdx = values.length;
       if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
-        whereConditions.push(`((e.status != 'DRAFT' AND e.is_private = false) OR e.host_username = $${uIdx} OR et.username = $${uIdx} OR r.user_id = $${uIdx})`);
+        whereConditions.push(`((e.status != 'DRAFT' AND e.is_private = false) OR e.organizer_username = $${uIdx} OR et.username = $${uIdx} OR r.user_id = $${uIdx})`);
       }
     } else {
       whereConditions.push(`(e.status != 'DRAFT' AND e.is_private = false)`);
@@ -304,7 +304,7 @@ export class EventService {
     if (username) {
       selectQuery = `
         SELECT DISTINCT e.*,
-          (e.host_username = $1) as is_host,
+          (e.organizer_username = $1) as is_organizer,
           EXISTS (
             SELECT 1 FROM event_team et 
             WHERE et.event_id = e.id AND et.username = $1
@@ -336,7 +336,7 @@ export class EventService {
     } else {
       selectQuery = `
         SELECT e.*, 
-          false as is_host,
+          false as is_organizer,
           false as is_team_member,
           false as is_registered,
           null as team_role
@@ -366,12 +366,23 @@ export class EventService {
   }
 
   static async getEventBySlug(slug: string, username?: string, role?: string) {
-    const res = await pool.query('SELECT * FROM events WHERE slug = $1', [slug]);
+    const query = `
+      SELECT e.*, 
+             u.first_name as organizer_first_name, 
+             u.last_name as organizer_last_name, 
+             u.name as organizer_name,
+             u.email as organizer_email,
+             u.mobile as organizer_phone
+      FROM events e
+      LEFT JOIN users u ON e.organizer_username = u.username
+      WHERE e.slug = $1
+    `;
+    const res = await pool.query(query, [slug]);
     const event = res.rows[0] || null;
     if (!event) return null;
     
     if (event.status === 'DRAFT') {
-      if (role !== 'SUPER_ADMIN' && role !== 'ADMIN' && event.host_username !== username) {
+      if (role !== 'SUPER_ADMIN' && role !== 'ADMIN' && event.organizer_username !== username) {
         if (username) {
           const teamCheck = await pool.query('SELECT 1 FROM event_team WHERE event_id = $1 AND username = $2', [event.id, username]);
           if (teamCheck.rowCount === 0) {
@@ -386,14 +397,14 @@ export class EventService {
     // Add is_team_member and team_role context if username is available
     if (username) {
       const teamQuery = await pool.query('SELECT role FROM event_team WHERE event_id = $1 AND username = $2', [event.id, username]);
-      event.is_host = event.host_username === username;
+      event.is_organizer = event.organizer_username === username;
       event.is_team_member = teamQuery.rowCount !== null && teamQuery.rowCount > 0;
       event.team_role = event.is_team_member ? teamQuery.rows[0].role : null;
       
       const regQuery = await pool.query('SELECT 1 FROM registrations WHERE event_id = $1 AND user_id = $2', [event.id, username]);
       event.is_registered = (regQuery.rowCount !== null && regQuery.rowCount > 0);
     } else {
-      event.is_host = false;
+      event.is_organizer = false;
       event.is_team_member = false;
       event.team_role = null;
       event.is_registered = false;

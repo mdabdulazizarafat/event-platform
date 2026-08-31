@@ -25,7 +25,7 @@ export class TicketController {
 
       // 1. Fetch the registration and event metadata using the token
       const registrationQuery = `
-        SELECT r.id as registration_id, r.event_id, r.user_id, r.email, r.status, e.title as event_title, e.host_username
+        SELECT r.id as registration_id, r.event_id, r.user_id, r.email, r.status, e.title as event_title, e.organizer_username
         FROM registrations r
         JOIN events e ON r.event_id = e.id
         WHERE r.qr_token = $1;
@@ -39,7 +39,7 @@ export class TicketController {
       const registration = regRes.rows[0];
 
       // 2. Strict Authorization Check: Only the Host who published the event can check-in participants
-      if (registration.host_username !== activeHost) {
+      if (registration.organizer_username !== activeHost) {
         return res.status(403).json({ 
           error: 'Unauthorized: Only the host of this event can perform ticket verification and check-ins.' 
         });
@@ -145,7 +145,7 @@ export class TicketController {
 
         // Fetch registration and event info
         const query = `
-          SELECT r.id, r.event_id, e.host_username, r.status
+          SELECT r.id, r.event_id, e.organizer_username, r.status
           FROM registrations r
           JOIN events e ON r.event_id = e.id
           WHERE r.qr_token = $1
@@ -160,7 +160,7 @@ export class TicketController {
         const registration = regRes.rows[0];
 
         // Authorization check: only the event host can sync check-ins
-        if (registration.host_username !== activeHost) {
+        if (registration.organizer_username !== activeHost) {
           errors.push(`Token "${qrToken}" unauthorized: host mismatch`);
           continue;
         }
@@ -233,7 +233,7 @@ export class TicketController {
     try {
       // Fetch current registration details
       const query = `
-        SELECT r.id, r.event_id, r.email, r.qr_token, e.host_username
+        SELECT r.id, r.event_id, r.email, r.qr_token, e.organizer_username
         FROM registrations r
         JOIN events e ON r.event_id = e.id
         WHERE r.id = $1
@@ -246,7 +246,7 @@ export class TicketController {
       const registration = regRes.rows[0];
 
       // Authorization check
-      if (registration.host_username !== activeHost) {
+      if (registration.organizer_username !== activeHost) {
         return res.status(403).json({ error: 'Unauthorized: Only the event host can resend this ticket.' });
       }
 
@@ -292,7 +292,7 @@ export class TicketController {
     try {
       // Fetch current registration details
       const query = `
-        SELECT r.id, r.event_id, r.email, r.qr_token, e.host_username
+        SELECT r.id, r.event_id, r.email, r.qr_token, e.organizer_username
         FROM registrations r
         JOIN events e ON r.event_id = e.id
         WHERE r.id = $1
@@ -305,7 +305,7 @@ export class TicketController {
       const registration = regRes.rows[0];
 
       // Authorization check
-      if (registration.host_username !== activeHost) {
+      if (registration.organizer_username !== activeHost) {
         return res.status(403).json({ error: 'Unauthorized: Only the event host can cancel this ticket.' });
       }
 

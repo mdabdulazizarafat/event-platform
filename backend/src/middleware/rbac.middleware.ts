@@ -31,7 +31,7 @@ export function requireGlobalRole(allowedRoles: ('SUPER_ADMIN' | 'ADMIN' | 'ORGA
 /**
  * Middleware to restrict route to specific event-level roles (ORGANIZER, MANAGER).
  * Super Admin and Platform Admin roles bypass this check.
- * Fallbacks to checking event.host_username for backward compatibility.
+ * Fallbacks to checking event.organizer_username for backward compatibility.
  */
 export function requireEventRole(allowedRoles: ('ORGANIZER' | 'MANAGER' | 'SCANNER')[]) {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -46,20 +46,20 @@ export function requireEventRole(allowedRoles: ('ORGANIZER' | 'MANAGER' | 'SCANN
     const eventIdParam = req.params.eventId || req.body.eventId || req.query.eventId as string;
 
     let eventId: number | null = null;
-    let hostUsername: string | null = null;
+    let organizerUsername: string | null = null;
 
     try {
       if (eventIdParam) {
         eventId = parseInt(eventIdParam);
-        const eventRes = await pool.query('SELECT host_username FROM events WHERE id = $1', [eventId]);
+        const eventRes = await pool.query('SELECT organizer_username FROM events WHERE id = $1', [eventId]);
         if (eventRes.rows.length > 0) {
-          hostUsername = eventRes.rows[0].host_username;
+          organizerUsername = eventRes.rows[0].organizer_username;
         }
       } else if (slug) {
-        const eventRes = await pool.query('SELECT id, host_username FROM events WHERE slug = $1', [slug]);
+        const eventRes = await pool.query('SELECT id, organizer_username FROM events WHERE slug = $1', [slug]);
         if (eventRes.rows.length > 0) {
           eventId = eventRes.rows[0].id;
-          hostUsername = eventRes.rows[0].host_username;
+          organizerUsername = eventRes.rows[0].organizer_username;
         }
       }
 
@@ -85,7 +85,7 @@ export function requireEventRole(allowedRoles: ('ORGANIZER' | 'MANAGER' | 'SCANN
 
       if (teamRes.rows.length > 0) {
         userRole = teamRes.rows[0].role as 'ORGANIZER' | 'MANAGER' | 'SCANNER';
-      } else if (hostUsername === username) {
+      } else if (organizerUsername === username) {
         // Fallback: If not in event_team but is original creator/host, they are ORGANIZER
         userRole = 'ORGANIZER';
       }

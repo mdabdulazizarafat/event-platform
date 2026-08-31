@@ -121,7 +121,7 @@ export class AdminService {
     const countQuery = `
       SELECT COUNT(*) as total 
       FROM events e
-      JOIN users h ON e.host_username = h.username
+      JOIN users h ON e.organizer_username = h.username
       ${whereClause}
     `;
     const countRes = await pool.query(countQuery, values);
@@ -131,7 +131,7 @@ export class AdminService {
       SELECT e.*, h.name as host_name, h.email as host_email,
         (SELECT COUNT(*) FROM registrations r WHERE r.event_id = e.id AND r.status != 'CANCELLED')::INTEGER as attendee_count
       FROM events e
-      JOIN users h ON e.host_username = h.username
+      JOIN users h ON e.organizer_username = h.username
       ${whereClause}
       ORDER BY e.created_at DESC
       LIMIT $${values.length + 1} OFFSET $${values.length + 2}
@@ -347,7 +347,7 @@ export class AdminService {
         throw new Error('Event not found');
       }
       const event = checkRes.rows[0];
-      const oldHost = event.host_username;
+      const oldHost = event.organizer_username;
 
       const updates: string[] = [];
       const values: any[] = [];
@@ -367,15 +367,15 @@ export class AdminService {
         }
       }
 
-      // Handle host_username separately
-      const newHost = input.host_username || input.hostUsername;
+      // Handle organizer_username separately
+      const newHost = input.organizer_username || input.organizerUsername;
       if (newHost && newHost !== oldHost) {
         const userCheck = await client.query('SELECT username FROM users WHERE username = $1', [newHost]);
         if (userCheck.rowCount === 0) {
           throw new Error(`User "${newHost}" not found.`);
         }
         values.push(newHost);
-        updates.push(`host_username = $${values.length}`);
+        updates.push(`organizer_username = $${values.length}`);
         
         // 1. Demote old host to MANAGER
         await client.query(`
@@ -566,7 +566,7 @@ export class AdminService {
       const superAdminUsername = superAdminRes.rows[0]?.username || 'admin';
       
       // Transfer events
-      await pool.query("UPDATE events SET host_username = $1 WHERE host_username = $2", [superAdminUsername, username]);
+      await pool.query("UPDATE events SET organizer_username = $1 WHERE organizer_username = $2", [superAdminUsername, username]);
     }
 
     const finalAdminUsername = adminUsername === username ? updated.username : adminUsername;
@@ -626,7 +626,7 @@ export class AdminService {
         'SETTLED' as status,
         COALESCE(TO_CHAR(MAX(p.paid_at), 'YYYY-MM-DD'), '2026-08-01') as date
       FROM users u
-      JOIN events e ON e.host_username = u.username
+      JOIN events e ON e.organizer_username = u.username
       JOIN payments p ON p.event_id = e.id
       WHERE p.status = 'SUCCESS' OR p.status = 'COMPLETED' OR p.status = 'SETTLED'
       GROUP BY u.username

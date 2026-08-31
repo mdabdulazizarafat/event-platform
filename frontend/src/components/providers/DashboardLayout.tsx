@@ -37,8 +37,8 @@ interface NavItem {
   href: string;
 }
 
-// Host Navigation
-const hostNavItems: NavItem[] = [
+// Organizer Navigation
+const organizerNavItems: NavItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
   { key: 'events', label: 'Events Directory', icon: Globe, href: '/dashboard/events' },
   { key: 'schedule', label: 'My Schedule', icon: CalendarDays, href: '/dashboard/schedule' },
@@ -175,7 +175,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (user?.role === 'USER') {
       return userNavItems;
     }
-    return hostNavItems; // Default to host (ORGANIZER)
+    return organizerNavItems; // Default to organizer (ORGANIZER)
   };
 
   const getRoleLabel = () => {

@@ -95,7 +95,7 @@ export default function AboutPage() {
         <div className="bg-foreground rounded-[2rem] p-12 relative overflow-hidden shadow-2xl">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary opacity-20 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
           <div className="relative z-10">
-            <h2 className="text-3xl md:text-4xl font-heading font-bold text-white mb-6">Ready to host your next event?</h2>
+            <h2 className="text-3xl md:text-4xl font-heading font-bold text-white mb-6">Ready to organize your next event?</h2>
             <p className="text-surface-soft text-lg mb-8 max-w-xl mx-auto font-sans">
               Join thousands of organizers who trust Ayojok to bring their visions to life.
             </p>

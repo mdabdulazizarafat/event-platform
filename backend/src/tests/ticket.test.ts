@@ -5,14 +5,14 @@ import { createTestUser, createTestEvent } from './setup';
 
 export async function runTicketTests() {
   await describe('TicketType & Registration (Month 1 Free Event) Suite', async () => {
-    const hostUsername = `ticket_host_${Date.now()}`;
+    const organizerUsername = `ticket_host_${Date.now()}`;
     const attendeeUsername = `attendee_${Date.now()}`;
     let eventId: number;
     let freeTicketId: number;
 
     await it('should setup host and event for registration testing', async () => {
-      await createTestUser(hostUsername, 'ORGANIZER');
-      const eventRes = await createTestEvent(hostUsername, `test-event-reg-${Date.now()}`);
+      await createTestUser(organizerUsername, 'ORGANIZER');
+      const eventRes = await createTestEvent(organizerUsername, `test-event-reg-${Date.now()}`);
       eventId = eventRes.eventId;
     });
 

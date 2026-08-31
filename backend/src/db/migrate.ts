@@ -28,8 +28,8 @@ export async function runMigrations() {
     // Temporary force alter constraints to add ON UPDATE CASCADE
     logger.info('Ensuring foreign keys have ON UPDATE CASCADE...');
     const alterQueries = [
-      `ALTER TABLE events DROP CONSTRAINT IF EXISTS events_host_username_fkey;`,
-      `ALTER TABLE events ADD CONSTRAINT events_host_username_fkey FOREIGN KEY (host_username) REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE;`,
+      `ALTER TABLE events DROP CONSTRAINT IF EXISTS events_organizer_username_fkey;`,
+      `ALTER TABLE events ADD CONSTRAINT events_organizer_username_fkey FOREIGN KEY (organizer_username) REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE;`,
       `ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_user_id_fkey;`,
       `ALTER TABLE registrations ADD CONSTRAINT registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE;`,
       `ALTER TABLE admin_logs DROP CONSTRAINT IF EXISTS admin_logs_admin_username_fkey;`,
@@ -109,7 +109,7 @@ export async function runMigrations() {
         capacity INTEGER NOT NULL DEFAULT 100,
         contact_email VARCHAR(255),
         contact_phone VARCHAR(50),
-        host_username VARCHAR(100) NOT NULL REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE,
+        organizer_username VARCHAR(100) NOT NULL REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE,
         status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
         form_phone BOOLEAN DEFAULT true,
         form_job_title BOOLEAN DEFAULT true,

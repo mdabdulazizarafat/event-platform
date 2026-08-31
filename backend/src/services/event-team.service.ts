@@ -22,8 +22,8 @@ export class EventTeamService {
     }
 
     // 2. Prevent inviting yourself or inviting the owner
-    const eventRes = await pool.query('SELECT host_username FROM events WHERE id = $1', [eventId]);
-    if (eventRes.rows.length > 0 && eventRes.rows[0].host_username === username) {
+    const eventRes = await pool.query('SELECT organizer_username FROM events WHERE id = $1', [eventId]);
+    if (eventRes.rows.length > 0 && eventRes.rows[0].organizer_username === username) {
       throw new Error('The event owner is already the organizer.');
     }
 
@@ -51,11 +51,11 @@ export class EventTeamService {
       
       UNION
       
-      SELECT e.host_username as username, 'ORGANIZER' as role, NULL as invited_by, e.created_at as joined_at,
+      SELECT e.organizer_username as username, 'ORGANIZER' as role, NULL as invited_by, e.created_at as joined_at,
              u.name, u.email, u.avatar, u.bio
       FROM events e
-      JOIN users u ON e.host_username = u.username
-      WHERE e.id = $1 AND e.host_username NOT IN (SELECT username FROM event_team WHERE event_id = $1)
+      JOIN users u ON e.organizer_username = u.username
+      WHERE e.id = $1 AND e.organizer_username NOT IN (SELECT username FROM event_team WHERE event_id = $1)
       
       ORDER BY role DESC, joined_at ASC;
     `;

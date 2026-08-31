@@ -32,7 +32,7 @@ export default function AttendeesPage() {
         if (res.ok) {
           const data = await res.json();
           // Filter events hosted by this host
-          const hostEvents = data.filter((e: any) => e.host_username === user?.username);
+          const hostEvents = data.filter((e: any) => e.organizer_username === user?.username);
           setEvents(hostEvents);
           if (hostEvents.length > 0) {
             setSelectedEventSlug(hostEvents[0].slug);

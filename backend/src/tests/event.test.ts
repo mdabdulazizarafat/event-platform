@@ -7,12 +7,12 @@ import { createTestUser } from './setup';
 
 export async function runEventTests() {
   await describe('EventService & Partition Table Generation Suite', async () => {
-    const hostUsername = `event_host_${Date.now()}`;
+    const organizerUsername = `event_host_${Date.now()}`;
     const slug = `test-event-${Date.now()}`;
     let createdEventId: number;
 
     await it('should prepare host user for event creation', async () => {
-      await createTestUser(hostUsername, 'ORGANIZER');
+      await createTestUser(organizerUsername, 'ORGANIZER');
     });
 
     await it('should create an event, generate partition table p_reg_[eventId], and initialize team', async () => {
@@ -23,7 +23,7 @@ export async function runEventTests() {
         time: '09:00 AM - 05:00 PM',
         location: 'Tech Hub Dhaka',
         capacity: 100,
-        hostUsername,
+        organizerUsername,
       });
       expect(typeof createdEventId).toBe('number');
       expect(createdEventId).toBeGreaterThan(0);
@@ -31,7 +31,7 @@ export async function runEventTests() {
 
     await it('should automatically add host as ORGANIZER in event_team', async () => {
       const team = await EventTeamService.getTeam(createdEventId);
-      const hostMember = team.find((m) => m.username === hostUsername);
+      const hostMember = team.find((m) => m.username === organizerUsername);
       expect(hostMember).toBeDefined();
       expect(hostMember?.role).toBe('ORGANIZER');
     });

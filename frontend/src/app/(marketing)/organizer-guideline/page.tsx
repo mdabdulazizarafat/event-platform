@@ -4,7 +4,7 @@ import { CheckCircle2, Shield, Calendar, Users, Megaphone } from 'lucide-react';
 
 export const metadata = {
   title: 'Organizer Guidelines | Ayojok',
-  description: 'Best practices, rules, and guidelines for hosting events on Ayojok.',
+  description: 'Best practices, rules, and guidelines for organizing events on Ayojok.',
 };
 
 export default function OrganizerGuidelinePage() {
@@ -17,7 +17,7 @@ export default function OrganizerGuidelinePage() {
             Organizer Guidelines
           </h1>
           <p className="text-xl text-surface-dim font-sans">
-            Everything you need to know to host successful, safe, and engaging events on the Ayojok platform.
+            Everything you need to know to organize successful, safe, and engaging events on the Ayojok platform.
           </p>
         </div>
       </section>
@@ -45,7 +45,7 @@ export default function OrganizerGuidelinePage() {
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="text-primary mt-1 flex-shrink-0" size={20} />
-                <span className="text-on-surface-variant font-sans">Ensure the venue is safe, accessible, and properly licensed for the type of event you are hosting.</span>
+                <span className="text-on-surface-variant font-sans">Ensure the venue is safe, accessible, and properly licensed for the type of event you are organizing.</span>
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="text-primary mt-1 flex-shrink-0" size={20} />

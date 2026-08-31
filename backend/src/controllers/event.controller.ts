@@ -39,7 +39,7 @@ export class EventController {
         return res.status(403).json({ error: 'Users cannot create events. Please upgrade to Organizer.' });
       }
       
-      const hostUsername = req.user.username;
+      const organizerUsername = req.user.username;
       const { 
         slug, title, description, thumbnail, date, time, location, capacity, contactEmail, contactPhone, status,
         formPhone, formJobTitle, formOrganization, formTshirtSize, formReference, formTransactionId,
@@ -54,9 +54,9 @@ export class EventController {
       // Rate limit check: Max 3 event creations per host per hour
       const rateLimitQuery = `
         SELECT COUNT(*) FROM events 
-        WHERE host_username = $1 AND created_at > NOW() - INTERVAL '1 hour'
+        WHERE organizer_username = $1 AND created_at > NOW() - INTERVAL '1 hour'
       `;
-      const countRes = await pool.query(rateLimitQuery, [hostUsername]);
+      const countRes = await pool.query(rateLimitQuery, [organizerUsername]);
       const eventCount = parseInt(countRes.rows[0].count);
 
       if (eventCount >= 3) {
@@ -74,7 +74,7 @@ export class EventController {
         capacity: parseInt(capacity),
         contactEmail: contactEmail || undefined,
         contactPhone: contactPhone || undefined,
-        hostUsername,
+        organizerUsername,
         description: description || undefined,
         thumbnail: thumbnail || undefined,
         status: status || 'DRAFT',
@@ -285,7 +285,7 @@ export class EventController {
         return res.status(404).json({ error: 'Event not found' });
       }
 
-      if (event.host_username !== req.user.username) {
+      if (event.organizer_username !== req.user.username) {
         return res.status(403).json({ error: 'Unauthorized: Only the event host can retrieve registrations.' });
       }
 
@@ -335,7 +335,7 @@ export class EventController {
         SELECT e.id 
         FROM events e
         LEFT JOIN event_team et ON e.id = et.event_id AND et.username = $1
-        WHERE e.host_username = $1 OR (et.username = $1 AND et.role = 'ORGANIZER')
+        WHERE e.organizer_username = $1 OR (et.username = $1 AND et.role = 'ORGANIZER')
       `;
       const eventsRes = await pool.query(eventsQuery, [username]);
       const eventIds = eventsRes.rows.map(r => r.id);

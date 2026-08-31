@@ -347,7 +347,7 @@ function OrganizerDashboardView() {
         if (eventsRes.ok) {
           const data = await eventsRes.json();
           const list = Array.isArray(data) ? data : (data.data || []);
-          const hostEvents = list.filter((e: any) => e.host_username === user?.username || e.is_team_member);
+          const hostEvents = list.filter((e: any) => e.organizer_username === user?.username || e.is_team_member);
           setEvents(hostEvents);
         }
 

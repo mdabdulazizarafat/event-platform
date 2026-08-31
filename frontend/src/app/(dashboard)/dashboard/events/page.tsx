@@ -43,7 +43,7 @@ export default function EventsDirectoryPage() {
           setEvents(list);
           setTotalItems(result.pagination?.total || list.length);
         } else {
-          const hostEvents = list.filter((e: any) => e.host_username === user?.username || e.is_team_member || e.is_registered);
+          const hostEvents = list.filter((e: any) => e.organizer_username === user?.username || e.is_team_member || e.is_registered);
           setEvents(hostEvents);
           if (result.pagination) {
             setTotalItems(result.pagination.total);
@@ -98,12 +98,12 @@ export default function EventsDirectoryPage() {
       )
     },
     ...(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' ? [{
-      key: 'host_username',
+      key: 'organizer_username',
       title: 'Organizer',
       render: (row: any) => (
         <span className="text-on-surface-variant font-medium text-xs flex items-center gap-1.5">
           <User size={13} className="text-[#7b55fa]" />
-          {row.host_username}
+          {row.organizer_username}
         </span>
       )
     }] : []),
@@ -137,7 +137,7 @@ export default function EventsDirectoryPage() {
       title: 'Actions',
       render: (row: any) => (
         <div className="flex gap-2">
-          {user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || row.is_host || row.is_team_member ? (
+          {user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || row.is_organizer || row.is_team_member ? (
             <Link href={`/dashboard/events/${row.slug}`} passHref>
               <Button
                 variant="outline"

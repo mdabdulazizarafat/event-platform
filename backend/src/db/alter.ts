@@ -4,9 +4,9 @@ async function alterForeignKeys() {
   const client = await pool.connect();
   try {
     const queries = [
-      // 1. events.host_username
-      `ALTER TABLE events DROP CONSTRAINT IF EXISTS events_host_username_fkey;`,
-      `ALTER TABLE events ADD CONSTRAINT events_host_username_fkey FOREIGN KEY (host_username) REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE;`,
+      // 1. events.organizer_username
+      `ALTER TABLE events DROP CONSTRAINT IF EXISTS events_organizer_username_fkey;`,
+      `ALTER TABLE events ADD CONSTRAINT events_organizer_username_fkey FOREIGN KEY (organizer_username) REFERENCES users(username) ON UPDATE CASCADE ON DELETE CASCADE;`,
 
       // 2. registrations.user_id
       `ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_user_id_fkey;`,

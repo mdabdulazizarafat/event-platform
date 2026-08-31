@@ -9,15 +9,15 @@ import { notFound } from 'next/navigation';
 
 const { Title, Paragraph, Text } = Typography;
 
-export default function HostProfilePage({ params }: { params: Promise<{ username: string }> }) {
+export default function OrganizerProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = React.use(params);
 
-  // Mock data for host profiles
-  const hostsData: Record<string, { name: string; handle: string; description: string; events: any[] }> = {
+  // Mock data for organizer profiles
+  const organizersData: Record<string, { name: string; handle: string; description: string; events: any[] }> = {
     'tech-hub': {
       name: 'Tech Hub Community',
       handle: '@tech-hub',
-      description: 'Fostering tech innovation and developer growth. Host of the annual Global Tech Summit, DevCon, and monthly workshops.',
+      description: 'Fostering tech innovation and developer growth. Organizer of the annual Global Tech Summit, DevCon, and monthly workshops.',
       events: [
         { id: '1', slug: 'global-tech-summit', title: 'Global Tech Summit 2026', date: 'Oct 24-26, 2026', status: 'Open' },
         { id: '2', slug: 'react-advanced-workshop', title: 'React 19 & Next.js 16 Masterclass', date: 'Nov 12, 2026', status: 'Selling Fast' }
@@ -33,7 +33,7 @@ export default function HostProfilePage({ params }: { params: Promise<{ username
     }
   };
 
-  const host = hostsData[username];
+  const host = organizersData[username];
 
   if (!host) {
     notFound();
@@ -44,7 +44,7 @@ export default function HostProfilePage({ params }: { params: Promise<{ username
       <div style={{ minHeight: '100vh', backgroundColor: '#F9FAFB', padding: '40px 16px' }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
           
-          {/* Top Section: Host Profile Directory */}
+          {/* Top Section: Organizer Profile Directory */}
           <Card 
             style={{ 
               borderRadius: theme.token?.borderRadius, 

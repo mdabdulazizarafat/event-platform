@@ -33,7 +33,7 @@ export async function createTestUser(username = 'testuser_qa', role: 'SUPER_ADMI
   };
 }
 
-export async function createTestEvent(hostUsername: string, slug = `test-event-${Date.now()}`) {
+export async function createTestEvent(organizerUsername: string, slug = `test-event-${Date.now()}`) {
   const eventId = await EventService.createEvent({
     slug,
     title: 'QA Test Event',
@@ -41,7 +41,7 @@ export async function createTestEvent(hostUsername: string, slug = `test-event-$
     time: '10:00 AM - 05:00 PM',
     location: 'QA Testing Lab, Dhaka',
     capacity: 50,
-    hostUsername,
+    organizerUsername,
   });
   return { eventId, slug };
 }

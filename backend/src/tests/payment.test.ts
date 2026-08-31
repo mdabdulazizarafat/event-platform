@@ -6,7 +6,7 @@ import { createTestUser, createTestEvent } from './setup';
 
 export async function runPaymentTests() {
   await describe('PaymentService & SSLCommerz IPN Verification Suite', async () => {
-    const hostUsername = `payment_host_${Date.now()}`;
+    const organizerUsername = `payment_host_${Date.now()}`;
     const buyerUsername = `buyer_${Date.now()}`;
     let eventId: number;
     let eventSlug: string;
@@ -14,9 +14,9 @@ export async function runPaymentTests() {
     let tranId: string;
 
     await it('should setup host, buyer, and event with paid ticket type', async () => {
-      await createTestUser(hostUsername, 'ORGANIZER');
+      await createTestUser(organizerUsername, 'ORGANIZER');
       const buyer = await createTestUser(buyerUsername, 'PARTICIPANT');
-      const eventRes = await createTestEvent(hostUsername, `test-event-pay-${Date.now()}`);
+      const eventRes = await createTestEvent(organizerUsername, `test-event-pay-${Date.now()}`);
       eventId = eventRes.eventId;
       eventSlug = eventRes.slug;
 

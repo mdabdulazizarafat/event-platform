@@ -446,16 +446,16 @@ export class AdminController {
   static async createEvent(req: Request, res: Response) {
     try {
       const adminUsername = req.user!.username;
-      const { slug, title, description, thumbnail, date, time, location, capacity, contactEmail, contactPhone, hostUsername, status } = req.body;
+      const { slug, title, description, thumbnail, date, time, location, capacity, contactEmail, contactPhone, organizerUsername, status } = req.body;
       
-      if (!slug || !title || !date || !time || !location || !capacity || !hostUsername) {
+      if (!slug || !title || !date || !time || !location || !capacity || !organizerUsername) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
       // Check if host user exists
-      const hostCheck = await pool.query('SELECT username FROM users WHERE username = $1', [hostUsername]);
+      const hostCheck = await pool.query('SELECT username FROM users WHERE username = $1', [organizerUsername]);
       if (hostCheck.rowCount === 0) {
-        return res.status(400).json({ error: `Organizer "${hostUsername}" does not exist.` });
+        return res.status(400).json({ error: `Organizer "${organizerUsername}" does not exist.` });
       }
 
       const eventId = await EventService.createEvent({
@@ -467,7 +467,7 @@ export class AdminController {
         capacity: parseInt(capacity),
         contactEmail: contactEmail || undefined,
         contactPhone: contactPhone || undefined,
-        hostUsername,
+        organizerUsername,
         description: description || undefined,
         thumbnail: thumbnail || undefined,
         status: status || 'DRAFT',

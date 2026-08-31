@@ -14,9 +14,9 @@ import {
   Ticket,
   AlertCircle,
   FileText,
-  Plus,
   CalendarPlus,
-  ClockIcon
+  ClockIcon,
+  Phone
 } from 'lucide-react';
 import { FacebookOutlined, TwitterOutlined } from '@ant-design/icons';
 import { theme } from '../../../../theme/theme';
@@ -30,6 +30,7 @@ import Button from '@/components/ui/Button';
 export default function EventRegistrationPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = React.use(params);
   const ticketsSectionRef = useRef<HTMLDivElement>(null);
+  const [messageApi, contextHolder] = message.useMessage();
 
   // Page state
   const [event, setEvent] = useState<Event | null>(null);
@@ -94,7 +95,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
 
   const handleConfirmSelection = () => {
     if (selectedTicketIds.length === 0) {
-      message.warning('Please select at least one segment/ticket to proceed.');
+      messageApi.warning('Please select at least one segment/ticket to proceed.');
       return;
     }
     const query = selectedTicketIds.join(',');
@@ -103,7 +104,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
 
   const copyPageLink = () => {
     navigator.clipboard.writeText(window.location.href);
-    message.success('Link copied to clipboard!');
+    messageApi.success('Link copied to clipboard!');
   };
 
   if (loading) {
@@ -130,6 +131,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
 
   return (
     <ConfigProvider theme={theme}>
+      {contextHolder}
       <div className="flex-1 text-[#111c2d] flex flex-col">
 
         <main className="flex-grow pb-16">
@@ -280,7 +282,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                   Share the Event
                 </h3>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="mt-2 grid grid-cols-2 gap-3">
                   <button
                     onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`, '_blank')}
                     className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors hover:bg-slate-300 border-none cursor-pointer"
@@ -315,49 +317,90 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                 </button>
               </div>
 
-              {/* Organizer Info Card */}
-              <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4 mt-6">
-                <h3 className="text-base font-medium text-slate-900 m-0">
-                  Organizer Info
-                </h3>
+              {/* Event Contact and Organizer Info */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-6 mt-6 shadow-sm">
 
-                <div className="mt-1 bg-slate-200 p-3 rounded-lg text-sm text-slate-800 space-y-0.5">
-                  <div className="text-base md:text-lg font-semibold">
-                    {event.hostUsername || 'Unknown Organizer'}
+                {/* Event Contact Details */}
+                {(event.contactEmail || event.contactPhone) && (
+                  <div className="space-y-3">
+                    <h3 className="text-base font-bold text-slate-900 m-0">
+                      Event Contact
+                    </h3>
+                    <div className="mt-1 bg-slate-50 border border-slate-100 p-3.5 rounded-lg text-sm space-y-2.5">
+                      {event.contactEmail && (
+                        <div className="flex items-center gap-3 text-slate-700">
+                          <Mail size={16} className="text-slate-400 shrink-0" />
+                          <a href={`mailto:${event.contactEmail}`} className="hover:text-primary transition-colors break-all">{event.contactEmail}</a>
+                        </div>
+                      )}
+                      {event.contactPhone && (
+                        <div className="flex items-center gap-3 text-slate-700">
+                          <Phone size={16} className="text-slate-400 shrink-0" />
+                          <a href={`tel:${event.contactPhone}`} className="hover:text-primary transition-colors">{event.contactPhone}</a>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {event.contactEmail && (
-                    <div className="text-sm md:text-base text-slate-600">
-                      {event.contactEmail}
+                )}
+
+                {/* Organizer Info */}
+                <div className="space-y-3">
+                  <h3 className="text-base font-bold text-slate-900 m-0">
+                    Organizer Info
+                  </h3>
+
+                  {/* Primary Organizer */}
+                  {(event.organizer || event.organizerUsername) && (
+                    <div className="mt-1 bg-slate-50 p-3.5 rounded-lg text-sm text-slate-800 space-y-1.5 border border-slate-100">
+                      <div className="text-base font-bold flex items-center justify-between text-slate-900">
+                        <span>{
+                          (event.organizer?.first_name || event.organizer?.firstname || event.organizer?.firstName)
+                            ? `${event.organizer.first_name || event.organizer.firstname || event.organizer.firstName} ${event.organizer.last_name || event.organizer.lastname || event.organizer.lastName || ''}`.trim()
+                            : (event.organizer?.name || event.organizerUsername || 'Unknown Organizer')
+                        }</span>
+                      </div>
+                      {(event.organizer?.email || event.contactEmail) && (
+                        <div className="text-sm text-slate-700 flex items-center gap-3 mt-2">
+                          <Mail size={16} className="text-slate-500 shrink-0" />
+                          <a href={`mailto:${event.organizer?.email || event.contactEmail}`} className="hover:text-primary transition-colors break-all">{event.organizer?.email || event.contactEmail}</a>
+                        </div>
+                      )}
+                      {(event.organizer?.phone || event.contactPhone) && (
+                        <div className="text-sm md:text-base text-slate-700 flex items-center gap-3">
+                          <Phone size={16} className="text-slate-500 shrink-0" />
+                          <a href={`tel:${event.organizer?.phone || event.contactPhone}`} className="hover:text-primary transition-colors">{event.organizer?.phone || event.contactPhone}</a>
+                        </div>
+                      )}
                     </div>
                   )}
-                  {event.contactPhone && (
-                    <div className="text-sm md:text-base text-slate-600">
-                      {event.contactPhone}
+
+                  {/* Co-Organizers */}
+                  {(event as any).organizers && (event as any).organizers.length > 0 && (
+                    <div className="space-y-2 mt-3">
+                      {(event as any).organizers.map((org: any, idx: number) => (
+                        <div key={idx} className="bg-slate-50 border border-slate-200 p-3.5 rounded-lg text-sm text-slate-800 space-y-1.5">
+                          <div className="font-semibold flex items-center justify-between text-slate-900">
+                            <span>{(org.firstname && org.lastname) ? `${org.firstname} ${org.lastname}` : (org.name || 'Unknown Organizer')}</span>
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 bg-slate-200 px-2 py-0.5 rounded border border-slate-200">{org.role || 'Co-Organizer'}</span>
+                          </div>
+                          {org.email && (
+                            <div className="text-xs md:text-sm text-slate-700 flex items-center gap-3 mt-1.5">
+                              <Mail size={14} className="text-slate-400 shrink-0" />
+                              <a href={`mailto:${org.email}`} className="hover:text-primary transition-colors break-all">{org.email}</a>
+                            </div>
+                          )}
+                          {org.phone && (
+                            <div className="text-xs md:text-sm text-slate-700 flex items-center gap-3">
+                              <Phone size={14} className="text-slate-400 shrink-0" />
+                              <a href={`tel:${org.phone}`} className="hover:text-primary transition-colors">{org.phone}</a>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
-
-                {(event as any).organizers && (event as any).organizers.length > 0 && (event as any).organizers.map((org: any, idx: number) => (
-                  <div key={idx} className="bg-slate-200 p-3 rounded-lg text-sm text-slate-800 space-y-0.5">
-                    <div className="font-medium">
-                      {org.name} <span className="text-xs text-slate-500 font-normal">({org.role || 'Co-Organizer'})</span>
-                    </div>
-                    {org.email && (
-                      <div className="text-xs text-slate-600">
-                        {org.email}
-                      </div>
-                    )}
-                    {org.phone && (
-                      <div className="text-xs text-slate-600">
-                        {org.phone}
-                      </div>
-                    )}
-                  </div>
-                ))}
               </div>
-
-
-
             </div>
           </div>
 

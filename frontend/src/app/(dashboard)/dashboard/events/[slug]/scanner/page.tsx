@@ -164,7 +164,7 @@ export default function QRScannerPage({ params }: { params: Promise<{ slug: stri
           const data = await res.json();
           const list = Array.isArray(data) ? data : (data.data || []);
           // Filter events hosted by this user or where they are in the team
-          const hostEvents = list.filter((e: any) => e.host_username === user?.username || e.is_team_member);
+          const hostEvents = list.filter((e: any) => e.organizer_username === user?.username || e.is_team_member);
           setEvents(hostEvents);
           
           if (queryEventSlug) {

@@ -34,7 +34,7 @@ export default function TermsAndConditionsPage() {
           </p>
           <ul className="list-disc pl-6 space-y-2 mb-6">
             <li>Digital event discovery and ticket purchasing.</li>
-            <li>Cloud-hosted organizer dashboards for managing events and attendees.</li>
+            <li>Cloud-managed organizer dashboards for managing events and attendees.</li>
             <li>Secure QR-code ticket generation and scanning software.</li>
           </ul>
           <p>
@@ -45,7 +45,7 @@ export default function TermsAndConditionsPage() {
           <ul className="list-disc pl-6 space-y-2 mb-6">
             <li><strong>Accuracy of Information:</strong> You agree to provide true, accurate, and complete information during registration.</li>
             <li><strong>Lawful Usage:</strong> You agree not to use Ayojok for any unlawful, deceptive, fraudulent, or harmful purposes, including creating fake events.</li>
-            <li><strong>Content Restrictions:</strong> Organizers are solely liable for the content of their events. You strictly agree not to host material that is offensive, defamatory, obscene, or violating any laws.</li>
+            <li><strong>Content Restrictions:</strong> Organizers are solely liable for the content of their events. You strictly agree not to organize material that is offensive, defamatory, obscene, or violating any laws.</li>
           </ul>
 
           <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">4. Orders, Payments, & Ticketing</h2>

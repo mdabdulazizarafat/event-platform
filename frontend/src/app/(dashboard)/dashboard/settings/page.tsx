@@ -204,7 +204,7 @@ export default function SettingsPage() {
                   <Briefcase className="w-4 h-4 text-primary" />
                   <div>
                     <h4 className="text-sm font-bold text-foreground m-0">Organizer Application</h4>
-                    <p className="text-[10px] text-on-surface-variant m-0">Allow users to apply to host events.</p>
+                    <p className="text-[10px] text-on-surface-variant m-0">Allow users to apply to organize events.</p>
                   </div>
                 </div>
                 <Switch checked={orgAppEnabled} onChange={setOrgAppEnabled} />

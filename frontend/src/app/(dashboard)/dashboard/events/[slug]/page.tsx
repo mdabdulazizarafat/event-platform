@@ -67,7 +67,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
   const { user } = useAuth();
 
   // Root Data State
-  const [event, setEvent] = useState<(Event & { id?: number; is_team_member?: boolean; is_registered?: boolean; is_host?: boolean; team_role?: string; }) | null>(null);
+  const [event, setEvent] = useState<(Event & { id?: number; is_team_member?: boolean; is_registered?: boolean; is_organizer?: boolean; team_role?: string; }) | null>(null);
   const [tickets, setTickets] = useState<TicketType[]>([]);
   const [scanStats, setScanStats] = useState<any>(null);
   const [scanLogs, setScanLogs] = useState<any[]>([]);
@@ -841,7 +841,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
           </div>
         }
         action={
-          (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || event?.hostUsername === user?.username || event?.is_team_member) ? (
+          (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || event?.organizerUsername === user?.username || event?.is_team_member) ? (
             <div className="flex items-center gap-2">
               {(!event.status || event.status === 'DRAFT') && (
                 <Button variant="primary" size="sm" icon={<Power className="w-4 h-4" />} onClick={() => updateStatus('PUBLISHED')}>
@@ -1550,7 +1550,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
           const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
           if (isSuperAdmin) return true;
 
-          if (event?.hostUsername === user?.username) return true;
+          if (event?.organizerUsername === user?.username) return true;
 
           if (event?.is_team_member) {
             if (event.team_role === 'ORGANIZER') return true;

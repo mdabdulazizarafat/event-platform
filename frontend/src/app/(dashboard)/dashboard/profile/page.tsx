@@ -143,7 +143,7 @@ export default function ProfilePage() {
         if (res.ok) {
           const data = await res.json();
           const list = Array.isArray(data) ? data : (data.data || []);
-          const hostEvents = list.filter((e: any) => e.host_username === user?.username);
+          const hostEvents = list.filter((e: any) => e.organizer_username === user?.username);
           setEvents(hostEvents);
           if (hostEvents.length > 0) {
             setSelectedEvent(hostEvents[0]);
@@ -723,7 +723,7 @@ export default function ProfilePage() {
                       </div>
                     ) : (
                       <div>
-                        <p className="text-sm text-on-surface-variant mb-4">You can apply to become an organizer to host events on Rong Plan.</p>
+                        <p className="text-sm text-on-surface-variant mb-4">You can apply to become an organizer to organize events on Rong Plan.</p>
                         <Button variant="primary" onClick={handleApplyOrganizer} loading={applying}>Apply as Organizer</Button>
                       </div>
                     )}
@@ -1119,7 +1119,7 @@ export default function ProfilePage() {
                     onChange={(val) => setInviteRole(val)}
                     className="w-full h-10 rounded-lg"
                   >
-                    <Select.Option value="ORGANIZER">Co-Organizer (Host privilege)</Select.Option>
+                    <Select.Option value="ORGANIZER">Co-Organizer (Organizer privilege)</Select.Option>
                     <Select.Option value="SCANNER">Event Scanner (QR scan privilege)</Select.Option>
                   </Select>
                 </div>

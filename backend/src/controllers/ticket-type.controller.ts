@@ -22,7 +22,7 @@ export class TicketTypeController {
         return res.status(404).json({ error: 'Event not found' });
       }
 
-      if (event.host_username !== req.user.username) {
+      if (event.organizer_username !== req.user.username) {
         return res.status(403).json({ error: 'Unauthorized: Only the event host can manage ticket types.' });
       }
 
@@ -99,7 +99,7 @@ export class TicketTypeController {
         return res.status(404).json({ error: 'Event not found' });
       }
 
-      if (event.host_username !== req.user.username) {
+      if (event.organizer_username !== req.user.username) {
         return res.status(403).json({ error: 'Unauthorized: Only the event host can manage ticket types.' });
       }
 
@@ -146,7 +146,7 @@ export class TicketTypeController {
         return res.status(404).json({ error: 'Event not found' });
       }
 
-      if (event.host_username !== req.user.username) {
+      if (event.organizer_username !== req.user.username) {
         return res.status(403).json({ error: 'Unauthorized: Only the event host can manage ticket types.' });
       }
 

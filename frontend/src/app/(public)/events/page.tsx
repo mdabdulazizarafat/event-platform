@@ -106,7 +106,7 @@ export default function EventsDiscoveryPage() {
               Explore <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Upcoming Events</span>
             </h1>
             <p className="text-xl text-on-surface-variant max-w-2xl mx-auto mb-10 leading-relaxed font-sans">
-              Discover conferences, seminars, workshops and competitions hosted by community organizers.
+              Discover conferences, seminars, workshops and competitions organized by community organizers.
             </p>
           </div>
         </section>
