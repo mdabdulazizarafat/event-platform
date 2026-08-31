@@ -41,7 +41,7 @@ export default function ReturnPolicyPage() {
 
           <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">3. Requesting a Refund</h2>
           <p>
-            If you believe you are eligible for a refund due to event cancellation or technical failure, please contact <a href="mailto:support@ayojok.com" className="text-primary hover:underline">support@ayojok.com</a> within 3 days of the incident or event date. Include your full name, order number, and description of the issue.
+            If you believe you are eligible for a refund due to event cancellation or technical failure, please contact <a href="mailto:ayojok@rongplan.com" className="text-primary hover:underline">ayojok@rongplan.com</a> within 3 days of the incident or event date. Include your full name, order number, and description of the issue.
           </p>
 
           <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">4. Refund Processing</h2>
@@ -53,7 +53,7 @@ export default function ReturnPolicyPage() {
           <p>
             If you have any questions about this Return Policy, please contact us at:
             <br />
-            <a href="mailto:support@ayojok.com" className="text-primary hover:underline">support@ayojok.com</a>
+            <a href="mailto:ayojok@rongplan.com" className="text-primary hover:underline">ayojok@rongplan.com</a>
             <br />
             Standard Response Time: Within 24 to 48 hours
           </p>

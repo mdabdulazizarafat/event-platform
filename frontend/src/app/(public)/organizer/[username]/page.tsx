@@ -3,7 +3,7 @@
 import React from 'react';
 import { ConfigProvider, Card, Typography, Row, Col, Avatar, Button, Tag, Space } from 'antd';
 import { UserOutlined, CalendarOutlined, ArrowRightOutlined } from '@ant-design/icons';
-import { theme } from '../../../theme/theme';
+import { theme } from '../../../../theme/theme';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 

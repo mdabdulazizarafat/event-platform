@@ -31,15 +31,15 @@ the canonical design system below. No deviation is allowed.
 
 | Asset | Value |
 |---|---|
-| Logo URL | `https://ayojok.com/ayojokLogo.svg` (or fallback to `https://image.banglainnovator.com/logo/black-logo-36f83cd2-ad3a-4a82-bda0-5d79920820b8.svg`) |
+| Logo URL | `https://ayojok.com/ayojokLogo.svg` |
 | Header logo width | `130px` |
 | Footer logo width | `90px` |
-| Support email | `support@ayojok.com` |
+| Support email | `ayojok@rongplan.com` |
 | Office address | `Dhaka, Bangladesh` |
 | Social — Facebook | `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/facebook.svg` · link: `https://facebook.com/ayojok` |
 | Social — LinkedIn | `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/linkedin.svg` · link: `https://linkedin.com/company/ayojok` |
 | Social — Instagram | `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/instagram.svg` · link: `https://instagram.com/ayojok` |
-| Social — Gmail | `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/gmail.svg` · link: `mailto:support@ayojok.com` |
+| Social — Gmail | `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/gmail.svg` · link: `mailto:ayojok@rongplan.com` |
 | Fonts | Plus Jakarta Sans (headlines) + Inter (body/labels) via Google Fonts |
 
 ---
@@ -270,7 +270,7 @@ Add class `email-card` to the card table, `header-pad` to header TD,
   - Data row value uses `rgba(13,31,21,0.70)` color and weight 500 (long warning text)
 - No CTA button
 - Security note (in place of CTA section): Inter 14px `rgba(13,31,21,0.50)`, padding `20px 32px 20px 32px`
-  - `Didn't request this? Contact our security team immediately at <a href="mailto:support@ayojok.com">support@ayojok.com</a>`
+  - `Didn't request this? Contact our security team immediately at <a href="mailto:ayojok@rongplan.com">ayojok@rongplan.com</a>`
 
 ---
 
@@ -359,7 +359,7 @@ Use this shell for every new template. Replace `{TITLE}`, `{BODY_PAD}`,
               </a>
             </td>
             <td style="vertical-align:middle;">
-              <a href="mailto:support@ayojok.com" style="text-decoration:none;display:inline-block;line-height:0;">
+              <a href="mailto:ayojok@rongplan.com" style="text-decoration:none;display:inline-block;line-height:0;">
                 <img src="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/gmail.svg" width="20" height="20" alt="Email" style="display:block;filter:invert(0%) sepia(0%) saturate(0%) brightness(30%) contrast(100%);opacity:0.45;">
               </a>
             </td>
@@ -403,7 +403,7 @@ Use this shell for every new template. Replace `{TITLE}`, `{BODY_PAD}`,
   <td style="padding:20px 32px 20px 32px;background-color:#ffffff;">
     <p style="margin:0 0 20px 0;font-family:'Inter',Arial,Helvetica,sans-serif;font-size:14px;color:rgba(13,31,21,0.50);line-height:1.7;">
       Didn't request this? Contact our security team immediately at
-      <a href="mailto:support@ayojok.com" style="color:#2BA361;text-decoration:none;font-weight:600;">support@ayojok.com</a>
+      <a href="mailto:ayojok@rongplan.com" style="color:#2BA361;text-decoration:none;font-weight:600;">ayojok@rongplan.com</a>
     </p>
   </td>
 </tr>

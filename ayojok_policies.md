@@ -32,7 +32,7 @@ Ayojok utilizes industry-standard secure cloud infrastructure to store your pers
 - **Legal Compliance**: We may disclose your information if required to do so by applicable law, court order, or formal request from law enforcement or regulatory authorities in Bangladesh or other operating jurisdictions.
 
 **6. User Rights & Data Control**
-As an Ayojok user, you hold the right to Access, Correction, Deletion, and Visibility Control of your data. To execute any of these rights, please contact us at support@ayojok.com.
+As an Ayojok user, you hold the right to Access, Correction, Deletion, and Visibility Control of your data. To execute any of these rights, please contact us at ayojok@rongplan.com.
 
 **7. Cookies & Tracking Technologies**
 Ayojok uses cookies to monitor platform traffic, remember preferences, and keep you securely logged in.
@@ -41,7 +41,7 @@ Ayojok uses cookies to monitor platform traffic, remember preferences, and keep 
 Your data is kept active on our servers for as long as your account remains open. Transaction invoices and purchase records will be retained longer as necessary to meet statutory legal, tax, and accounting compliance obligations.
 
 **9. Contact Us**
-Email Support: support@ayojok.com
+Email Support: ayojok@rongplan.com
 
 ---
 
@@ -76,7 +76,7 @@ All branding elements, source code, and user interface designs created by Ayojok
 These Terms & Conditions shall be governed by, construed, and enforced in accordance with the laws of the People's Republic of Bangladesh. Disputes shall be brought exclusively before the courts of law located in Dhaka, Bangladesh.
 
 **8. Contact Us**
-Email Support: support@ayojok.com
+Email Support: ayojok@rongplan.com
 
 ---
 
@@ -94,11 +94,11 @@ The following are generally excluded from refunds:
 - Violation of event rules leading to denial of entry by the organizer.
 
 **3. Requesting a Refund**
-If you believe you are eligible for a refund due to event cancellation or technical failure, please contact support@ayojok.com within 3 days of the incident or event date. Include your full name, order number, and description of the issue.
+If you believe you are eligible for a refund due to event cancellation or technical failure, please contact ayojok@rongplan.com within 3 days of the incident or event date. Include your full name, order number, and description of the issue.
 
 **4. Refund Processing**
 If a refund is approved, the funds will be reversed directly to the Original Payment Method used during checkout. Please allow 5 to 7 Business Days for the funds to clear back into your account, dependent on your banking institution's settlement timeline.
 
 **5. Contact Us**
-Email Support: support@ayojok.com
+Email Support: ayojok@rongplan.com
 Standard Response Time: Within 24 to 48 hours

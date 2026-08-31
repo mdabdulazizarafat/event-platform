@@ -51,7 +51,7 @@ export function getWelcomeEmailHtml(data: {
             <tr>
               <td align="center" class="header-pad" style="padding:32px 40px 20px 40px;background-color:#FAFAFA;">
                 <img
-                  src="https://ayojok.rongplan.com/ayojok-logo.svg"
+                  src="https://ayojok.rongplan.com/ayojok-logo.png"
                   alt="Ayojok"
                   width="130"
                   style="height:auto;max-width:130px;display:block;margin:0 auto;"
@@ -142,7 +142,7 @@ export function getWelcomeEmailHtml(data: {
                 style="padding:32px;background-color:#FAFAFA;border-top:1px solid rgba(43,163,97,0.15);"
               >
                 <img
-                  src="https://ayojok.rongplan.com/ayojok-logo.svg"
+                  src="https://ayojok.rongplan.com/ayojok-logo.png"
                   alt="Ayojok"
                   width="90"
                   style="height:auto;max-width:90px;display:block;margin-bottom:14px;"

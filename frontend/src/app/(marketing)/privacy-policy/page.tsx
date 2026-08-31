@@ -69,7 +69,7 @@ export default function PrivacyPolicyPage() {
 
           <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">6. User Rights & Data Control</h2>
           <p>
-            As an Ayojok user, you hold the right to Access, Correction, Deletion, and Visibility Control of your data. To execute any of these rights, please contact us at <a href="mailto:support@ayojok.com" className="text-primary hover:underline">support@ayojok.com</a>.
+            As an Ayojok user, you hold the right to Access, Correction, Deletion, and Visibility Control of your data. To execute any of these rights, please contact us at <a href="mailto:ayojok@rongplan.com" className="text-primary hover:underline">ayojok@rongplan.com</a>.
           </p>
 
           <h2 className="text-2xl font-bold text-foreground font-heading mt-10 mb-4">7. Cookies & Tracking Technologies</h2>
@@ -86,7 +86,7 @@ export default function PrivacyPolicyPage() {
           <p>
             If you have any questions about this Privacy Policy, please contact us at:
             <br />
-            <a href="mailto:support@ayojok.com" className="text-primary hover:underline">support@ayojok.com</a>
+            <a href="mailto:ayojok@rongplan.com" className="text-primary hover:underline">ayojok@rongplan.com</a>
           </p>
         </article>
 
