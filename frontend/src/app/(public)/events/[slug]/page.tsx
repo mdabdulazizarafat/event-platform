@@ -15,7 +15,8 @@ import {
   AlertCircle,
   FileText,
   Plus,
-  CalendarPlus
+  CalendarPlus,
+  ClockIcon
 } from 'lucide-react';
 import { FacebookOutlined, TwitterOutlined } from '@ant-design/icons';
 import { theme } from '../../../../theme/theme';
@@ -132,15 +133,25 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
       <div className="flex-1 text-[#111c2d] flex flex-col">
 
         <main className="flex-grow pb-16">
-          {/* Static Banner Section */}
-          <div className="w-full relative h-[300px] md:h-[450px] lg:h-[500px] overflow-hidden bg-black">
-            {/* Blurred Background */}
+          {/* Static Banner Section starting under navbar */}
+          <div className="w-full relative h-[300px] md:h-[400px] lg:h-[450px] overflow-hidden bg-[#fafafa] border-b border-slate-100 -mt-16 pt-16 z-0">
+            {/* Branded background layers behind navbar */}
+            <div className="absolute inset-0 bg-hero-gradient pointer-events-none z-0" />
+            <div className="absolute inset-0 hero-grid opacity-60 pointer-events-none z-0" />
+
+            {/* Ambient glow orbs */}
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full bg-[#2BA361]/[0.05] blur-[100px] pointer-events-none z-0" />
+
+            {/* Blurred Background starting below navbar */}
             <div
-              className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50 blur-xl scale-110"
+              className="absolute inset-0 top-16 bg-cover bg-center bg-no-repeat blur-[40px] scale-110 opacity-70"
               style={{ backgroundImage: `url(${event.thumbnail || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&h=675&fit=crop'})` }}
             />
-            {/* Centered Clear Image */}
-            <div className="absolute inset-0 flex items-center justify-center p-4">
+            {/* Dark overlay starting below navbar */}
+            <div className="absolute inset-0 top-16 bg-black/10 pointer-events-none" />
+
+            {/* Centered Clear Image starting below navbar */}
+            <div className="absolute inset-x-0 bottom-0 top-16 flex items-center justify-center p-4">
               <img
                 src={event.thumbnail || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&h=675&fit=crop'}
                 alt={event.title}
@@ -150,30 +161,47 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
           </div>
 
           {/* Event Header Section exactly like Wireframe */}
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-8 relative z-20">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-8 relative z-20">
             <div className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
               <div className="space-y-2">
                 <h1 className="font-heading text-2xl md:text-3xl font-bold text-slate-900 m-0">
                   {event.title}
                 </h1>
-                <div className="text-sm text-slate-700">
-                  {event.date} | {event.time} | {event.location}
+                <div className="mt-2 flex flex-wrap items-center gap-y-1 gap-x-4 text-xs font-semibold text-slate-500">
+                  {event.location && (
+                    <span className="flex items-center gap-1">
+                      <MapPin size={14} className="text-slate-400" />
+                      {event.location}
+                    </span>
+                  )}
+                  {event.date && (
+                    <span className="flex items-center gap-1">
+                      <CalendarIcon size={14} className="text-slate-400" />
+                      {event.date}
+                    </span>
+                  )}
+                  {event.date && (
+                    <span className="flex items-center gap-1">
+                      <ClockIcon size={14} className="text-slate-400" />
+                      {event.time ? ` ${event.time}` : ''}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div className="shrink-0 w-full md:w-auto">
                 <Button
                   onClick={scrollToTickets}
-                  className="w-full md:w-auto rounded-lg px-8 py-2.5 bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition-colors border-none"
+                  className="w-full md:w-auto rounded-lg px-8 py-2.5 bg-[#4ade80] text-white font-bold hover:bg-[#22c55e] transition-colors border-none"
                 >
-                  Book Yours
+                  Book Your Ticket
                 </Button>
               </div>
             </div>
           </div>
 
           {/* Two-Column Layout Section exactly like Wireframe */}
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-3 gap-6 items-start mt-6">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-3 gap-6 items-start mt-6">
 
             {/* LEFT COLUMN: Event Description Card */}
             <div className="md:col-span-2 space-y-6">
@@ -253,44 +281,38 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                 </h3>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <a
-                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors no-underline hover:bg-slate-300"
+                  <button
+                    onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`, '_blank')}
+                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors hover:bg-slate-300 border-none cursor-pointer"
                   >
                     Facebook
-                  </a>
-                  <a
-                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(event.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors no-underline hover:bg-slate-300"
+                  </button>
+                  <button
+                    onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(event.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`, '_blank')}
+                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors hover:bg-slate-300 border-none cursor-pointer"
                   >
                     X
-                  </a>
-                  <a
-                    href={`mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors no-underline hover:bg-slate-300"
+                  </button>
+                  <button
+                    onClick={() => window.open(`mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`, '_self')}
+                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors hover:bg-slate-300 border-none cursor-pointer"
                   >
                     Email
-                  </a>
+                  </button>
                   <button
                     onClick={copyPageLink}
-                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors cursor-pointer hover:bg-slate-300"
+                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors cursor-pointer hover:bg-slate-300 border-none"
                   >
                     Copy link
                   </button>
                 </div>
 
-                <a
-                  href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full mt-3 py-2 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors no-underline hover:bg-slate-300"
+                <button
+                  onClick={() => window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}`, '_blank')}
+                  className="w-full mt-3 py-2 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors hover:bg-slate-300 border-none cursor-pointer"
                 >
                   Add to Calendar
-                </a>
+                </button>
               </div>
 
               {/* Organizer Info Card */}
@@ -299,17 +321,17 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                   Organizer Info
                 </h3>
 
-                <div className="bg-slate-200 p-3 rounded-lg text-sm text-slate-800 space-y-0.5">
-                  <div className="font-medium">
+                <div className="mt-1 bg-slate-200 p-3 rounded-lg text-sm text-slate-800 space-y-0.5">
+                  <div className="text-base md:text-lg font-semibold">
                     {event.hostUsername || 'Unknown Organizer'}
                   </div>
                   {event.contactEmail && (
-                    <div className="text-xs text-slate-600">
+                    <div className="text-sm md:text-base text-slate-600">
                       {event.contactEmail}
                     </div>
                   )}
                   {event.contactPhone && (
-                    <div className="text-xs text-slate-600">
+                    <div className="text-sm md:text-base text-slate-600">
                       {event.contactPhone}
                     </div>
                   )}
@@ -318,7 +340,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                 {(event as any).organizers && (event as any).organizers.length > 0 && (event as any).organizers.map((org: any, idx: number) => (
                   <div key={idx} className="bg-slate-200 p-3 rounded-lg text-sm text-slate-800 space-y-0.5">
                     <div className="font-medium">
-                      {org.name} <span className="text-xs text-slate-500 font-normal">({org.role || 'co-organizer'})</span>
+                      {org.name} <span className="text-xs text-slate-500 font-normal">({org.role || 'Co-Organizer'})</span>
                     </div>
                     {org.email && (
                       <div className="text-xs text-slate-600">
@@ -337,14 +359,13 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
 
 
             </div>
-
           </div>
 
           {/* BELOW: Select your preferred Option/Category exactly like Wireframe */}
           <div ref={ticketsSectionRef} className="max-w-6xl mx-auto px-6 mt-16">
             <div className="text-center mb-10">
               <h2 className="font-heading text-2xl md:text-3xl font-black text-slate-900 tracking-tight m-0">
-                Select your preferred Option/Category
+                Select your preferred Option
               </h2>
             </div>
 
@@ -395,7 +416,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                           <div className="w-full flex">
                             <Button
                               size="md"
-                              className={`w-full rounded-md text-[11px] font-medium py-2 shadow-none flex justify-center items-center pointer-events-none transition-colors border-none ${isSelected ? 'bg-primary/90 text-white' : 'bg-[#4ade80] hover:bg-[#22c55e] text-white'
+                              className={`w-full rounded-md text-[11px] font-bold py-2 shadow-none flex justify-center items-center pointer-events-none transition-colors border-none ${isSelected ? 'bg-[#22c55e] text-white' : 'bg-[#4ade80] hover:bg-[#22c55e] text-white'
                                 }`}
                             >
                               <span>{isSelected ? 'Selected' : '+ Click to Select'}</span>
@@ -410,18 +431,17 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                 {/* Confirm Selection Action Bar */}
                 {selectedTicketIds.length > 0 && (
                   <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50 flex justify-center animate-in slide-in-from-bottom-full duration-300">
-                    <div className="max-w-6xl w-full flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div className="text-slate-700 font-bold">
-                        <span className="text-primary">{selectedTicketIds.length}</span> {selectedTicketIds.length === 1 ? 'segment' : 'segments'} selected
+                    <div className="max-w-6xl w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="text-slate-700 font-bold text-left w-full sm:w-auto">
+                        <span className="text-[#22c55e]">{selectedTicketIds.length}</span> {selectedTicketIds.length === 1 ? 'segment' : 'segments'} selected
                         <div className="text-xs text-slate-500 font-medium mt-0.5">
                           Total: ৳ {ticketTypes.filter(t => selectedTicketIds.includes(t.id)).reduce((sum, t) => sum + parseFloat(t.price || '0'), 0).toLocaleString('en-BD')}
                         </div>
                       </div>
                       <Button
                         onClick={handleConfirmSelection}
-                        variant="primary"
                         size="lg"
-                        className="w-full sm:w-auto px-10 py-3 rounded-xl shadow-lg bg-primary hover:bg-primary/90 text-white font-extrabold text-sm border-none"
+                        className="w-full sm:w-auto px-10 py-3 rounded-xl shadow-lg bg-[#4ade80] hover:bg-[#22c55e] text-white font-extrabold text-sm border-none"
                       >
                         Confirm & Proceed to Checkout
                       </Button>
