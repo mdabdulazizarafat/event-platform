@@ -12,7 +12,8 @@ import {
   XCircle,
   HelpCircle,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Download
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/ui/Button';
@@ -89,6 +90,39 @@ export default function MyTicketsPage() {
         <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none">My Event Tickets</h2>
         <p className="text-sm text-on-surface-variant mt-1.5 mb-0">View your active tickets, scan histories, and checkpoint claim status.</p>
       </div>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @page {
+          size: A4 portrait;
+          margin: 0;
+        }
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .custom-ticket-modal, .custom-ticket-modal * {
+            visibility: visible;
+          }
+          .custom-ticket-modal {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 99mm; /* Exactly 1/3 of A4 page (297mm) */
+            margin: 0;
+            padding: 2rem;
+            box-sizing: border-box;
+            box-shadow: none !important;
+            border: none !important;
+            border-bottom: 1px dashed #ccc !important;
+            border-radius: 0 !important;
+          }
+          /* Hide Ant Design modal close button and mask during print */
+          .ant-modal-mask, .ant-modal-close, .ant-modal-footer {
+            display: none !important;
+          }
+        }
+      `}} />
 
       {error && <Alert type="error" title={error} showIcon />}
 
@@ -216,9 +250,18 @@ export default function MyTicketsPage() {
                   <Button 
                     variant="outline"
                     size="md"
+                    icon={<Download size={14} />}
+                    onClick={() => { setSelectedTicket(ticket); setTimeout(() => window.print(), 100); setIsQrModalOpen(true); }}
+                    className="justify-center print:hidden"
+                    title="Download Ticket"
+                  >
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="md"
                     icon={<ExternalLink size={14} />}
                     onClick={() => window.location.href = `/events/${ticket.event_slug}`}
-                    className="justify-center"
+                    className="justify-center print:hidden"
                     aria-label="View Event"
                   />
                 </div>
@@ -242,33 +285,60 @@ export default function MyTicketsPage() {
         onCancel={() => { setIsQrModalOpen(false); setSelectedTicket(null); }}
         footer={null}
         centered
-        width={340}
+        width={680}
         className="custom-ticket-modal"
       >
         {selectedTicket && (
-          <div className="bento-card flex flex-col items-center justify-center p-6 text-center space-y-4">
-            {/* Dynamic QR API rendering */}
-            <div className="p-4 bg-white border border-outline-variant rounded-2xl shadow-sm">
-              <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${selectedTicket.qr_token}`} 
-                alt="Ticket QR Code" 
-                className="w-48 h-48 block object-contain"
-              />
-            </div>
+          <div className="bento-card bg-surface-container-lowest border border-outline-variant p-6 rounded-2xl w-full relative overflow-hidden flex flex-col justify-center" style={{ aspectRatio: '210/99' }}>
+            <div className="absolute top-0 left-0 w-full h-2 bg-primary"></div>
+            <div className="absolute -left-3 top-1/2 w-6 h-6 rounded-full bg-background border border-outline-variant transform -translate-y-1/2 z-10 border-r-0"></div>
+            <div className="absolute -right-3 top-1/2 w-6 h-6 rounded-full bg-background border border-outline-variant transform -translate-y-1/2 z-10 border-l-0"></div>
+            <div className="absolute left-4 right-4 top-1/2 h-[1px] border-t-2 border-dashed border-outline-variant transform -translate-y-1/2"></div>
+            
+            <div className="flex gap-6 items-center justify-between z-20 relative">
+              <div className="text-left space-y-3 flex-1">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Registration ID</span>
+                  <p className="font-mono text-sm font-bold text-foreground">{selectedTicket.id}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <h3 className="font-bold text-lg text-foreground m-0 leading-tight">{selectedTicket.event_title}</h3>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {selectedTicket.tickets && selectedTicket.tickets.length > 0 ? (
+                      selectedTicket.tickets.map(t => (
+                        <span key={t.id} className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+                          {t.name}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">Standard Pass</span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-1 pt-1">
+                  <div className="flex items-center gap-2 text-[11px] text-foreground font-medium">
+                    <Calendar size={14} className="text-primary shrink-0" />
+                    <span>{selectedTicket.event_date} {selectedTicket.event_time}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-foreground font-medium">
+                    <MapPin size={14} className="text-primary shrink-0" />
+                    <span className="line-clamp-1">{selectedTicket.event_location}</span>
+                  </div>
+                </div>
+              </div>
 
-            <div className="space-y-1">
-              <Text className="text-xs font-mono text-on-surface-variant block select-all">
-                Token: {selectedTicket.qr_token}
-              </Text>
-              <Text className="text-[10px] text-on-surface-variant font-medium block">
-                Show this QR Code at event checkpoints (Gate, Lunch counter, etc.) for validation.
-              </Text>
-            </div>
-
-            <div className="w-full p-4 bg-surface-container-low rounded-xl border border-outline-variant/30 text-left text-xs space-y-1 text-foreground font-semibold">
-              <p className="m-0">Ticket: <span className="font-normal text-on-surface-variant">{selectedTicket.tickets && selectedTicket.tickets.length > 0 ? selectedTicket.tickets.map(t => t.name).join(', ') : 'Standard Pass'}</span></p>
-              <p className="m-0">Email: <span className="font-normal text-on-surface-variant">{selectedTicket.email}</span></p>
-              <p className="m-0">Registered: <span className="font-normal text-on-surface-variant">{new Date(selectedTicket.registered_at).toLocaleDateString()}</span></p>
+              <div className="flex flex-col items-center justify-center space-y-1.5 p-3 bg-white rounded-xl border border-outline-variant/50 shrink-0">
+                <div className="w-24 h-24 bg-gray-100 flex items-center justify-center p-1.5">
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${selectedTicket.qr_token}`} 
+                    alt="Ticket QR Code" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <span className="text-[9px] font-mono text-slate-500">Scan at entrance</span>
+              </div>
             </div>
           </div>
         )}

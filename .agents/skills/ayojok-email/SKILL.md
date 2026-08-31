@@ -31,7 +31,7 @@ the canonical design system below. No deviation is allowed.
 
 | Asset | Value |
 |---|---|
-| Logo URL | `https://ayojok.com/ayojokLogo.svg` |
+| Logo URL | `https://ayojok.com/ayojokLogo.png` |
 | Header logo width | `130px` |
 | Footer logo width | `90px` |
 | Support email | `ayojok@rongplan.com` |

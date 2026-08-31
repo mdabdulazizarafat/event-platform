@@ -1,5 +1,6 @@
 import { pool } from '../db/pool';
 import { EventActivityService } from './event-activity.service';
+import { decryptQrToUsername } from '../lib/crypto';
 
 export interface ScanInput {
   eventId: number;
@@ -27,16 +28,21 @@ export class ActivityLogService {
         throw new Error('This scanning checkpoint is currently inactive.');
       }
 
-      // 2. Look up registration by exact B-Tree indexed QR token
+      // 2. Look up registration by QR token for this event (supports secure UUID tokens & fallback)
+      const decodedUsername = decryptQrToUsername(input.qrToken);
       const registrationQuery = `
         SELECT r.*, tt.name as ticket_name 
         FROM registrations r
         LEFT JOIN ticket_types tt ON r.ticket_type_id = tt.id
-        WHERE r.event_id = $1 AND r.qr_token = $2;
+        WHERE r.event_id = $1 AND (r.qr_token = $2 ${decodedUsername ? 'OR r.user_id = $3' : ''}) AND r.status != 'CANCELLED';
       `;
-      const regRes = await client.query(registrationQuery, [input.eventId, input.qrToken]);
+      const queryParams = decodedUsername 
+        ? [input.eventId, input.qrToken, decodedUsername] 
+        : [input.eventId, input.qrToken];
+
+      const regRes = await client.query(registrationQuery, queryParams);
       if (regRes.rowCount === 0) {
-        throw new Error('Invalid ticket: QR code not found for this event.');
+        throw new Error('Invalid ticket: Registration not found for this event.');
       }
 
       const registration = regRes.rows[0];

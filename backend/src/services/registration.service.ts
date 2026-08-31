@@ -1,6 +1,7 @@
 import { pool } from '../db/pool';
 import { Queue } from 'bullmq';
 import { createChildLogger } from '../lib/logger';
+import { generateSecureQrToken } from '../lib/crypto';
 
 const logger = createChildLogger('registration.service');
 
@@ -236,45 +237,86 @@ export class RegistrationService {
 
       const primaryTicketTypeId = ticketTypeIds.length > 0 ? ticketTypeIds[0] : null;
 
-      // Atomic insert checking current count against global event capacity
-      const registerQuery = `
-        INSERT INTO registrations (
-          event_id, ticket_type_id, user_id, email, status, payment_status,
-          full_name, phone, job_title, organization, tshirt_size, reference, transaction_id
-        )
-        SELECT $1, $2, $3, $4, 'CONFIRMED', 'NOT_REQUIRED', $5, $6, $7, $8, $9, $10, $11
-        WHERE (
-          SELECT COUNT(*) FROM registrations WHERE event_id = $1 AND status != 'CANCELLED'
-        ) < (
-          SELECT capacity FROM events WHERE id = $1
-        )
-        RETURNING id, qr_token;
-      `;
-      
-      const res = await client.query(registerQuery, [
-        eventId, 
-        primaryTicketTypeId, 
-        userId, 
-        email,
-        details?.fullName || null,
-        details?.phone || null,
-        details?.jobTitle || null,
-        details?.organization || null,
-        details?.tshirtSize || null,
-        details?.reference || null,
-        details?.transactionId || null,
-      ]);
+      // Check if user is already registered for this event
+      const existingRegRes = await client.query(
+        "SELECT id, qr_token FROM registrations WHERE event_id = $1 AND user_id = $2 AND status != 'CANCELLED'",
+        [eventId, userId]
+      );
 
-      if (res.rowCount === 0) {
-        throw new Error('Registration failed: Event is at capacity or does not exist.');
+      let registrationId;
+      let qrToken;
+
+      if ((existingRegRes.rowCount ?? 0) > 0) {
+        // Retain existing QR token so the QR code stays identical for all segments of this event
+        registrationId = existingRegRes.rows[0].id;
+        qrToken = existingRegRes.rows[0].qr_token || generateSecureQrToken();
+        
+        await client.query(
+          `UPDATE registrations SET 
+             full_name = COALESCE($1, full_name),
+             phone = COALESCE($2, phone),
+             job_title = COALESCE($3, job_title),
+             organization = COALESCE($4, organization),
+             tshirt_size = COALESCE($5, tshirt_size),
+             reference = COALESCE($6, reference),
+             transaction_id = COALESCE($7, transaction_id)
+           WHERE id = $8`,
+          [
+            details?.fullName || null,
+            details?.phone || null,
+            details?.jobTitle || null,
+            details?.organization || null,
+            details?.tshirtSize || null,
+            details?.reference || null,
+            details?.transactionId || null,
+            registrationId
+          ]
+        );
+      } else {
+        // Generate secure random QR token for new registration
+        qrToken = generateSecureQrToken();
+
+        // Atomic insert checking current count against global event capacity
+        const registerQuery = `
+          INSERT INTO registrations (
+            event_id, ticket_type_id, user_id, email, status, payment_status,
+            full_name, phone, job_title, organization, tshirt_size, reference, transaction_id, qr_token
+          )
+          SELECT $1, $2, $3, $4, 'CONFIRMED', 'NOT_REQUIRED', $5, $6, $7, $8, $9, $10, $11, $12
+          WHERE (
+            SELECT COUNT(*) FROM registrations WHERE event_id = $1 AND status != 'CANCELLED'
+          ) < (
+            SELECT capacity FROM events WHERE id = $1
+          )
+          RETURNING id;
+        `;
+        
+        const res = await client.query(registerQuery, [
+          eventId, 
+          primaryTicketTypeId, 
+          userId, 
+          email,
+          details?.fullName || null,
+          details?.phone || null,
+          details?.jobTitle || null,
+          details?.organization || null,
+          details?.tshirtSize || null,
+          details?.reference || null,
+          details?.transactionId || null,
+          qrToken
+        ]);
+
+        if (res.rowCount === 0) {
+          throw new Error('Registration failed: Event is at capacity or does not exist.');
+        }
+
+        registrationId = res.rows[0].id;
       }
 
-      const { id: registrationId, qr_token: qrToken } = res.rows[0];
-
-      // Save to join table
+      // Save to join table, ignoring duplicates
       for (const tId of ticketTypeIds) {
         await client.query(
-          'INSERT INTO registration_ticket_types (registration_id, ticket_type_id) VALUES ($1, $2)',
+          'INSERT INTO registration_ticket_types (registration_id, ticket_type_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
           [registrationId, tId]
         );
       }

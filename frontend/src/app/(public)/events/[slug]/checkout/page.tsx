@@ -132,12 +132,12 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
           body: JSON.stringify(payload),
         });
 
+        const data = await res.json();
         if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.error || 'Registration failed');
+          throw new Error(data.error || 'Registration failed');
         }
 
-        router.push(`/events/${slug}/checkout/confirmation`);
+        router.push(`/events/${slug}/checkout/confirmation?regId=${data.registrationId}&token=${encodeURIComponent(data.qrToken)}`);
       }
     } catch (err: any) {
       message.error(err.message || 'An error occurred during checkout');
