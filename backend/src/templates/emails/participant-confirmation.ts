@@ -1,28 +1,23 @@
-export const ParticipantConfirmationEmail = ({
-  participantName,
-  eventName,
-  eventDate,
-  eventTime,
-  eventLocation,
-  ticketName,
-  ticketId,
-  qrToken,
-  organizerName,
-  organizerAddress,
-  calendarUrl,
-}: {
-  participantName: string;
-  eventName: string;
-  eventDate: string;
-  eventTime: string;
-  eventLocation: string;
-  ticketName: string;
-  ticketId: string;
-  qrToken: string;
-  organizerName: string;
-  organizerAddress: string;
-  calendarUrl: string;
-}) => {
+export function getParticipantEmailHtml(data: {
+  event_name: string;
+  participant_name: string;
+  qr_code_url: string;
+  ticket_code: string;
+  ticket_id: string;
+  ticket_tier: string;
+  event_date: string;
+  event_time: string;
+  venue_name: string;
+  venue_address: string;
+  calendar_url: string;
+  organizer_name: string;
+  organizer_address: string;
+  unsubscribe_url: string;
+  facebook_url: string;
+  instagram_url: string;
+  linkedin_url: string;
+  support_email: string;
+}) {
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -30,7 +25,7 @@ export const ParticipantConfirmationEmail = ({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="x-apple-disable-message-reformatting">
-  <title>You're confirmed for ${eventName} — Bangla Innovator</title>
+  <title>You're confirmed — ${data.event_name} — Ayojok</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     @media only screen and (max-width: 600px) {
@@ -46,6 +41,10 @@ export const ParticipantConfirmationEmail = ({
 </head>
 <body style="margin:0;padding:0;background-color:#FAFAFA;">
 
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
+  Your spot at ${data.event_name} is confirmed. Your entry QR code is inside.
+</div>
+
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#FAFAFA;padding:0;">
 <tr><td align="center" valign="top" style="padding-top: 40px; padding-bottom: 40px;">
 
@@ -54,7 +53,7 @@ export const ParticipantConfirmationEmail = ({
     <!-- HEADER -->
     <tr>
       <td align="center" class="header-pad" style="padding:32px 40px 20px 40px;background-color:#FAFAFA;">
-        <img src="https://placehold.co/130x40/2BA361/FFF?text=Bangla+Innovator" alt="Bangla Innovator" width="130" style="height:auto;max-width:130px;display:block;margin:0 auto;">
+        <img src="https://image.ayojok.com/logo/black-logo-36f83cd2-ad3a-4a82-bda0-5d79920820b8.svg" alt="Ayojok" width="130" style="height:auto;max-width:130px;display:block;margin:0 auto;">
       </td>
     </tr>
 
@@ -62,69 +61,77 @@ export const ParticipantConfirmationEmail = ({
     <tr>
       <td class="body-pad" style="padding:32px 32px 8px 32px;background-color:#ffffff;">
         <div style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:30px;font-weight:700;color:#0d0e13;line-height:1.15;letter-spacing:-0.02em;margin:0 0 12px 0;">
-          You're <span style="color:#2BA361;">Confirmed</span>, ${participantName}.
+          You're <span style="color:#2BA361;">Going</span>
         </div>
         <p style="margin:0 0 24px 0;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:15px;color:rgba(13,14,19,0.58);line-height:1.6;font-weight:400;">
-          You are confirmed for ${eventName}. Present the QR code below at the venue for quick check-in.
+          Hi ${data.participant_name},<br/><br/>
+          Your spot at <strong style="color:#0d0e13;">${data.event_name}</strong> is locked in. Show the QR code below at the door.
         </p>
-        
-        <!-- InfoCard for QR and Event Details -->
-        <div style="background-color:#FAFAFA;border-radius:8px;border:1px solid rgba(43,163,97,0.15);margin-bottom:4px;padding:18px 20px 6px 20px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-            <tr>
-              <td align="center" style="padding-bottom: 20px; border-bottom: 1px solid rgba(43,163,97,0.15);">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${qrToken}" width="160" height="160" style="display:block;border-radius:8px;border:1px solid rgba(43,163,97,0.15);" alt="QR Code" />
-                <div style="font-family:monospace;letter-spacing:3px;font-size:16px;font-weight:700;color:#0d0e13;margin-top:12px;text-transform:uppercase;">
-                  ${qrToken.substring(0, 8)}
-                </div>
-                <div style="font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:13px;color:rgba(13,14,19,0.58);margin-top:4px;">
-                  Ticket #${ticketId} • ${ticketName}
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding-top: 20px; padding-bottom: 14px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-                  <tr>
-                    <td width="60" style="font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:13px;color:rgba(13,14,19,0.58);font-weight:500;padding-bottom:10px;vertical-align:top;">When</td>
-                    <td style="font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:13px;color:#0d0e13;font-weight:600;padding-bottom:10px;vertical-align:top;">
-                      ${eventDate}<br/>${eventTime}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td width="60" style="font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:13px;color:rgba(13,14,19,0.58);font-weight:500;padding-bottom:6px;vertical-align:top;">Where</td>
-                    <td style="font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:13px;color:#0d0e13;font-weight:600;padding-bottom:6px;vertical-align:top;">
-                      ${eventLocation}
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-        </div>
+
+        <!-- QR Code InfoCard -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#FAFAFA;border-radius:8px;border:1px solid rgba(43,163,97,0.15);margin-bottom:16px;">
+          <tr>
+            <td align="center" style="padding:22px 20px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                <tr>
+                  <td style="padding:12px;">
+                    <img class="qr-img" src="${data.qr_code_url}" width="180" height="180" alt="Your entry QR code" style="display:block;width:180px;height:180px;">
+                  </td>
+                </tr>
+              </table>
+              <div style="font-family:'Courier New',monospace;font-size:22px;font-weight:700;letter-spacing:4px;color:#0d0e13;margin-top:16px;">
+                ${data.ticket_code}
+              </div>
+              <div style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:13px;color:rgba(13,14,19,0.58);margin-top:6px;font-weight:500;">
+                Ticket #${data.ticket_id} · ${data.ticket_tier}
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Event Details InfoCard -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#FAFAFA;border-radius:8px;border:1px solid rgba(43,163,97,0.15);margin-bottom:4px;">
+          <tr>
+            <td style="padding:18px 20px 6px 20px;">
+              <div style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;color:rgba(13,14,19,0.32);text-transform:uppercase;letter-spacing:1.5px;padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid rgba(43,163,97,0.15);">
+                Event Details
+              </div>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td width="60" style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:rgba(13,14,19,0.38);font-weight:500;vertical-align:top;padding-bottom:10px;">When:</td>
+                  <td style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#0d0e13;font-weight:600;vertical-align:top;padding-bottom:10px;">${data.event_date} · ${data.event_time}</td>
+                </tr>
+                <tr>
+                  <td width="60" style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:rgba(13,14,19,0.38);font-weight:500;vertical-align:top;padding-bottom:6px;">Where:</td>
+                  <td style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#0d0e13;font-weight:600;vertical-align:top;padding-bottom:6px;">${data.venue_name}, ${data.venue_address}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
 
     <!-- CTA -->
     <tr>
-      <td class="cta-pad" align="center" style="padding:20px 32px 32px 32px;background-color:#ffffff;">
-        <a href="${calendarUrl}" class="cta-btn" style="display:inline-block;background-color:#2BA361;color:#ffffff;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:15px;font-weight:600;text-decoration:none;padding:14px 40px;border-radius:6px;">
-          Add to Calendar
-        </a>
+      <td class="cta-pad" style="padding:20px 32px 32px 32px;background-color:#ffffff;">
+        <a href="${data.calendar_url}" class="cta-btn" style="display:inline-block;background-color:#2BA361;color:#ffffff;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:15px;font-weight:600;text-decoration:none;padding:14px 40px;border-radius:6px;">Add to Calendar</a>
+        <p style="margin:20px 0 0 0;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:13px;color:rgba(13,14,19,0.50);line-height:1.6;">
+          This QR code is unique to you — please don't forward this email. Bring a photo ID matching your registration name.
+        </p>
       </td>
     </tr>
 
     <!-- FOOTER -->
     <tr>
       <td class="footer-pad" style="padding:32px;background-color:#FAFAFA;border-top:1px solid rgba(43,163,97,0.15);">
-        <img src="https://placehold.co/90x30/2BA361/FFF?text=BI" alt="Bangla Innovator" width="90" style="height:auto;max-width:90px;display:block;margin-bottom:14px;">
+        <img src="https://image.ayojok.com/logo/black-logo-36f83cd2-ad3a-4a82-bda0-5d79920820b8.svg" alt="Ayojok" width="90" style="height:auto;max-width:90px;display:block;margin-bottom:14px;">
         <div style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:12px;color:rgba(13,14,19,0.30);line-height:1.7;margin-bottom:20px;">
-          &copy; 2026 <strong style="color:rgba(13,14,19,0.42);">Bangla Innovator</strong>. All rights reserved.<br>
+          Sent by Ayojok on behalf of <strong style="color:rgba(13,14,19,0.42);">${data.organizer_name}</strong>.<br>
+          ${data.organizer_address}<br><br>
+          &copy; ${new Date().getFullYear()} <strong style="color:rgba(13,14,19,0.42);">Ayojok</strong>. All rights reserved.<br>
           Dhaka, Bangladesh.<br><br>
-          Sent by Bangla Innovator on behalf of <strong style="color:rgba(13,14,19,0.55);">${organizerName}</strong>.<br/>
-          ${organizerAddress}<br/><br/>
-          You received this because you registered for <strong>${eventName}</strong>.<br/>
-          <a href="{{unsubscribe_url}}" style="color:rgba(13,14,19,0.30);text-decoration:underline;">Unsubscribe</a>
+          You received this because you registered for <strong style="color:rgba(13,14,19,0.42);">${data.event_name}</strong>.
         </div>
       </td>
     </tr>
@@ -134,4 +141,6 @@ export const ParticipantConfirmationEmail = ({
 </table>
 </body>
 </html>`;
-};
+}
+
+

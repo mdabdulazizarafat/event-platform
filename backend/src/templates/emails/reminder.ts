@@ -1,15 +1,17 @@
-export function getParticipantEmailHtml(data: {
+export function getReminderEmailHtml(data: {
   event_name: string;
   participant_name: string;
-  qr_code_url: string;
-  ticket_code: string;
-  ticket_id: string;
-  ticket_tier: string;
+  countdown_days: number;
+  countdown_label: string;
   event_date: string;
   event_time: string;
+  gate_time: string;
   venue_name: string;
   venue_address: string;
-  calendar_url: string;
+  directions_url: string;
+  ticket_id: string;
+  ticket_url: string;
+  event_details_url: string;
   organizer_name: string;
   organizer_address: string;
   unsubscribe_url: string;
@@ -25,7 +27,7 @@ export function getParticipantEmailHtml(data: {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="x-apple-disable-message-reformatting">
-<title>You're confirmed — ${data.event_name}</title>
+<title>${data.event_name} is ${data.countdown_days} days away</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   @media only screen and (max-width: 480px) {
@@ -35,13 +37,12 @@ export function getParticipantEmailHtml(data: {
     .cta-pad     { padding: 4px 20px 24px 20px !important; }
     .footer-pad  { padding: 20px !important; }
     .cta-btn     { display: block !important; text-align: center !important; }
-    .qr-img      { width: 160px !important; height: 160px !important; }
   }
 </style>
 </head>
 <body style="margin:0;padding:0;background-color:#FAFAFA;">
 <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
-  Your spot at ${data.event_name} is confirmed. Your entry QR code is inside.
+  ${data.countdown_days} days to go until ${data.event_name}. Here's what to know.
 </div>
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#FAFAFA;padding:0;">
@@ -60,41 +61,19 @@ export function getParticipantEmailHtml(data: {
     <!-- BODY -->
     <tr>
       <td class="body-pad" style="padding:28px 24px 8px 24px;background-color:#ffffff;">
-        <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#2BA361;margin:0 0 10px 0;">
-          ✓ Registration confirmed
+        <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#f7bb16;margin:0 0 10px 0;">
+          ${data.countdown_label} · ${data.countdown_days} days to go
         </div>
         <div style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;color:#0D1F15;line-height:1.3;letter-spacing:-0.3px;margin:0 0 10px 0;">
-          You're <span style="color:#2BA361;">Going</span>, ${data.participant_name}.
+          Almost <span style="color:#2BA361;">Time</span>, ${data.participant_name}.
         </div>
         <p style="margin:0 0 20px 0;font-family:'Inter',Arial,Helvetica,sans-serif;font-size:15px;color:#3D5647;line-height:1.6;font-weight:400;">
-          Your spot at <strong style="color:#0D1F15;">${data.event_name}</strong> is locked in. Show the QR code below at the door.
+          A quick refresher on <strong style="color:#0D1F15;">${data.event_name}</strong> so the day goes smoothly.
         </p>
-
-        <!-- QR InfoCard -->
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
-          style="background-color:#FAFAFA;border-radius:12px;border:1px solid rgba(43,163,97,0.15);margin-bottom:16px;">
-          <tr>
-            <td align="center" style="padding:22px 20px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;border-radius:10px;">
-                <tr>
-                  <td style="padding:12px;">
-                    <img class="qr-img" src="${data.qr_code_url}" width="180" height="180" alt="Your entry QR code" style="display:block;width:180px;height:180px;">
-                  </td>
-                </tr>
-              </table>
-              <div style="font-family:'Courier New',monospace;font-size:18px;font-weight:700;letter-spacing:3px;color:#0D1F15;margin-top:14px;">
-                ${data.ticket_code}
-              </div>
-              <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:12px;color:#6B7F75;margin-top:4px;">
-                Ticket #${data.ticket_id} · ${data.ticket_tier}
-              </div>
-            </td>
-          </tr>
-        </table>
 
         <!-- Event details InfoCard -->
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
-          style="background-color:#FAFAFA;border-radius:12px;border:1px solid rgba(43,163,97,0.15);margin-bottom:4px;">
+          style="background-color:#FAFAFA;border-radius:12px;border:1px solid rgba(43,163,97,0.15);margin-bottom:16px;">
           <tr>
             <td style="padding:18px 20px 6px 20px;">
               <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;color:rgba(13,31,21,0.38);text-transform:uppercase;letter-spacing:0.04em;padding-bottom:10px;margin-bottom:12px;border-bottom:1px solid rgba(43,163,97,0.09);">
@@ -106,32 +85,55 @@ export function getParticipantEmailHtml(data: {
                   <td style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#0D1F15;font-weight:600;vertical-align:top;padding-bottom:10px;">${data.event_date} · ${data.event_time}</td>
                 </tr>
                 <tr>
+                  <td width="60" style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#6B7F75;font-weight:500;vertical-align:top;padding-bottom:10px;">Gates:</td>
+                  <td style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#0D1F15;font-weight:600;vertical-align:top;padding-bottom:10px;">Open at ${data.gate_time}</td>
+                </tr>
+                <tr>
                   <td width="60" style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#6B7F75;font-weight:500;vertical-align:top;padding-bottom:6px;">Where:</td>
-                  <td style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#0D1F15;font-weight:600;vertical-align:top;padding-bottom:6px;">${data.venue_name}, ${data.venue_address}</td>
+                  <td style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#0D1F15;font-weight:600;vertical-align:top;padding-bottom:6px;">
+                    ${data.venue_name}, ${data.venue_address}<br>
+                    <a href="${data.directions_url}" style="color:#2BA361;font-weight:700;text-decoration:none;">Get directions →</a>
+                  </td>
                 </tr>
               </table>
             </td>
           </tr>
         </table>
+
+        <!-- Ticket reminder strip -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+          style="border:1px solid rgba(43,163,97,0.15);border-radius:12px;margin-bottom:16px;">
+          <tr>
+            <td style="padding:16px 18px;">
+              <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;color:#0D1F15;">Your entry QR code</div>
+              <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:12px;color:#6B7F75;margin:2px 0 10px 0;">Ticket #${data.ticket_id} · have it ready at the door</div>
+              <a href="${data.ticket_url}" style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;color:#2BA361;text-decoration:none;">View Ticket →</a>
+            </td>
+          </tr>
+        </table>
+
+        <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;color:rgba(13,31,21,0.38);text-transform:uppercase;letter-spacing:0.04em;margin:0 0 8px 0;">
+          What to bring
+        </div>
+        <p style="margin:0 0 4px 0;font-family:'Inter',Arial,Helvetica,sans-serif;font-size:14px;color:#3D5647;line-height:1.6;">
+          Photo ID · QR ticket · charged phone
+        </p>
       </td>
     </tr>
 
     <!-- CTA -->
     <tr>
-      <td class="cta-pad" style="padding:4px 24px 28px 24px;background-color:#ffffff;">
+      <td class="cta-pad" style="padding:20px 24px 28px 24px;background-color:#ffffff;">
         <!--[if mso]>
         <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word"
-          href="${data.calendar_url}" style="height:48px;v-text-anchor:middle;width:200px;" arcsize="16%" stroke="f" fillcolor="#2BA361">
+          href="${data.event_details_url}" style="height:48px;v-text-anchor:middle;width:230px;" arcsize="16%" stroke="f" fillcolor="#2BA361">
           <w:anchorlock/>
-          <center style="color:#ffffff;font-family:Inter,sans-serif;font-size:14px;font-weight:700;">Add to Calendar</center>
+          <center style="color:#ffffff;font-family:Inter,sans-serif;font-size:14px;font-weight:700;">View Full Event Details</center>
         </v:roundrect>
         <![endif]-->
         <!--[if !mso]><!-->
-        <a href="${data.calendar_url}" class="cta-btn" style="display:inline-block;background:linear-gradient(135deg,#2BA361 0%,#4dc487 100%);color:#ffffff;font-family:'Inter',Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:14px 32px;border-radius:8px;letter-spacing:-0.1px;">Add to Calendar</a>
+        <a href="${data.event_details_url}" class="cta-btn" style="display:inline-block;background:linear-gradient(135deg,#2BA361 0%,#4dc487 100%);color:#ffffff;font-family:'Inter',Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:14px 32px;border-radius:8px;letter-spacing:-0.1px;">View Full Event Details</a>
         <!--<![endif]-->
-        <p style="margin:16px 0 0 0;font-family:'Inter',Arial,Helvetica,sans-serif;font-size:12px;color:#6B7F75;line-height:1.6;">
-          This QR code is unique to you — please don't forward this email. Bring a photo ID matching your registration name.
-        </p>
       </td>
     </tr>
 
@@ -142,7 +144,7 @@ export function getParticipantEmailHtml(data: {
         <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:11px;color:rgba(13,31,21,0.38);line-height:1.6;margin-bottom:16px;">
           Sent by Ayojok, powered by Rong Plan, on behalf of <strong style="color:rgba(13,31,21,0.55);">${data.organizer_name}</strong>.<br>
           ${data.organizer_address}<br><br>
-          You received this because you registered for <strong style="color:rgba(13,31,21,0.55);">${data.event_name}</strong>.<br>
+          You received this because you're registered for <strong style="color:rgba(13,31,21,0.55);">${data.event_name}</strong>, happening soon.<br>
           <a href="${data.unsubscribe_url}" style="color:rgba(13,31,21,0.38);text-decoration:underline;">Unsubscribe</a>
         </div>
         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
@@ -178,3 +180,5 @@ export function getParticipantEmailHtml(data: {
 </body>
 </html>`;
 }
+
+

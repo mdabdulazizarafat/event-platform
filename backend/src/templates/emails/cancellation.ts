@@ -1,8 +1,13 @@
-export const AccountDeletionEmail = ({
-  userName,
-}: {
-  userName: string;
-}) => {
+export function getCancelEmailHtml(data: {
+  event_name: string;
+  organizer_name: string;
+  organizer_address: string;
+  unsubscribe_url: string;
+  facebook_url: string;
+  instagram_url: string;
+  linkedin_url: string;
+  support_email: string;
+}) {
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -10,7 +15,7 @@ export const AccountDeletionEmail = ({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="x-apple-disable-message-reformatting">
-  <title>Account Deleted — Ayojok</title>
+  <title>Registration Cancelled — ${data.event_name} — Ayojok</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     @media only screen and (max-width: 600px) {
@@ -25,6 +30,10 @@ export const AccountDeletionEmail = ({
   </style>
 </head>
 <body style="margin:0;padding:0;background-color:#FAFAFA;">
+
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
+  Your ticket for ${data.event_name} has been cancelled.
+</div>
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#FAFAFA;padding:0;">
 <tr><td align="center" valign="top" style="padding-top: 40px; padding-bottom: 40px;">
@@ -42,10 +51,13 @@ export const AccountDeletionEmail = ({
     <tr>
       <td class="body-pad" style="padding:32px 32px 8px 32px;background-color:#ffffff;">
         <div style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:30px;font-weight:700;color:#0d0e13;line-height:1.15;letter-spacing:-0.02em;margin:0 0 12px 0;">
-          Account <span style="color:#2BA361;">Deleted</span>
+          Registration <span style="color:#D32F2F;">Cancelled</span>
         </div>
+        <p style="margin:0 0 16px 0;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:15px;color:rgba(13,14,19,0.58);line-height:1.6;font-weight:400;">
+          Your registration for the event <strong style="color:#0d0e13;">${data.event_name}</strong> has been cancelled by the event host.
+        </p>
         <p style="margin:0 0 24px 0;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:15px;color:rgba(13,14,19,0.58);line-height:1.6;font-weight:400;">
-          Hi ${userName},<br/>Your account and all associated data have been successfully deleted from our platform as per your request. We're sorry to see you go!
+          Your digital QR code ticket is now invalidated and cannot be used for venue check-in.
         </p>
       </td>
     </tr>
@@ -55,9 +67,11 @@ export const AccountDeletionEmail = ({
       <td class="footer-pad" style="padding:32px;background-color:#FAFAFA;border-top:1px solid rgba(43,163,97,0.15);">
         <img src="https://image.ayojok.com/logo/black-logo-36f83cd2-ad3a-4a82-bda0-5d79920820b8.svg" alt="Ayojok" width="90" style="height:auto;max-width:90px;display:block;margin-bottom:14px;">
         <div style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:12px;color:rgba(13,14,19,0.30);line-height:1.7;margin-bottom:20px;">
-          &copy; 2026 <strong style="color:rgba(13,14,19,0.42);">Ayojok</strong>. All rights reserved.<br>
+          Sent by Ayojok on behalf of <strong style="color:rgba(13,14,19,0.42);">${data.organizer_name}</strong>.<br>
+          ${data.organizer_address}<br><br>
+          &copy; ${new Date().getFullYear()} <strong style="color:rgba(13,14,19,0.42);">Ayojok</strong>. All rights reserved.<br>
           Dhaka, Bangladesh.<br><br>
-          You received this email to confirm the successful deletion of your account.
+          You received this because of a registration update on <strong>Ayojok</strong>.<br>
         </div>
       </td>
     </tr>
@@ -67,6 +81,6 @@ export const AccountDeletionEmail = ({
 </table>
 </body>
 </html>`;
-};
+}
 
 

@@ -1,7 +1,7 @@
-export function getWelcomeEmailHtml(data: {
-  username: string;
-  email: string;
-  login_url: string;
+export function getOtpVerificationHtml(data: {
+  otp_code: string;
+  purpose_text: string;
+  support_email: string;
 }) {
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -10,7 +10,7 @@ export function getWelcomeEmailHtml(data: {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="x-apple-disable-message-reformatting" />
-    <title>Welcome to Bangla Innovator — Bangla Innovator</title>
+    <title>Verify your Ayojok email — Ayojok</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
@@ -28,6 +28,9 @@ export function getWelcomeEmailHtml(data: {
     </style>
   </head>
   <body style="margin:0;padding:0;background-color:#FAFAFA;">
+    <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
+      Your verification code is ${data.otp_code}.
+    </div>
     <table
       role="presentation"
       cellpadding="0"
@@ -51,8 +54,8 @@ export function getWelcomeEmailHtml(data: {
             <tr>
               <td align="center" class="header-pad" style="padding:32px 40px 20px 40px;background-color:#FAFAFA;">
                 <img
-                  src="https://image.banglainnovator.com/logo/black-logo-36f83cd2-ad3a-4a82-bda0-5d79920820b8.svg"
-                  alt="Bangla Innovator"
+                  src="https://image.ayojok.com/logo/black-logo-36f83cd2-ad3a-4a82-bda0-5d79920820b8.svg"
+                  alt="Ayojok"
                   width="130"
                   style="height:auto;max-width:130px;display:block;margin:0 auto;"
                 />
@@ -65,13 +68,14 @@ export function getWelcomeEmailHtml(data: {
                 <div
                   style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:30px;font-weight:700;color:#0d0e13;line-height:1.15;letter-spacing:-0.02em;margin:0 0 12px 0;"
                 >
-                  Welcome <span style="color:#2BA361;">Aboard</span>
+                  Verify Your <span style="color:#2BA361;">Email</span>
                 </div>
                 <p
                   style="margin:0 0 24px 0;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:15px;color:rgba(13,14,19,0.58);line-height:1.6;font-weight:400;"
                 >
-                  We're thrilled to have you here. Your account has been successfully created. Explore our platform and
-                  connect with the community.
+                  Hi there,<br /><br />
+                  Thank you for joining Ayojok. To ${data.purpose_text}, please
+                  use the 6-digit verification code below. This code will expire in <strong>10 minutes</strong>.
                 </p>
 
                 <table
@@ -87,51 +91,27 @@ export function getWelcomeEmailHtml(data: {
                       <div
                         style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;color:rgba(13,14,19,0.32);text-transform:uppercase;letter-spacing:1.5px;padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid rgba(43,163,97,0.15);"
                       >
-                        Profile Information
+                        Security Notice
                       </div>
-                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-                        <tr>
-                          <td
-                            width="60"
-                            style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:rgba(13,14,19,0.38);font-weight:500;vertical-align:top;padding-bottom:10px;"
-                          >
-                            User:
-                          </td>
-                          <td
-                            style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#0d0e13;font-weight:600;vertical-align:top;padding-bottom:10px;"
-                          >
-                            ${data.username}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td
-                            width="60"
-                            style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:rgba(13,14,19,0.38);font-weight:500;vertical-align:top;padding-bottom:6px;"
-                          >
-                            Email:
-                          </td>
-                          <td
-                            style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#0d0e13;font-weight:600;vertical-align:top;padding-bottom:6px;"
-                          >
-                            ${data.email}
-                          </td>
-                        </tr>
-                      </table>
+                      <p
+                        style="margin:0 0 12px 0;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#0d0e13;font-weight:500;line-height:1.6;"
+                      >
+                        If you didn't request this code, you can safely ignore this email.
+                      </p>
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
 
-            <!-- CTA -->
+            <!-- CODE BLOCK -->
             <tr>
-              <td class="cta-pad" style="padding:20px 32px 32px 32px;background-color:#ffffff;">
-                <a
-                  href="${data.login_url}"
-                  class="cta-btn"
-                  style="display:inline-block;background-color:#2BA361;color:#ffffff;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:15px;font-weight:600;text-decoration:none;padding:14px 40px;border-radius:6px;"
-                  >Log In</a
+              <td class="cta-pad" align="center" style="padding:20px 32px 32px 32px;background-color:#ffffff;">
+                <div
+                  style="display:inline-block;background-color:#FAFAFA;color:#2BA361;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:32px;font-weight:700;letter-spacing:6px;padding:16px 40px;border-radius:8px;border:2px dashed #2BA361;"
                 >
+                  ${data.otp_code}
+                </div>
               </td>
             </tr>
 
@@ -142,18 +122,19 @@ export function getWelcomeEmailHtml(data: {
                 style="padding:32px;background-color:#FAFAFA;border-top:1px solid rgba(43,163,97,0.15);"
               >
                 <img
-                  src="https://image.banglainnovator.com/logo/black-logo-36f83cd2-ad3a-4a82-bda0-5d79920820b8.svg"
-                  alt="Bangla Innovator"
+                  src="https://image.ayojok.com/logo/black-logo-36f83cd2-ad3a-4a82-bda0-5d79920820b8.svg"
+                  alt="Ayojok"
                   width="90"
                   style="height:auto;max-width:90px;display:block;margin-bottom:14px;"
                 />
                 <div
                   style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:12px;color:rgba(13,14,19,0.30);line-height:1.7;margin-bottom:20px;"
                 >
-                  &copy; ${new Date().getFullYear()} <strong style="color:rgba(13,14,19,0.42);">Bangla Innovator</strong>. All rights
+                  &copy; ${new Date().getFullYear()} <strong style="color:rgba(13,14,19,0.42);">Ayojok</strong>. All rights
                   reserved.<br />
                   Dhaka, Bangladesh.<br /><br />
-                  You received this because you registered on <strong>Bangla Innovator</strong>.
+                  You received this because an account registration or password reset was requested for
+                  <strong>Ayojok</strong> using this email.
                 </div>
               </td>
             </tr>
@@ -164,3 +145,5 @@ export function getWelcomeEmailHtml(data: {
   </body>
 </html>`;
 }
+
+

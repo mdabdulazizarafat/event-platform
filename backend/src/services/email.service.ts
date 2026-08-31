@@ -1,7 +1,6 @@
 import { Resend } from 'resend';
 import { createChildLogger } from '../lib/logger';
-import { getParticipantEmailHtml, getCancelEmailHtml, getOtpVerificationHtml, getWelcomeEmailHtml } from './emails';
-
+import { getParticipantEmailHtml, getCancelEmailHtml, getOtpVerificationHtml, getWelcomeEmailHtml } from '../templates/emails';
 const logger = createChildLogger('email.service');
 
 let resendClient: Resend | null = null;
@@ -139,7 +138,7 @@ export class EmailService {
     });
 
     const client = getResendClient();
-    const subject = purpose === 'SIGNUP' ? 'Verify your Bangla Innovator email' : 'Reset your Bangla Innovator Password';
+    const subject = purpose === 'SIGNUP' ? 'Verify your Ayojok email' : 'Reset your Ayojok Password';
 
     if (!client) {
       logger.info({ to: email, subject, code }, 'Mock OTP email sent (no Resend key)');
@@ -171,11 +170,11 @@ export class EmailService {
     const htmlContent = getWelcomeEmailHtml({
       email,
       username,
-      login_url: 'https://banglainnovator.com/login'
+      login_url: 'https://ayojok.com/login'
     });
 
     const client = getResendClient();
-    const subject = 'Welcome to Bangla Innovator';
+    const subject = 'Welcome to Ayojok';
 
     if (!client) {
       logger.info({ to: email, subject }, 'Mock Welcome email sent (no Resend key)');
@@ -200,4 +199,5 @@ export class EmailService {
     }
   }
 }
+
 
