@@ -60,7 +60,12 @@ export class TicketTypeService {
     const query = `
       SELECT tt.*, 
         COALESCE(
-          (SELECT COUNT(*) FROM registrations r WHERE r.event_id = tt.event_id AND r.ticket_type_id = tt.id AND r.status != 'CANCELLED'),
+          (SELECT COUNT(DISTINCT r.id) 
+           FROM registrations r 
+           LEFT JOIN registration_ticket_types rtt ON r.id = rtt.registration_id 
+           WHERE r.event_id = tt.event_id 
+             AND (r.ticket_type_id = tt.id OR rtt.ticket_type_id = tt.id) 
+             AND r.status != 'CANCELLED'),
           0
         )::INTEGER AS sold_count
       FROM ticket_types tt
@@ -78,7 +83,12 @@ export class TicketTypeService {
     const query = `
       SELECT tt.*,
         COALESCE(
-          (SELECT COUNT(*) FROM registrations r WHERE r.event_id = tt.event_id AND r.ticket_type_id = tt.id AND r.status != 'CANCELLED'),
+          (SELECT COUNT(DISTINCT r.id) 
+           FROM registrations r 
+           LEFT JOIN registration_ticket_types rtt ON r.id = rtt.registration_id 
+           WHERE r.event_id = tt.event_id 
+             AND (r.ticket_type_id = tt.id OR rtt.ticket_type_id = tt.id) 
+             AND r.status != 'CANCELLED'),
           0
         )::INTEGER AS sold_count
       FROM ticket_types tt

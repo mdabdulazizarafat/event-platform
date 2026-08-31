@@ -26,6 +26,9 @@ export interface CreateEventInput {
   eventFor?: string;
   studentCategory?: string;
   category?: string | string[];
+  paymentInstructions?: string;
+  bkashNumber?: string;
+  rejectionReason?: string;
 }
 
 export class EventService {
@@ -48,9 +51,10 @@ export class EventService {
           slug, title, description, thumbnail, date, time, start_date, end_date, 
           registration_deadline, location, capacity, contact_email, contact_phone, 
           organizer_username, status, form_phone, form_job_title, form_organization, 
-          form_tshirt_size, form_reference, form_transaction_id, is_private, event_for, student_category, category
+          form_tshirt_size, form_reference, form_transaction_id, is_private, event_for, student_category, category,
+          payment_instructions, bkash_number, rejection_reason
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
         RETURNING id;
       `;
       const res = await client.query(insertQuery, [
@@ -79,6 +83,9 @@ export class EventService {
         input.eventFor || 'BOTH',
         input.studentCategory || null,
         Array.isArray(input.category) ? input.category.join(',') : (input.category || 'Tech'),
+        input.paymentInstructions || null,
+        input.bkashNumber || null,
+        input.rejectionReason || null,
       ]);
       const eventId = res.rows[0].id;
 
@@ -136,6 +143,9 @@ export class EventService {
     eventFor?: string;
     studentCategory?: string;
     category?: string | string[];
+    paymentInstructions?: string;
+    bkashNumber?: string;
+    rejectionReason?: string;
   }, userRole?: string) {
     const client = await pool.connect();
     try {
@@ -179,6 +189,9 @@ export class EventService {
         isPrivate: 'is_private',
         eventFor: 'event_for',
         studentCategory: 'student_category',
+        paymentInstructions: 'payment_instructions',
+        bkashNumber: 'bkash_number',
+        rejectionReason: 'rejection_reason',
       };
 
       const updates: string[] = [];

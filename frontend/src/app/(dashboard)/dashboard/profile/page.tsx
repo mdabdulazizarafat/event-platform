@@ -30,7 +30,7 @@ import Link from 'next/link';
 import AvatarCropper from '@/components/ui/AvatarCropper';
 import PageHeader from '@/components/ui/PageHeader';
 
-const CLASS_LEVELS = ["Class 1", "Class 2", "Class 3", "Class 4", "Class 5", "Class 6", "Class 7", "Class 8", "Class 9", "Class 10 / Dakhil", "Class 11 / Alim", "Class 12 / Alim", "University / Polytechnic / Fazil"];
+const CLASS_LEVELS = ["Class 1", "Class 2", "Class 3", "Class 4", "Class 5", "Class 6", "Class 7", "Class 8", "Class 9", "Class 10", "Class 11", "Class 12", "University"];
 
 const DISTRICTS_BY_DIVISION = {
   "Dhaka Division": ["Dhaka", "Faridpur", "Gazipur", "Gopalganj", "Kishoreganj", "Madaripur", "Manikganj", "Munshiganj", "Narayanganj", "Narsingdi", "Rajbari", "Shariatpur", "Tangail"],

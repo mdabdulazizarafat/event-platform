@@ -50,6 +50,8 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
   const [formTshirtSize, setFormTshirtSize] = useState(false);
   const [formReference, setFormReference] = useState(false);
   const [formTransactionId, setFormTransactionId] = useState(false);
+  const [paymentInstructions, setPaymentInstructions] = useState('');
+  const [bkashNumber, setBkashNumber] = useState('');
   
   // Ticket State
   const [tickets, setTickets] = useState<EditableTicketType[]>([]);
@@ -114,6 +116,8 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
           setFormTshirtSize(data.form_tshirt_size !== undefined ? data.form_tshirt_size : false);
           setFormReference(data.form_reference !== undefined ? data.form_reference : false);
           setFormTransactionId(data.form_transaction_id !== undefined ? data.form_transaction_id : false);
+          setPaymentInstructions(data.payment_instructions || '');
+          setBkashNumber(data.bkash_number || '');
           
           if (data.event_for) setEventFor(data.event_for);
           if (data.student_category) setStudentCategory(data.student_category);
@@ -244,6 +248,7 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
           location,
           capacity: parseInt(capacity), contactEmail, contactPhone, status,
           formPhone: true, formJobTitle: true, formOrganization: true, formTshirtSize, formReference, formTransactionId,
+          paymentInstructions, bkashNumber,
           eventFor, studentCategory: eventFor === 'STUDENT' ? studentCategory : null,
           category
         })
@@ -568,6 +573,13 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
               />
             </div>
           </div>
+
+          {formTransactionId && (
+            <div className="mt-4 p-4 border border-outline-variant/60 rounded-xl bg-surface-container-low/30 space-y-4">
+              <FormField label="Payment Instructions" textarea value={paymentInstructions} onChange={(e) => setPaymentInstructions(e.target.value)} placeholder="Enter instructions for manual payment..." />
+              <FormField label="bKash Number" value={bkashNumber} onChange={(e) => setBkashNumber(e.target.value)} placeholder="e.g. 01700000000" />
+            </div>
+          )}
         </div>
       )
     }

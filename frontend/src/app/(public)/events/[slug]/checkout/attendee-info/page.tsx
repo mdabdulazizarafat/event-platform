@@ -137,7 +137,7 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
     try {
       const isPaid = ticket && parseFloat(ticket.price) > 0;
       
-      if (isPaid) {
+      if (isPaid && !transactionId) {
         // Route to payment page with details in query params
         const qs = new URLSearchParams({
           ticketId: ticketId.toString(),
@@ -305,13 +305,44 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
                 )}
 
                 {event?.form_transaction_id && (
-                  <FormField 
-                    label="Transaction ID" 
-                    value={transactionId} 
-                    onChange={e => setTransactionId(e.target.value)} 
-                    placeholder="Enter Transaction ID"
-                    required 
-                  />
+                  <div className="space-y-4">
+                    {(event?.payment_instructions || event?.bkash_number) && (
+                      <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
+                        <h4 className="text-sm font-bold text-foreground mb-2">Payment Instructions</h4>
+                        {event?.payment_instructions && (
+                          <p className="text-xs text-on-surface-variant whitespace-pre-wrap mb-3 leading-relaxed">
+                            {event.payment_instructions}
+                          </p>
+                        )}
+                        {event?.bkash_number && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs text-on-surface-variant font-medium">bKash Number:</span>
+                            <span className="font-mono font-bold text-sm bg-surface-container px-2 py-1 rounded select-all text-primary">
+                              {event.bkash_number}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(event.bkash_number!);
+                                message.success('bKash number copied to clipboard');
+                              }}
+                              className="text-primary hover:text-primary-container p-1 rounded-md bg-primary/10 hover:bg-primary/20 transition-colors"
+                              title="Copy to clipboard"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <FormField 
+                      label="Transaction ID" 
+                      value={transactionId} 
+                      onChange={e => setTransactionId(e.target.value)} 
+                      placeholder="Enter Transaction ID"
+                      required 
+                    />
+                  </div>
                 )}
               </div>
             </div>

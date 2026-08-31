@@ -66,6 +66,8 @@ export default function CreateEventWizardPage() {
   const [formTshirtSize, setFormTshirtSize] = useState(false);
   const [formReference, setFormReference] = useState(false);
   const [formTransactionId, setFormTransactionId] = useState(false);
+  const [paymentInstructions, setPaymentInstructions] = useState('');
+  const [bkashNumber, setBkashNumber] = useState('');
   
   // Simulated R2 Upload State
   const [isUploading, setIsUploading] = useState(false);
@@ -74,6 +76,13 @@ export default function CreateEventWizardPage() {
   const [tickets, setTickets] = useState<TicketTypeInput[]>([
     { name: 'Standard Pass', description: 'General Access to the event.', price: '0', capacity: '500', isTeam: false, maxTeamSize: '2' }
   ]);
+
+  useEffect(() => {
+    const isPaid = tickets.some(t => parseFloat(t.price || '0') > 0);
+    if (isPaid) {
+      setFormTransactionId(true);
+    }
+  }, [tickets]);
 
   // Set default values from logged-in user profile
   useEffect(() => {
@@ -268,13 +277,15 @@ export default function CreateEventWizardPage() {
           contactPhone,
           thumbnail,
           description,
-          status: publishImmediate ? 'PUBLISHED' : 'DRAFT',
+          status: publishImmediate ? (tickets.some(t => parseFloat(t.price || '0') > 0) ? 'UNDER_REVIEW' : 'PUBLISHED') : 'DRAFT',
           formPhone: true,
           formJobTitle: true,
           formOrganization: true,
           formTshirtSize,
           formReference,
           formTransactionId,
+          paymentInstructions,
+          bkashNumber,
           isPrivate,
           eventFor,
           studentCategory: eventFor === 'STUDENT' ? studentCategory : null,
@@ -615,6 +626,13 @@ export default function CreateEventWizardPage() {
                     />
                   </div>
                 </div>
+
+                {formTransactionId && (
+                  <div className="mt-4 p-4 border border-outline-variant/60 rounded-xl bg-surface-container-low/30 space-y-4">
+                    <FormField label="Payment Instructions" textarea value={paymentInstructions} onChange={(e) => setPaymentInstructions(e.target.value)} placeholder="Enter instructions for manual payment..." />
+                    <FormField label="bKash Number" value={bkashNumber} onChange={(e) => setBkashNumber(e.target.value)} placeholder="e.g. 01700000000" />
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -803,7 +821,7 @@ export default function CreateEventWizardPage() {
                   onClick={() => handleSubmit(true)}
                   icon={<CheckCircle className="w-4 h-4" />}
                 >
-                  Publish & Go Live
+                  {totalTicketPriceBDT > 0 ? 'Admin Review & Publish' : 'Publish & Go Live'}
                 </Button>
               </div>
             )}

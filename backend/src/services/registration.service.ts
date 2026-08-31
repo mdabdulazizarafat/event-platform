@@ -224,7 +224,12 @@ export class RegistrationService {
         // Check per-ticket-type capacity
         if (ticketType.capacity) {
           const countRes = await client.query(
-            "SELECT COUNT(*) FROM registrations WHERE ticket_type_id = $1 AND event_id = $2 AND status != 'CANCELLED'",
+            `SELECT COUNT(DISTINCT r.id) 
+             FROM registrations r 
+             LEFT JOIN registration_ticket_types rtt ON r.id = rtt.registration_id 
+             WHERE r.event_id = $2 
+               AND (r.ticket_type_id = $1 OR rtt.ticket_type_id = $1) 
+               AND r.status != 'CANCELLED'`,
             [ticketTypeId, eventId]
           );
           const soldCount = parseInt(countRes.rows[0].count);

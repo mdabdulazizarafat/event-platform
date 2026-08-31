@@ -104,6 +104,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
         userId: user?.username || '',
         customerName: user?.name || user?.username || '',
         customerPhone: user?.phoneNumber || user?.phone || user?.mobile || '',
+        fullName: user?.name || user?.username || '',
+        phone: user?.phoneNumber || user?.phone || user?.mobile || '',
         jobTitle: user?.position || user?.jobTitle || '',
         organization: user?.institutionName || user?.organization || user?.org || '',
         ticketTypeIds: selectedTickets.map(t => t.id),
@@ -119,6 +121,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
           email: user?.email || '',
           customerName: user?.name || user?.username || '',
           customerPhone: user?.phoneNumber || user?.phone || user?.mobile || '',
+          fullName: user?.name || user?.username || '',
+          phone: user?.phoneNumber || user?.phone || user?.mobile || '',
           jobTitle: user?.position || user?.jobTitle || '',
           organization: user?.institutionName || user?.organization || user?.org || '',
           ...formData

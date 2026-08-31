@@ -117,6 +117,9 @@ export async function runMigrations() {
         form_tshirt_size BOOLEAN DEFAULT false,
         form_reference BOOLEAN DEFAULT false,
         form_transaction_id BOOLEAN DEFAULT false,
+        payment_instructions TEXT,
+        bkash_number VARCHAR(50),
+        rejection_reason TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
@@ -140,6 +143,9 @@ export async function runMigrations() {
     await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS event_for VARCHAR(50) DEFAULT \'BOTH\'').catch(() => {});
     await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS student_category VARCHAR(100)').catch(() => {});
     await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT \'Tech\'').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS payment_instructions TEXT').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS bkash_number VARCHAR(50)').catch(() => {});
+    await client.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS rejection_reason TEXT').catch(() => {});
 
     // 5. Ensure ticket_types table exists
     await client.query(`

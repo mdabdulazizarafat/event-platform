@@ -57,6 +57,9 @@ export interface Event {
   form_tshirt_size?: boolean;
   form_reference?: boolean;
   form_transaction_id?: boolean;
+  payment_instructions?: string;
+  bkash_number?: string;
+  rejection_reason?: string;
   is_private?: boolean;
   event_for?: string;
   student_category?: string;
@@ -113,6 +116,9 @@ function mapBackendEventToFrontend(e: any): Event {
     form_tshirt_size: e.form_tshirt_size,
     form_reference: e.form_reference,
     form_transaction_id: e.form_transaction_id,
+    payment_instructions: e.payment_instructions,
+    bkash_number: e.bkash_number,
+    rejection_reason: e.rejection_reason,
     is_private: e.is_private,
     event_for: e.event_for,
     student_category: e.student_category,
@@ -209,6 +215,8 @@ export async function initiatePayment(data: {
   email: string;
   customerName: string;
   customerPhone?: string;
+  fullName?: string;
+  phone?: string;
   jobTitle?: string;
   organization?: string;
   tshirtSize?: string;

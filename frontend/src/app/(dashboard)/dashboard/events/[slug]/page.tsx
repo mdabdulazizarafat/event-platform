@@ -134,6 +134,9 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
   const [formTshirtSize, setFormTshirtSize] = useState(false);
   const [formReference, setFormReference] = useState(false);
   const [formTransactionId, setFormTransactionId] = useState(false);
+  const [paymentInstructions, setPaymentInstructions] = useState('');
+  const [bkashNumber, setBkashNumber] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
   const [savingDetails, setSavingDetails] = useState(false);
 
   // ----------------------------------------------------
@@ -185,6 +188,9 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
         setFormTshirtSize(!!eventData.form_tshirt_size);
         setFormReference(!!eventData.form_reference);
         setFormTransactionId(!!eventData.form_transaction_id);
+        setPaymentInstructions(eventData.payment_instructions || '');
+        setBkashNumber(eventData.bkash_number || '');
+        setRejectionReason(eventData.rejection_reason || '');
 
         // Date parse
         const rawDate = eventData.date || '';
@@ -314,6 +320,36 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
       }
     } catch (err) {
       message.error('Failed to update status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    const reason = window.prompt('Enter rejection reason:');
+    if (reason === null) return;
+    if (!reason.trim()) {
+      message.error('Rejection reason is required');
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/v1/events/${slug}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'DRAFT', rejectionReason: reason }),
+      });
+      if (res.ok) {
+        setEvent(prev => prev ? { ...prev, status: 'DRAFT', rejection_reason: reason } : null);
+        setStatus('DRAFT');
+        setRejectionReason(reason);
+        message.success('Event rejected and sent back to Draft');
+      } else {
+        const data = await res.json();
+        message.error(data.error || 'Failed to reject event');
+      }
+    } catch (err) {
+      message.error('Failed to reject event');
     } finally {
       setLoading(false);
     }
@@ -453,7 +489,9 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
         formOrganization: true,
         formTshirtSize,
         formReference,
-        formTransactionId
+        formTransactionId,
+        paymentInstructions,
+        bkashNumber
       };
 
       if (registrationDeadlineDate && registrationDeadlineTime) {
@@ -810,6 +848,13 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
 
   return (
     <div className="space-y-6">
+      {rejectionReason && status === 'DRAFT' && (
+        <div className="p-4 bg-error/10 border border-error/20 rounded-xl text-error">
+          <h4 className="font-bold text-sm mb-1 flex items-center gap-2"><ShieldAlert size={16}/> Event Rejected</h4>
+          <p className="text-xs m-0"><strong>Reason:</strong> {rejectionReason}</p>
+          <p className="text-xs m-0 mt-1">Please make the necessary changes and submit for review again.</p>
+        </div>
+      )}
       {/* Header section */}
       <PageHeader
         title={
@@ -843,10 +888,25 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
         action={
           (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || event?.organizerUsername === user?.username || event?.is_team_member) ? (
             <div className="flex items-center gap-2">
-              {(!event.status || event.status === 'DRAFT') && (
-                <Button variant="primary" size="sm" icon={<Power className="w-4 h-4" />} onClick={() => updateStatus('PUBLISHED')}>
-                  Publish Event
-                </Button>
+              {user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' ? (
+                <>
+                  {(event.status === 'DRAFT' || event.status === 'UNDER_REVIEW') && (
+                    <Button variant="primary" size="sm" icon={<Power className="w-4 h-4" />} onClick={() => updateStatus('PUBLISHED')}>
+                      Publish Event
+                    </Button>
+                  )}
+                  {event.status === 'UNDER_REVIEW' && (
+                    <Button variant="outline" size="sm" className="text-error border-error hover:bg-error/10" onClick={handleReject}>
+                      Reject Event
+                    </Button>
+                  )}
+                </>
+              ) : (
+                event.status === 'DRAFT' && (
+                  <Button variant="primary" size="sm" icon={<Power className="w-4 h-4" />} onClick={() => updateStatus(tickets.some(t => parseFloat(t.price) > 0) ? 'UNDER_REVIEW' : 'PUBLISHED')}>
+                    {tickets.some(t => parseFloat(t.price) > 0) ? 'Submit for Admin Review' : 'Publish Event'}
+                  </Button>
+                )
               )}
 
               <Button
@@ -1167,6 +1227,13 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
                       />
                     </div>
                   </div>
+
+                  {formTransactionId && (
+                    <div className="mt-4 p-4 border border-outline-variant/60 rounded-xl bg-surface-container-low/30 space-y-4">
+                      <FormField label="Payment Instructions" textarea value={paymentInstructions} onChange={(e) => setPaymentInstructions(e.target.value)} placeholder="Enter instructions for manual payment..." />
+                      <FormField label="bKash Number" value={bkashNumber} onChange={(e) => setBkashNumber(e.target.value)} placeholder="e.g. 01700000000" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t border-outline-variant/60 pt-6">
@@ -1547,6 +1614,8 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
             ) : null
           }
         ].filter(tab => {
+          if (tab.key === '7') return false; // Disable Certificates tab for now
+
           const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
           if (isSuperAdmin) return true;
 

@@ -90,6 +90,9 @@ export class EventController {
         startDate,
         endDate,
         registrationDeadline,
+        paymentInstructions: req.body.paymentInstructions || undefined,
+        bkashNumber: req.body.bkashNumber || undefined,
+        rejectionReason: req.body.rejectionReason || undefined,
       });
 
       return res.status(201).json({ message: 'Event created and partition created successfully', eventId });
@@ -110,7 +113,8 @@ export class EventController {
         title, description, thumbnail, date, time, location, capacity, contactEmail, contactPhone, status,
         formPhone, formJobTitle, formOrganization, formTshirtSize, formReference, formTransactionId,
         isPrivate, eventFor, studentCategory,
-        startDate, endDate, registrationDeadline
+        startDate, endDate, registrationDeadline,
+        paymentInstructions, bkashNumber, rejectionReason
       } = req.body;
 
       const updated = await EventService.updateEvent(slug, req.user.username, {
@@ -136,6 +140,9 @@ export class EventController {
         startDate,
         endDate,
         registrationDeadline,
+        paymentInstructions,
+        bkashNumber,
+        rejectionReason,
       }, req.user.role);
 
       return res.status(200).json({ message: 'Event updated successfully', event: updated });
@@ -235,8 +242,8 @@ export class EventController {
           currency = ticketType.currency || currency;
         }
 
-        if (totalPrice > 0) {
-          // Paid ticket — registration must go through payment flow
+        if (totalPrice > 0 && !transactionId) {
+          // Paid ticket — registration must go through payment flow or manual transaction ID
           return res.status(400).json({ 
             error: 'This registration requires payment. Please use the payment endpoint to register.',
             requiresPayment: true,
