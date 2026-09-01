@@ -324,13 +324,14 @@ export default function MarketingPage() {
             </h2>
           </div>
 
-          <ScrollRow className="px-6 md:px-24 gap-6 pb-4">
+          <ScrollRow className="px-6 md:px-24 gap-6 py-8">
             {offerings.map((item, idx) => {
               const Icon = item.icon;
               return (
                 <div
                   key={idx}
-                  className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white snap-start p-6 md:p-8 flex flex-col shadow-[0_4px_30px_rgba(0,0,0,0.06)] scroll-ml-6 md:scroll-ml-24"
+                  className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white snap-start p-6 md:p-8 flex flex-col shadow-[0_4px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] scroll-ml-6 md:scroll-ml-24"
+                  style={{ transition: 'box-shadow 0.3s ease-in-out' }}
                 >
                   <div className="w-16 h-16 rounded-full bg-[#f5f5f7] flex items-center justify-center mb-8">
                     <Icon size={28} className="text-[#1d1d1f]" />

@@ -44,7 +44,7 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
   
   const [eventFor, setEventFor] = useState('BOTH');
   const [studentCategory, setStudentCategory] = useState('');
-  const [category, setCategory] = useState<string[]>([]);
+  const [category, setCategory] = useState<string>('');
   
   // Registration Form Options
   const [formTshirtSize, setFormTshirtSize] = useState(false);
@@ -120,9 +120,9 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
           setBkashNumber(data.bkash_number || '');
           
           if (data.event_for) setEventFor(data.event_for);
-          if (data.student_category) setStudentCategory(data.student_category);
+          if (data.studentCategory) setStudentCategory(data.studentCategory);
           if (data.category) {
-            setCategory(data.category.split(','));
+            setCategory(data.category.split(',')[0]);
           }
         } else {
           message.error('Failed to load event details');
@@ -378,27 +378,24 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
               Event Category <span className="text-destructive">*</span>
             </label>
             <Select
-              mode="multiple"
-              maxCount={3}
               allowClear
-              placeholder="Select up to 3 event categories"
+              placeholder="Select an event category"
               className="w-full !rounded-xl"
               style={{ width: '100%' }}
-              value={category}
+              value={category || undefined}
               onChange={(val) => setCategory(val)}
               options={[
-                { label: 'Conferences', value: 'Conferences' },
-                { label: 'Seminars', value: 'Seminars' },
-                { label: 'Workshops', value: 'Workshops' },
-                { label: 'Panel Discussions', value: 'Panel Discussions' },
-                { label: 'Webinars', value: 'Webinars' },
-                { label: 'Tournaments', value: 'Tournaments' },
-                { label: 'Art Exhibition', value: 'Art Exhibition' },
                 { label: 'Tech', value: 'Tech' },
                 { label: 'Business', value: 'Business' },
-                { label: 'Concerts', value: 'Concerts' },
-                { label: 'Festivals', value: 'Festivals' },
-                { label: 'Meetups', value: 'Meetups' },
+                { label: 'Health & Fitness', value: 'Health & Fitness' },
+                { label: 'Environment & Climate', value: 'Environment & Climate' },
+                { label: 'Education', value: 'Education' },
+                { label: 'Culture & Arts', value: 'Culture & Arts' },
+                { label: 'Entertainment', value: 'Entertainment' },
+                { label: 'Sports', value: 'Sports' },
+                { label: 'Design & Architecture', value: 'Design & Architecture' },
+                { label: 'Productivity', value: 'Productivity' },
+                { label: 'Personal Development', value: 'Personal Development' },
               ]}
             />
           </div>

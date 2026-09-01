@@ -45,7 +45,8 @@ export default function TeamSection() {
           {team.map((member) => (
             <div
               key={member.id}
-              className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md border border-gray-200 transition-shadow duration-300 flex flex-col"
+              className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] border border-gray-200 flex flex-col"
+              style={{ transition: 'box-shadow 0.3s ease-in-out' }}
             >
               {/* Image Container */}
               <div className="relative aspect-[4/5] bg-transparent w-full overflow-hidden">

@@ -55,7 +55,7 @@ export default function CreateEventWizardPage() {
   const [isPrivate, setIsPrivate] = useState(false);
   const [eventFor, setEventFor] = useState('BOTH'); // 'BOTH', 'STUDENT', 'JOB_HOLDER'
   const [studentCategory, setStudentCategory] = useState(''); // e.g. 'Class 6 to 10', 'Class 11 to 12'
-  const [category, setCategory] = useState<string[]>([]);
+  const [category, setCategory] = useState<string>('');
 
   // Step 2: Branding State
   const [thumbnail, setThumbnail] = useState('https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&h=450&fit=crop');
@@ -428,27 +428,24 @@ export default function CreateEventWizardPage() {
                   Event Category <span className="text-destructive">*</span>
                 </label>
                 <Select
-                  mode="multiple"
-                  maxCount={3}
                   allowClear
-                  placeholder="Select up to 3 event categories"
+                  placeholder="Select an event category"
                   className="w-full !rounded-xl"
                   style={{ width: '100%' }}
-                  value={category}
+                  value={category || undefined}
                   onChange={(val) => setCategory(val)}
                   options={[
-                    { label: 'Conferences', value: 'Conferences' },
-                    { label: 'Seminars', value: 'Seminars' },
-                    { label: 'Workshops', value: 'Workshops' },
-                    { label: 'Panel Discussions', value: 'Panel Discussions' },
-                    { label: 'Webinars', value: 'Webinars' },
-                    { label: 'Tournaments', value: 'Tournaments' },
-                    { label: 'Art Exhibition', value: 'Art Exhibition' },
                     { label: 'Tech', value: 'Tech' },
                     { label: 'Business', value: 'Business' },
-                    { label: 'Concerts', value: 'Concerts' },
-                    { label: 'Festivals', value: 'Festivals' },
-                    { label: 'Meetups', value: 'Meetups' },
+                    { label: 'Health & Fitness', value: 'Health & Fitness' },
+                    { label: 'Environment & Climate', value: 'Environment & Climate' },
+                    { label: 'Education', value: 'Education' },
+                    { label: 'Culture & Arts', value: 'Culture & Arts' },
+                    { label: 'Entertainment', value: 'Entertainment' },
+                    { label: 'Sports', value: 'Sports' },
+                    { label: 'Design & Architecture', value: 'Design & Architecture' },
+                    { label: 'Productivity', value: 'Productivity' },
+                    { label: 'Personal Development', value: 'Personal Development' },
                   ]}
                 />
               </div>

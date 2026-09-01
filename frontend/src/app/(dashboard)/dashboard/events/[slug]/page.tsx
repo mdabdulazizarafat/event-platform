@@ -1076,7 +1076,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
                         { key: 'organization', title: 'Organization', render: (row: any) => row.organization || '-' },
                         { key: 'tshirt_size', title: 'T-Shirt', render: (row: any) => row.tshirt_size || '-' },
                         { key: 'transaction_id', title: 'TxID', render: (row: any) => row.transaction_id || '-' },
-                        { key: 'ticket_name', title: 'Ticket Tier' },
+                        { key: 'ticket_name', title: 'Ticket Tier', render: (row: any) => row.ticket_type_name || row.ticket_name || '-' },
                         {
                           key: 'status',
                           title: 'Status',
@@ -1517,31 +1517,66 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
             key: '8',
             label: 'My Ticket',
             children: (
-              <div className="pt-4 w-full">
+              <div className="pt-4 w-full flex justify-center">
                 {myTicket ? (
-                  <div className="bento-card p-6 flex flex-col items-center text-center space-y-4">
-                    <h4 className="font-bold text-xl text-foreground m-0">{myTicket.ticket_name}</h4>
-                    <Tag color={myTicket.status === 'CHECKED_IN' ? 'success' : 'blue'} className="font-bold uppercase mb-2">
-                      {myTicket.status}
-                    </Tag>
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-outline-variant/40 inline-block">
-                      {myTicket.qr_token ? (
-                        <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(myTicket.qr_token)}`} 
-                          alt="Ticket QR Code" 
-                          width={200} 
-                          height={200} 
-                        />
-                      ) : (
-                        <div className="w-[200px] h-[200px] flex items-center justify-center bg-surface-container-low text-on-surface-variant text-sm">
-                          QR Not Available
+                  <div className="bg-surface-container-lowest border border-outline-variant w-full max-w-3xl shadow-sm relative flex flex-row items-stretch overflow-hidden rounded-2xl" style={{ aspectRatio: '210/99' }}>
+                    <div className="w-3 bg-primary shrink-0"></div>
+                    
+                    <div className="flex-1 p-6 md:p-8 flex flex-col justify-center relative">
+                      {/* Cutouts for vertical perforation */}
+                      <div className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-background border border-outline-variant z-10 border-b-0"></div>
+                      <div className="absolute -bottom-3 -right-3 w-6 h-6 rounded-full bg-background border border-outline-variant z-10 border-t-0"></div>
+                      
+                      <div className="text-left space-y-4">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Registration ID</span>
+                          <p className="font-mono text-sm md:text-base font-bold text-foreground">{myTicket.id || 'REG-XXXXXX'}</p>
                         </div>
-                      )}
+                        
+                        <div className="space-y-1">
+                          <h3 className="font-bold text-lg md:text-xl text-foreground m-0">{event?.title}</h3>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {myTicket.tickets?.map((t: any) => (
+                              <span key={t.id} className="text-[10px] md:text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                                {t.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1.5 pt-2">
+                          <div className="flex items-center gap-2 text-xs md:text-sm text-foreground font-medium">
+                            <Calendar size={16} className="text-primary shrink-0" />
+                            <span>{event?.date} {event?.time}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs md:text-sm text-foreground font-medium">
+                            <MapPin size={16} className="text-primary shrink-0" />
+                            <span className="line-clamp-2">{event?.location}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-sm text-on-surface-variant">Present this QR code at the event entrance for scanning.</p>
+                    
+                    <div className="w-[1px] my-4 border-l-2 border-dashed border-outline-variant z-0 relative shrink-0"></div>
+                    
+                    <div className="w-1/3 md:w-1/4 p-4 flex flex-col items-center justify-center shrink-0">
+                      <div className="flex flex-col items-center justify-center space-y-1 md:space-y-2 p-2 md:p-3 bg-white rounded-xl border border-outline-variant/50 w-full max-w-[120px] aspect-square">
+                        <div className="w-full h-full flex items-center justify-center">
+                          {myTicket.qr_token ? (
+                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(myTicket.qr_token)}`} alt="Ticket QR Code" className="w-full h-full object-contain" />
+                          ) : (
+                            <QrCode size={90} className="text-slate-300 w-full h-full" />
+                          )}
+                        </div>
+                        <span className="text-[7px] md:text-[9px] font-mono text-slate-500 whitespace-nowrap">Scan at entrance</span>
+                      </div>
+                      <div className="mt-3">
+                         <StatusChip status={myTicket.status} label={myTicket.status} />
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <div className="py-10 text-center">
+                  <div className="py-10 text-center w-full">
                     <p className="text-on-surface-variant">No ticket found for this event.</p>
                   </div>
                 )}
@@ -1556,54 +1591,81 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
             label: 'Overview',
             children: event ? (
               <div className="space-y-6 pt-4">
+                {event.thumbnail && (
+                  <div className="w-full h-64 md:h-80 rounded-2xl overflow-hidden relative border border-outline-variant/40 shadow-sm">
+                    <img src={event.thumbnail} alt={event.title} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                    <div className="absolute bottom-6 left-6 right-6">
+                      <h2 className="text-2xl md:text-3xl font-extrabold text-white m-0">{event.title}</h2>
+                      <div className="flex items-center gap-4 mt-2 text-white/90 text-sm">
+                        <div className="flex items-center gap-1.5"><Calendar size={16}/> {event.date}</div>
+                        <div className="flex items-center gap-1.5"><MapPin size={16}/> {event.location}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Left Description Column */}
-                  <div className="md:col-span-2 space-y-4">
-                    <h3 className="font-heading text-lg font-bold text-foreground m-0">About the Event</h3>
-                    <p className="text-sm text-on-surface-variant leading-relaxed whitespace-pre-wrap">
-                      {event.description || 'No description provided for this event.'}
-                    </p>
+                  <div className="md:col-span-2 space-y-6">
+                    <div className="bento-card p-6 md:p-8">
+                      <h3 className="font-heading text-xl font-bold text-foreground m-0 mb-4 flex items-center gap-2">
+                        <Activity className="text-primary" size={20} /> About the Event
+                      </h3>
+                      <p className="text-base text-on-surface leading-relaxed whitespace-pre-wrap">
+                        {event.description || 'No description provided for this event.'}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Right Metadata Column */}
-                  <div className="space-y-6 p-5 border border-outline-variant/60 rounded-xl bg-surface-container-low/30 h-fit">
-                    <h4 className="font-bold text-sm text-foreground m-0 border-b border-outline-variant/40 pb-2">Event Details</h4>
-                    
-                    <div className="space-y-3 text-xs text-on-surface-variant font-medium">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-primary" />
-                        <div>
-                          <p className="font-bold text-foreground m-0">Date</p>
-                          <p className="m-0 mt-0.5">{event.date}</p>
+                  <div className="space-y-6">
+                    <div className="bento-card p-6 bg-primary/5 border-primary/20">
+                      <h4 className="font-bold text-base text-primary m-0 border-b border-primary/20 pb-3 mb-4 flex items-center gap-2">
+                        <Ticket size={18} /> Event Details
+                      </h4>
+                      
+                      <div className="space-y-4 text-sm text-on-surface">
+                        <div className="flex items-start gap-3">
+                          <Calendar className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                          <div>
+                            <p className="font-bold text-foreground m-0 leading-none">Date</p>
+                            <p className="m-0 mt-1 text-on-surface-variant">{event.date}</p>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-primary" />
-                        <div>
-                          <p className="font-bold text-foreground m-0">Time</p>
-                          <p className="m-0 mt-0.5">{event.time}</p>
+                        <div className="flex items-start gap-3">
+                          <Clock className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                          <div>
+                            <p className="font-bold text-foreground m-0 leading-none">Time</p>
+                            <p className="m-0 mt-1 text-on-surface-variant">{event.time}</p>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-primary" />
-                        <div>
-                          <p className="font-bold text-foreground m-0">Location</p>
-                          <p className="m-0 mt-0.5">{event.location}</p>
+                        <div className="flex items-start gap-3">
+                          <MapPin className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                          <div>
+                            <p className="font-bold text-foreground m-0 leading-none">Location</p>
+                            <p className="m-0 mt-1 text-on-surface-variant leading-relaxed">{event.location}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {(event.contactEmail || event.contactPhone) && (
-                      <div className="pt-4 border-t border-outline-variant/40 space-y-3">
-                        <h4 className="font-bold text-xs text-foreground m-0">Contact Organizer</h4>
-                        <div className="space-y-2 text-xs text-on-surface-variant">
+                      <div className="bento-card p-6">
+                        <h4 className="font-bold text-base text-foreground m-0 border-b border-outline-variant/60 pb-3 mb-4 flex items-center gap-2">
+                          <Phone size={18} className="text-primary" /> Contact Organizer
+                        </h4>
+                        <div className="space-y-3 text-sm text-on-surface-variant">
                           {event.contactEmail && (
-                            <p className="m-0 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />{event.contactEmail}</p>
+                            <a href={`mailto:${event.contactEmail}`} className="flex items-center gap-2 hover:text-primary transition-colors">
+                              <Mail className="w-4 h-4" /> {event.contactEmail}
+                            </a>
                           )}
                           {event.contactPhone && (
-                            <p className="m-0 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{event.contactPhone}</p>
+                            <a href={`tel:${event.contactPhone}`} className="flex items-center gap-2 hover:text-primary transition-colors">
+                              <Phone className="w-4 h-4" /> {event.contactPhone}
+                            </a>
                           )}
                         </div>
                       </div>

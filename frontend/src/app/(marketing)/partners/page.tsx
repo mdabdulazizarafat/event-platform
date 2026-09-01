@@ -79,7 +79,7 @@ export default function PartnersPage() {
                       {category}.
                     </h2>
                   </div>
-                  <ScrollRow className="px-6 md:px-24 gap-6 pb-4">
+                  <ScrollRow className="px-6 md:px-24 gap-6 py-8">
                     {categoryPartners.map((partner) => (
                       <PartnerCard key={partner.id} partner={partner} />
                     ))}

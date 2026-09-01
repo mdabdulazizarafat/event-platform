@@ -30,8 +30,17 @@ export default function EventsDiscoveryPage() {
     loadEvents();
   }, []);
 
+  const getEventCategory = (e: Event) => {
+    if (e.category) return e.category.split(',')[0];
+    if (e.slug.includes('tech')) return 'Tech';
+    if (e.slug.includes('knowledge') || e.slug.includes('fiesta')) return 'Education';
+    if (e.slug.includes('design') || e.slug.includes('ui-ux')) return 'Design & Architecture';
+    return 'Business';
+  };
+
   // Filter items
-  const categories = ['All', 'Technology', 'Education', 'Design', 'Business'];
+  const activeCategories = Array.from(new Set(events.map(getEventCategory))).filter(Boolean);
+  const categories = ['All', ...activeCategories];
 
   // Extract unique locations from events list
   const locations = ['All', ...Array.from(new Set(events.map(e => e.locationShort || e.location.split(',')[0])))];
@@ -43,14 +52,6 @@ export default function EventsDiscoveryPage() {
     .filter((event) => {
       const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         event.description.toLowerCase().includes(searchQuery.toLowerCase());
-
-      // Category mapping logic helper
-      const getEventCategory = (e: Event) => {
-        if (e.slug.includes('tech')) return 'Technology';
-        if (e.slug.includes('knowledge') || e.slug.includes('fiesta')) return 'Education';
-        if (e.slug.includes('design') || e.slug.includes('ui-ux')) return 'Design';
-        return 'Business';
-      };
 
       const eventCategory = getEventCategory(event);
       const matchesCategory = selectedCategory === 'All' || eventCategory === selectedCategory;
@@ -204,14 +205,7 @@ export default function EventsDiscoveryPage() {
             </div>
           ) : filteredEvents.length > 0 ? (
             <div className="flex flex-col space-y-16 mt-8">
-              {['Technology', 'Education', 'Design', 'Business'].map((category) => {
-                const getEventCategory = (e: Event) => {
-                  if (e.slug.includes('tech')) return 'Technology';
-                  if (e.slug.includes('knowledge') || e.slug.includes('fiesta')) return 'Education';
-                  if (e.slug.includes('design') || e.slug.includes('ui-ux')) return 'Design';
-                  return 'Business';
-                };
-
+              {activeCategories.map((category) => {
                 const categoryEvents = filteredEvents.filter(e => getEventCategory(e) === category);
 
                 if (categoryEvents.length === 0) return null;
@@ -220,7 +214,24 @@ export default function EventsDiscoveryPage() {
                   <section key={category} className="overflow-hidden">
                     <div className="px-6 md:px-24 mb-6">
                       <h2 className="m-0 text-[28px] md:text-[36px] font-extrabold tracking-tight" style={{ color: '#1d1d1f' }}>
-                        {category} Events.
+                        {category} events.{' '}
+                        <span style={{ color: '#6e6e73' }}>
+                          {
+                            {
+                              'Tech': 'Explore the latest in innovation, coding and future technologies.',
+                              'Business': 'Discover insights on entrepreneurship, markets and finance.',
+                              'Health & Fitness': 'Join activities focused on wellness and healthy living.',
+                              'Environment & Climate': 'Participate in sustainability and eco friendly initiatives.',
+                              'Education': 'Enhance your skills and knowledge with learning sessions.',
+                              'Culture & Arts': 'Immerse yourself in creative expressions and cultural heritage.',
+                              'Entertainment': 'Enjoy concerts, festivals and fun gatherings.',
+                              'Sports': 'Connect with athletic competitions and team activities.',
+                              'Design & Architecture': 'Dive into aesthetics, user experience and structure of architecture.',
+                              'Productivity': 'Learn how to optimize your time and workflow.',
+                              'Personal Development': 'Focus on self growth and career advancement.'
+                            }[category] || `Explore what's happening now in ${category}.`
+                          }
+                        </span>
                       </h2>
                     </div>
                     <ScrollRow className="px-6 md:px-24 gap-6 py-6">

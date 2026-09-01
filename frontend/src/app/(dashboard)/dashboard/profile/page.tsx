@@ -120,8 +120,8 @@ export default function ProfilePage() {
   // Load user profile details on mount
   useEffect(() => {
     if (user) {
-      setFirstName(user.firstName !== undefined ? (user.firstName || "") : (user.name?.split(' ')[0] || ""));
-      setLastName(user.lastName !== undefined ? (user.lastName || "") : (user.name?.split(' ').slice(1).join(' ') || ""));
+      setFirstName(user.firstName || (user as any).first_name || (user.firstName === "" ? "" : (user.name?.split(' ')[0] || "")));
+      setLastName(user.lastName || (user as any).last_name || (user.lastName === "" ? "" : (user.name?.split(' ').slice(1).join(' ') || "")));
       setProfileEmail(user.email || "");
       setPhoneNumber(user.mobile || user.phoneNumber || "");
       setDateOfBirth(user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : "");

@@ -352,9 +352,8 @@ export class TicketController {
           e.title as event_title, e.date as event_date, e.time as event_time, e.location as event_location, e.slug as event_slug, e.contact_email, e.contact_phone,
           (
             SELECT jsonb_agg(json_build_object('id', ttt.id, 'name', ttt.name, 'price', ttt.price, 'currency', ttt.currency))
-            FROM registration_ticket_types rtt
-            JOIN ticket_types ttt ON rtt.ticket_type_id = ttt.id
-            WHERE rtt.registration_id = r.id
+            FROM ticket_types ttt
+            WHERE ttt.id = r.ticket_type_id
           ) as tickets,
           rt.team_name,
           (r.user_id = $1) as is_leader

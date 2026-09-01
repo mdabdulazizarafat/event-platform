@@ -170,6 +170,11 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                   {event.title}
                 </h1>
                 <div className="mt-2 flex flex-wrap items-center gap-y-1 gap-x-4 text-xs font-semibold text-slate-500">
+                  {event.category && (
+                    <span className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-wider text-[10px] font-bold border border-primary/20">
+                      {event.category.split(',')[0]}
+                    </span>
+                  )}
                   {event.location && (
                     <span className="flex items-center gap-1">
                       <MapPin size={14} className="text-slate-400" />

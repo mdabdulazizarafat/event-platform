@@ -4,10 +4,10 @@ import { ArrowUpRight } from 'lucide-react';
 /* ── Apple-style Partner Card ── */
 export default function PartnerCard({ partner }: { partner: any }) {
   // Allow the card to grow vertically to accommodate long text
-  const cardSizing = "shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] h-auto rounded-[24px] overflow-hidden snap-start block no-underline relative shadow-[0_4px_30px_rgba(0,0,0,0.04)] scroll-ml-6 md:scroll-ml-24 border border-outline-variant/50 bg-[#f8f9fa] flex flex-col transition-transform hover:scale-[1.02] duration-300";
+  const cardSizing = "shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] h-auto rounded-[24px] overflow-hidden snap-start block no-underline relative shadow-[0_4px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] scroll-ml-6 md:scroll-ml-24 border border-outline-variant/50 bg-[#f8f9fa] flex flex-col";
 
   return (
-    <div className={cardSizing}>
+    <div className={cardSizing} style={{ transition: 'box-shadow 0.3s ease-in-out' }}>
       {/* Logo Container - Fixed height so logos align properly regardless of text length */}
       <div className="h-[200px] shrink-0 w-full bg-white flex items-center justify-center p-6 border-b border-outline-variant/30 relative">
         {partner.logo ? (
