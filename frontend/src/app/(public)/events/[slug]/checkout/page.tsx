@@ -112,37 +112,19 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
         ...formData
       };
 
-      if (requiresPayment) {
-        // Init Payment
-        const result = await initiatePayment({
-          eventSlug: slug,
-          ticketTypeIds: selectedTickets.map(t => t.id),
-          userId: user?.username || '',
-          email: user?.email || '',
-          customerName: user?.name || user?.username || '',
-          customerPhone: user?.phoneNumber || user?.phone || user?.mobile || '',
-          fullName: user?.name || user?.username || '',
-          phone: user?.phoneNumber || user?.phone || user?.mobile || '',
-          jobTitle: user?.position || user?.jobTitle || '',
-          organization: user?.institutionName || user?.organization || user?.org || '',
-          ...formData
-        });
-        window.location.href = result.gatewayUrl;
-      } else {
-        // Free Registration
-        const res = await fetch(`/api/v1/events/${slug}/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+      // Process Registration (Bypassing payment gateway for manual payments)
+      const res = await fetch(`/api/v1/events/${slug}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || 'Registration failed');
-        }
-
-        router.push(`/events/${slug}/checkout/confirmation?regId=${data.registrationId}&token=${encodeURIComponent(data.qrToken)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Registration failed');
       }
+
+      router.push(`/events/${slug}/checkout/confirmation?regId=${data.registrationId}&token=${encodeURIComponent(data.qrToken)}`);
     } catch (err: any) {
       message.error(err.message || 'An error occurred during checkout');
     } finally {
@@ -231,20 +213,20 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                       <option value="M">Medium (M)</option>
                       <option value="L">Large (L)</option>
                       <option value="XL">Extra Large (XL)</option>
-                      <option value="XXL">XXL</option>
+                      <option value="XXL">XXL (2XL)</option>
                     </select>
                   </div>
                 )}
 
                 {event.form_reference && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Reference / Bkash</label>
+                    <label className="text-xs font-bold text-slate-700">Reference</label>
                     <input
                       type="text"
                       name="reference"
                       value={formData.reference}
                       onChange={handleInputChange}
-                      placeholder="e.g. Invitee Name or Bkash Num"
+                      placeholder="Invitee Name"
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
                     />
                   </div>
@@ -252,13 +234,42 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
 
                 {event.form_transaction_id && (
                   <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-700">Transaction ID (If applicable)</label>
+                    {(event.payment_instructions || event.bkash_number) && (
+                      <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl mb-4">
+                        <h4 className="text-sm font-bold text-slate-900 mb-2">Payment Instructions</h4>
+                        {event.payment_instructions && (
+                          <p className="text-xs text-slate-600 whitespace-pre-wrap mb-3 leading-relaxed">
+                            {event.payment_instructions}
+                          </p>
+                        )}
+                        {event.bkash_number && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs text-slate-600 font-medium">bKash Number:</span>
+                            <span className="font-mono font-bold text-sm bg-slate-100 px-2 py-1 rounded select-all text-primary">
+                              {event.bkash_number}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(event.bkash_number!);
+                                message.success('bKash number copied to clipboard');
+                              }}
+                              className="text-primary hover:text-primary/80 p-1 rounded-md bg-primary/10 hover:bg-primary/20 transition-colors"
+                              title="Copy to clipboard"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <label className="text-xs font-bold text-slate-700">Transaction ID (Required for paid tickets)</label>
                     <input
                       type="text"
                       name="transactionId"
                       value={formData.transactionId}
                       onChange={handleInputChange}
-                      placeholder="e.g. TXN123456789"
+                      placeholder="TXN123456789"
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
                     />
                   </div>
@@ -308,10 +319,6 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 size={16} className="animate-spin" /> Processing...
                 </span>
-              ) : requiresPayment ? (
-                <span className="flex items-center justify-center gap-2">
-                  Pay Now <CheckCircle2 size={16} />
-                </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">
                   Confirm Registration <CheckCircle2 size={16} />
@@ -320,7 +327,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
             </Button>
 
             <p className="text-[10px] text-center text-slate-400 mt-4 flex items-center justify-center gap-1">
-              <Ticket size={12} /> Secure Checkout process by Rong Plan
+              <Ticket size={12} /> Secure Checkout process by Ayojok
             </p>
           </div>
         </div>
