@@ -678,11 +678,11 @@ export default function CreateEventWizardPage() {
                         required
                       />
                        <FormField
-                        label="Price (BDT) [Paid tickets are temporarily disabled]"
+                        label="Price (BDT)"
                         type="number"
-                        value="0"
-                        onChange={() => {}}
-                        disabled
+                        value={ticket.price}
+                        onChange={(e) => handleTicketChange(index, 'price', e.target.value)}
+                        placeholder="0 for Free"
                         required
                       />
                     </div>

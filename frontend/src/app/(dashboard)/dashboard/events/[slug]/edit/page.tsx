@@ -480,7 +480,7 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 mt-2">
                   <FormField label="Ticket Name" value={ticket.name || ''} onChange={(e) => handleTicketChange(index, 'name', e.target.value)} required />
-                   <FormField label="Price (BDT) [Paid tickets are temporarily disabled]" type="number" value="0" onChange={() => {}} disabled required />
+                   <FormField label="Price (BDT)" type="number" value={ticket.price?.toString() || ''} onChange={(e) => handleTicketChange(index, 'price', e.target.value)} placeholder="0 for Free" required />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField label="Capacity" type="number" value={ticket.capacity?.toString() || ''} onChange={(e) => handleTicketChange(index, 'capacity', e.target.value)} required />

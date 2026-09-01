@@ -223,7 +223,7 @@ export default function EventsDiscoveryPage() {
                         {category} Events.
                       </h2>
                     </div>
-                    <ScrollRow className="px-6 md:px-24 gap-6 pb-4">
+                    <ScrollRow className="px-6 md:px-24 gap-6 py-6">
                       {categoryEvents.map((event) => (
                         <AppleCard key={event.slug} event={event} />
                       ))}

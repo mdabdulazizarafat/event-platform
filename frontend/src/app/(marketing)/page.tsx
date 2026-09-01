@@ -281,7 +281,7 @@ export default function MarketingPage() {
               <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
             </div>
           ) : (
-            <ScrollRow className="px-6 md:px-24 gap-6 pb-4">
+            <ScrollRow className="px-6 md:px-24 gap-6 py-6">
               {runningEvents.length > 0 ? runningEvents.map((event, idx) => (
                 <AppleCard key={`running-${event.slug}`} event={event} />
               )) : (
@@ -305,7 +305,7 @@ export default function MarketingPage() {
               <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
             </div>
           ) : (
-            <ScrollRow className="px-6 md:px-24 gap-6 pb-4">
+            <ScrollRow className="px-6 md:px-24 gap-6 py-6">
               {upcomingEvents.length > 0 ? upcomingEvents.map((event, idx) => (
                 <AppleCard key={`upcoming-${event.slug}`} event={event} />
               )) : (
