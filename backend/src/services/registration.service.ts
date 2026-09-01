@@ -216,8 +216,8 @@ export class RegistrationService {
         );
         const ticketType = ttRes.rows[0];
 
-        // Reject paid tickets from this flow
-        if (parseFloat(ticketType.price) > 0) {
+        // Reject paid tickets from this flow unless manual transaction ID is provided
+        if (parseFloat(ticketType.price) > 0 && !details?.transactionId) {
           throw new Error('Paid tickets must be registered through the payment flow.');
         }
 
