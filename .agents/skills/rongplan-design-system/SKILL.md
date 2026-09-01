@@ -182,3 +182,13 @@ body {
   background-clip: text;
 }
 ```
+
+---
+
+## 4. Branding Assets
+
+When referencing the brand logo and favicon, strictly use the following files:
+
+- **Primary Logo (SVG):** `ayojokLogo.svg`
+- **Email / Fallback Logo (PNG):** `public/ayojokLogo.png`
+- **Favicon:** `ayojokFavicon.svg`
