@@ -57,21 +57,26 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
   useEffect(() => {
     async function loadEventData() {
       try {
-        const eventData = await getEventBySlug(slug);
+        // Fetch all event data in parallel to eliminate waterfall delays and reduce load time
+        const [eventData, dbTickets, dbSchedules] = await Promise.all([
+          getEventBySlug(slug),
+          fetchTicketTypes(slug).catch(e => {
+            console.error('Failed to load tickets', e);
+            return [];
+          }),
+          fetchSchedules(slug).catch(e => {
+            console.error('Failed to load schedules', e);
+            return [];
+          })
+        ]);
+
         if (eventData) {
           setEvent(eventData);
-
-          const dbTickets = await fetchTicketTypes(slug);
           if (dbTickets && dbTickets.length > 0) {
             setTicketTypes(dbTickets);
           }
-
-          // Fetch schedules
-          try {
-            const dbSchedules = await fetchSchedules(slug);
-            if (dbSchedules) setSchedules(dbSchedules);
-          } catch (e) {
-            console.error('Failed to load schedules', e);
+          if (dbSchedules && dbSchedules.length > 0) {
+            setSchedules(dbSchedules);
           }
         }
       } catch (err) {
