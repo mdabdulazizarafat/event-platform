@@ -24,6 +24,7 @@ export default function Footer() {
               <ul className="space-y-3 text-sm font-medium">
                 <li><Link prefetch={false} href="/events" className="!text-black/70 hover:!text-black transition-colors">Events</Link></li>
                 <li><Link prefetch={false} href="/about" className="!text-black/70 hover:!text-black transition-colors">About</Link></li>
+                <li><Link prefetch={false} href="/about#team" className="!text-black/70 hover:!text-black transition-colors">Team</Link></li>
                 <li><Link prefetch={false} href="/contact" className="!text-black/70 hover:!text-black transition-colors">Contact</Link></li>
               </ul>
             </div>
