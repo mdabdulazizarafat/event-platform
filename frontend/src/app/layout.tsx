@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   title: "Rong Plan - Event Platform",
   description: "Seamless event management and dynamic ticket registration.",
   icons: {
-    icon: "/ayojokFavicon.svg",
+    icon: "/ayojokFavicon.png",
   },
 };
 
