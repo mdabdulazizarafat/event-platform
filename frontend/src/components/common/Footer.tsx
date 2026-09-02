@@ -22,9 +22,9 @@ export default function Footer() {
             <div>
               <h4 className="font-semibold text-foreground mb-4 text-sm">Company</h4>
               <ul className="space-y-3 text-sm font-medium">
-                <li><Link href="/events" className="!text-black/70 hover:!text-black transition-colors">Events</Link></li>
-                <li><Link href="/about" className="!text-black/70 hover:!text-black transition-colors">About</Link></li>
-                <li><Link href="/contact" className="!text-black/70 hover:!text-black transition-colors">Contact</Link></li>
+                <li><Link prefetch={false} href="/events" className="!text-black/70 hover:!text-black transition-colors">Events</Link></li>
+                <li><Link prefetch={false} href="/about" className="!text-black/70 hover:!text-black transition-colors">About</Link></li>
+                <li><Link prefetch={false} href="/contact" className="!text-black/70 hover:!text-black transition-colors">Contact</Link></li>
               </ul>
             </div>
           </div>
@@ -34,10 +34,10 @@ export default function Footer() {
             <div>
               <h4 className="font-semibold text-foreground mb-4 text-sm">Terms & Legal</h4>
               <ul className="space-y-3 text-sm font-medium">
-                <li><Link href="/privacy-policy" className="!text-black/70 hover:!text-black transition-colors">Privacy Policy</Link></li>
-                <li><Link href="/terms-and-conditions" className="!text-black/70 hover:!text-black transition-colors">Terms & Conditions</Link></li>
-                <li><Link href="/organizer-policy" className="!text-black/70 hover:!text-black transition-colors">Organizer Policy</Link></li>
-                <li><Link href="/events-policy" className="!text-black/70 hover:!text-black transition-colors">Events Policy</Link></li>
+                <li><Link prefetch={false} href="/privacy-policy" className="!text-black/70 hover:!text-black transition-colors">Privacy Policy</Link></li>
+                <li><Link prefetch={false} href="/terms-and-conditions" className="!text-black/70 hover:!text-black transition-colors">Terms & Conditions</Link></li>
+                <li><Link prefetch={false} href="/organizer-policy" className="!text-black/70 hover:!text-black transition-colors">Organizer Policy</Link></li>
+                <li><Link prefetch={false} href="/events-policy" className="!text-black/70 hover:!text-black transition-colors">Events Policy</Link></li>
               </ul>
             </div>
           </div>
@@ -47,8 +47,8 @@ export default function Footer() {
             <div>
               <h4 className="font-semibold text-foreground mb-4 text-sm">Resources & Support</h4>
               <ul className="space-y-3 text-sm font-medium">
-                <li><Link href="/event-guidelines" className="!text-black/70 hover:!text-black transition-colors">Events Guidelines</Link></li>
-                <li><Link href="/organizer-guidelines" className="!text-black/70 hover:!text-black transition-colors">Organizer Guidelines</Link></li>
+                <li><Link prefetch={false} href="/event-guidelines" className="!text-black/70 hover:!text-black transition-colors">Events Guidelines</Link></li>
+                <li><Link prefetch={false} href="/organizer-guidelines" className="!text-black/70 hover:!text-black transition-colors">Organizer Guidelines</Link></li>
               </ul>
             </div>
           </div>
@@ -57,14 +57,14 @@ export default function Footer() {
             <div>
               <h4 className="font-semibold text-foreground mb-4 text-sm">Quick Actions</h4>
               <ul className="space-y-3 text-sm font-medium">
-                <li><Link href="/sign-in" className="!text-black/70 hover:!text-black transition-colors flex items-center gap-1 group">Sign in <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
-                <li><Link href="/sign-up" className="!text-black/70 hover:!text-black transition-colors flex items-center gap-1 group">Sign up <span className="group-hover:translate-x-0.5 transition-transform">→</span></Link></li>
+                <li><Link prefetch={false} href="/sign-in" className="!text-black/70 hover:!text-black transition-colors flex items-center gap-1 group">Sign in</Link></li>
+                <li><Link prefetch={false} href="/sign-up" className="!text-black/70 hover:!text-black transition-colors flex items-center gap-1 group">Sign up</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold text-foreground mb-4 text-sm">Community</h4>
               <ul className="space-y-3 text-sm font-medium">
-                <li><Link href="/partners" className="!text-black/70 hover:!text-black transition-colors">Partners</Link></li>
+                <li><Link prefetch={false} href="/partners" className="!text-black/70 hover:!text-black transition-colors">Partners</Link></li>
               </ul>
             </div>
           </div>
