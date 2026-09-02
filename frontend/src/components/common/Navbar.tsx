@@ -177,10 +177,27 @@ export default function Navbar() {
       {mounted && createPortal(
         <div className={`fixed inset-0 z-[105] transition-opacity duration-300 ${menuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMenuOpen(false)} />
-          <div className={`absolute right-0 top-0 bottom-0 w-[280px] bg-[var(--bg-surface)] shadow-2xl transition-transform duration-300 transform ${menuOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
+          <div className={`absolute left-0 top-0 bottom-0 w-[280px] bg-[var(--bg-surface)] shadow-2xl transition-transform duration-300 transform ${menuOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col`}>
             <div className="p-5 flex items-center justify-between border-b border-[var(--neutral-border)]">
-              <span className="font-bold text-lg text-[var(--text-primary)]">Menu</span>
-              <button onClick={() => setMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] cursor-pointer">
+              <Link
+                href="/"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2.5"
+                aria-label={settings?.platformName || "Ayojok Home"}
+              >
+                {settings?.blackLogoUrl || settings?.whiteLogoUrl ? (
+                  isDark ? (
+                    <img src={settings.whiteLogoUrl || settings.blackLogoUrl || ""} alt={settings.platformName || "Ayojok"} className="h-8 w-auto object-contain" />
+                  ) : (
+                    <img src={settings.blackLogoUrl || settings.whiteLogoUrl || ""} alt={settings.platformName || "Ayojok"} className="h-8 w-auto object-contain" />
+                  )
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <img src="/ayojokLogo.png" alt="Logo" className="h-8 w-auto" />
+                  </div>
+                )}
+              </Link>
+              <button onClick={() => setMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-[var(--bg-elevated)] border border-[var(--neutral-border)] text-[var(--text-secondary)] cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -205,24 +222,39 @@ export default function Navbar() {
                 <>
                   <div className="my-2 border-t border-[var(--neutral-border)]" />
                   <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider px-3 mb-2 mt-2">Dashboard</p>
-                  {[
+                  {(user.role === 'SUPER_ADMIN' ? [
                     { href: "/dashboard", label: "Overview" },
+                    { href: "/dashboard/users", label: "Users" },
+                    { href: "/dashboard/organizer-applications", label: "Organizer Applications" },
+                    { href: "/dashboard/events", label: "Events Directory" },
+                    { href: "/dashboard/finance", label: "Finance Operations" },
+                    { href: "/dashboard/infrastructure", label: "System Health" },
                     { href: "/dashboard/schedule", label: "My Schedule" },
-                    { href: "/dashboard/tickets", label: "My Tickets" },
                     { href: "/dashboard/certificates", label: "Certificates" },
-                    ...(user.role === 'ORGANIZER' ? [
-                      { href: "/dashboard/events", label: "Events Directory" },
-                    ] : []),
-                    ...(['ADMIN', 'SUPER_ADMIN'].includes(user.role as string) ? [
-                      { href: "/dashboard/users", label: "Users" },
-                      { href: "/dashboard/events", label: "Events Directory" },
-                      { href: "/dashboard/finance", label: "Finance Operations" },
-                      ...(user.role === 'SUPER_ADMIN' ? [
-                        { href: "/dashboard/infrastructure", label: "System Health" },
-                        { href: "/dashboard/settings", label: "Platform Settings" },
-                      ] : []),
-                    ] : []),
-                  ].map(({ label, href }) => (
+                    { href: "/dashboard/profile", label: "Profile" },
+                    { href: "/dashboard/partners-team", label: "Partners & Team" },
+                    { href: "/dashboard/settings", label: "Platform Settings" },
+                  ] : user.role === 'ADMIN' ? [
+                    { href: "/dashboard", label: "Overview" },
+                    { href: "/dashboard/users", label: "Users" },
+                    { href: "/dashboard/organizer-applications", label: "Organizer Applications" },
+                    { href: "/dashboard/events", label: "Events Directory" },
+                    { href: "/dashboard/finance", label: "Finance Operations" },
+                    { href: "/dashboard/schedule", label: "My Schedule" },
+                    { href: "/dashboard/certificates", label: "Certificates" },
+                    { href: "/dashboard/profile", label: "Profile" },
+                  ] : user.role === 'USER' ? [
+                    { href: "/dashboard", label: "Overview" },
+                    { href: "/dashboard/events", label: "Events Directory" },
+                    { href: "/dashboard/certificates", label: "Certificates" },
+                    { href: "/dashboard/profile", label: "Profile" },
+                  ] : [
+                    { href: "/dashboard", label: "Overview" },
+                    { href: "/dashboard/events", label: "Events Directory" },
+                    { href: "/dashboard/schedule", label: "My Schedule" },
+                    { href: "/dashboard/certificates", label: "Certificates" },
+                    { href: "/dashboard/profile", label: "Profile" },
+                  ]).map(({ label, href }) => (
                     <Link
                       key={href}
                       href={href}
