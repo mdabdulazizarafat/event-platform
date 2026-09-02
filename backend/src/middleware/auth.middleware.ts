@@ -29,12 +29,33 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     // 3. Cryptographically validate token via Asymmetric Public Key
     const decoded = jwt.verify(token, getPublicKey(), { algorithms: ['RS256'] }) as UserPayload;
     
-    // 4. Query database to get fresh user status and role (realtime enforcement)
-    const dbUserRes = await pool.query('SELECT status, role FROM users WHERE username = $1', [decoded.username]);
-    if (dbUserRes.rowCount === 0) {
-      return res.status(401).json({ error: 'User not found' });
+    // 4. Redis caching for user status and role (realtime enforcement)
+    let dbUser: { status?: string, role?: UserPayload['role'] } = {};
+    const redisKey = `user:session:${decoded.username}`;
+    const redis = await import('../lib/redis').then(m => m.default);
+    
+    try {
+      const cached = await redis.get(redisKey);
+      if (cached) {
+        dbUser = JSON.parse(cached);
+      }
+    } catch (e) {
+      logger.warn('Failed to read session from Redis, falling back to PostgreSQL');
     }
-    const dbUser = dbUserRes.rows[0];
+
+    if (!dbUser.status) {
+      const dbUserRes = await pool.query('SELECT status, role FROM users WHERE username = $1', [decoded.username]);
+      if (dbUserRes.rowCount === 0) {
+        return res.status(401).json({ error: 'User not found' });
+      }
+      dbUser = dbUserRes.rows[0];
+      
+      try {
+        await redis.setex(redisKey, 60, JSON.stringify(dbUser));
+      } catch (e) {
+        logger.warn('Failed to save session to Redis');
+      }
+    }
 
     if (dbUser.status === 'SUSPENDED') {
       return res.status(403).json({ error: 'Your account has been suspended. Please contact the Ayojok support team to resolve this problem.' });

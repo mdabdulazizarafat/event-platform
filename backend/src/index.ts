@@ -49,14 +49,37 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({ error: isProd ? 'Internal server error' : (err.message || 'Internal server error') });
 });
 
+import cluster from 'cluster';
+import os from 'os';
+
 // Run Migrations then Start Server
 async function startServer() {
-  await runMigrations();
-  // startWorkers(); // Boot BullMQ workers (Disabled to prevent Redis connection crash)
-  startStatusScheduler(); // Start background event status transitions scheduler
-  app.listen(port, () => {
-    logger.info(`Backend Express server listening on port ${port}`);
-  });
+  if (process.env.NODE_ENV === 'production' && cluster.isPrimary) {
+    const numCPUs = os.cpus().length;
+    logger.info(`Primary process ${process.pid} is running`);
+    logger.info(`Forking ${numCPUs} workers...`);
+
+    // Run migrations only on the primary process
+    await runMigrations();
+
+    for (let i = 0; i < numCPUs; i++) {
+      cluster.fork();
+    }
+
+    cluster.on('exit', (worker, code, signal) => {
+      logger.warn(`Worker ${worker.process.pid} died with code ${code}. Restarting...`);
+      cluster.fork();
+    });
+  } else {
+    if (process.env.NODE_ENV !== 'production') {
+      await runMigrations();
+    }
+    // startWorkers(); // Boot BullMQ workers (Disabled to prevent Redis connection crash)
+    startStatusScheduler(); // Start background event status transitions scheduler
+    app.listen(port, () => {
+      logger.info(`Backend Express server listening on port ${port} (PID: ${process.pid})`);
+    });
+  }
 }
 
 startServer().catch((err) => {

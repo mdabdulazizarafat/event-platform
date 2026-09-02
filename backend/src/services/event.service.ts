@@ -1,4 +1,5 @@
 import { pool } from '../db/pool';
+import { getRedisClient } from '../lib/redis';
 
 export interface CreateEventInput {
   slug: string;
@@ -110,6 +111,17 @@ export class EventService {
       }
 
       await client.query('COMMIT');
+      
+      try {
+        const redisClient = await getRedisClient();
+        const keys = await redisClient.keys('cache:events:*');
+        if (keys.length > 0) {
+          await redisClient.del(...keys);
+        }
+      } catch (e) {
+        // Ignore redis errors
+      }
+
       return eventId;
     } catch (error) {
       await client.query('ROLLBACK');
@@ -217,6 +229,17 @@ export class EventService {
         RETURNING *;
       `;
       const updateRes = await client.query(query, values);
+      
+      try {
+        const redisClient = await getRedisClient();
+        const keys = await redisClient.keys('cache:events:*');
+        if (keys.length > 0) {
+          await redisClient.del(...keys);
+        }
+      } catch (e) {
+        // Ignore redis errors
+      }
+
       return updateRes.rows[0];
     } finally {
       client.release();
@@ -274,6 +297,21 @@ export class EventService {
     const pageNum = Math.max(1, page || 1);
     const limitNum = Math.min(100, Math.max(1, limit || 10));
     const offset = (pageNum - 1) * limitNum;
+
+    let redisClient: any = null;
+    let cacheKey = '';
+    if (!username && !search) {
+      try {
+        redisClient = await getRedisClient();
+        cacheKey = `cache:events:list:public:p${pageNum}:l${limitNum}:s${statusFilter || 'all'}`;
+        const cached = await redisClient.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch (e) {
+        // Ignore cache errors
+      }
+    }
 
     const values: any[] = [];
     const whereConditions: string[] = [];
@@ -367,7 +405,7 @@ export class EventService {
     const items = res.rows.map(this.computeEventStatus);
     const totalPages = Math.ceil(total / limitNum);
 
-    return {
+    const result = {
       data: items,
       pagination: {
         total,
@@ -376,9 +414,30 @@ export class EventService {
         totalPages
       }
     };
+
+    if (redisClient && cacheKey) {
+      redisClient.setex(cacheKey, 15, JSON.stringify(result)).catch(() => {});
+    }
+
+    return result;
   }
 
   static async getEventBySlug(slug: string, username?: string, role?: string) {
+    let redisClient: any = null;
+    let cacheKey = '';
+    if (!username) {
+      try {
+        redisClient = await getRedisClient();
+        cacheKey = `cache:events:slug:${slug}`;
+        const cached = await redisClient.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch (e) {
+        // Ignore cache errors
+      }
+    }
+
     const query = `
       SELECT e.*, 
              u.first_name as organizer_first_name, 
@@ -423,7 +482,13 @@ export class EventService {
       event.is_registered = false;
     }
 
-    return this.computeEventStatus(event);
+    const computedEvent = this.computeEventStatus(event);
+
+    if (redisClient && cacheKey && computedEvent) {
+      redisClient.setex(cacheKey, 30, JSON.stringify(computedEvent)).catch(() => {});
+    }
+
+    return computedEvent;
   }
 
 }

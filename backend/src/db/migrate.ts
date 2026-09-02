@@ -211,6 +211,13 @@ export async function runMigrations() {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_reg_event_status ON registrations (event_id, status)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_reg_user ON registrations (user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_reg_ticket_type ON registrations (ticket_type_id, event_id) WHERE status != 'CANCELLED'`);
+    
+    // High-Traffic Composite Indexes
+    await client.query('CREATE INDEX IF NOT EXISTS idx_events_status_private_created ON events(status, is_private, created_at DESC)').catch(() => {});
+    await client.query('CREATE INDEX IF NOT EXISTS idx_events_organizer ON events(organizer_username)').catch(() => {});
+    await client.query('CREATE INDEX IF NOT EXISTS idx_event_team_event_username ON event_team(event_id, username)').catch(() => {});
+    await client.query('CREATE INDEX IF NOT EXISTS idx_registrations_event_user ON registrations(event_id, user_id)').catch(() => {});
+    await client.query('CREATE INDEX IF NOT EXISTS idx_activity_scans_event_reg ON activity_scans(event_id, registration_id)').catch(() => {});
 
     // 7.5 Registration Ticket Types Join Table
     await client.query(`

@@ -119,10 +119,7 @@ export default function Navbar() {
             )
           ) : (
             <div className="flex items-center gap-2">
-              <img src="/ayojokLogo.svg" alt="Logo" className="h-8 w-auto" />
-              {/* <span className="font-extrabold text-lg tracking-tight text-text-primary">
-                {settings?.platformName || "Ayojok"}
-              </span> */}
+              <img src="/ayojokLogo.png" alt="Logo" className="h-8 w-auto" />
             </div>
           )}
         </Link>
