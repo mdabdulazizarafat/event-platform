@@ -161,32 +161,18 @@ docker exec -t ayojok-postgres pg_dump -U ayojok_user ayojok_db > db_backup_$(da
 cat db_backup_xxx.sql | docker exec -i ayojok-postgres psql -U ayojok_user -d ayojok_db
 ```
 
----
+### Updating the Application (Git)
+Since the platform is built directly on the VPS using Docker Compose and Git, use the following sequence to deploy new updates (especially important after the Prisma migration):
 
-## 6. Updating the Deployment via Git
+```bash
+# 1. Pull the latest code from your Git repository
+git pull origin main
 
-When new code is pushed to your Git repository, follow these steps to pull the latest changes, update the Docker containers, and run any new database migrations on your VPS:
+# 2. Rebuild the Docker containers with the new code
+docker compose up -d --build
 
-1. **Pull the latest changes from Git:**
-   ```bash
-   cd /path/to/event-platform
-   git pull origin main
-   ```
-
-2. **Rebuild and restart the Docker containers:**
-   Use the `--build` flag to force Docker to rebuild the Next.js and Express images with the latest code, and `-d` to run them in the background.
-   ```bash
-   docker compose up -d --build
-   ```
-
-3. **Sync the Prisma Database Schema (if changed):**
-   If there were any database schema changes in `backend/prisma/schema.prisma`, you must apply them to the production database running inside the container:
-   ```bash
-   docker exec -it ayojok-backend npx prisma db push
-   ```
-
-4. **Verify the update:**
-   Check the logs to ensure the backend and frontend started successfully with the new code:
-   ```bash
-   docker compose logs -f ayojok-backend
-   ```
+# 3. Important: Apply any new database schema changes to the production DB
+docker exec -it ayojok-backend npx prisma db push
+```
+> [!NOTE]
+> Do not use `docker compose pull` unless you have switched to publishing pre-compiled images to a container registry (like Docker Hub or GHCR). Since you are pulling raw source code via Git, you must use `--build` to compile the changes.
