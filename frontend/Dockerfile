@@ -7,7 +7,7 @@ COPY package.json package-lock.json ./
 COPY frontend/package.json ./frontend/
 
 # Install dependencies for the workspace
-RUN npm ci
+RUN npm install
 
 # Copy the frontend application files
 COPY frontend ./frontend
