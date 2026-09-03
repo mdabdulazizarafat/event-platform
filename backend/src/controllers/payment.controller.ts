@@ -80,8 +80,8 @@ export class PaymentController {
         return res.redirect(`${process.env.APP_URL || 'http://localhost:3000'}/checkout/fail?reason=missing_params`);
       }
 
-      const result = await PaymentService.validateAndComplete(tranId, valId);
-      const redirectUrl = `${process.env.APP_URL || 'http://localhost:3000'}/checkout/success?tranId=${tranId}&regId=${result.registrationId}`;
+      const result = await PaymentService.completePayment({ tranId, valId, status: 'SUCCESS' });
+      const redirectUrl = `${process.env.APP_URL || 'http://localhost:3000'}/checkout/success?tranId=${tranId}&regId=${result.payment?.registrationId || ''}`;
       return res.redirect(redirectUrl);
     } catch (error: any) {
       logger.error({ err: error }, 'Error handling payment success');
@@ -97,7 +97,7 @@ export class PaymentController {
     try {
       const { tran_id: tranId, error } = req.body;
       if (tranId) {
-        await PaymentService.markPaymentFailed(tranId, error || 'Payment failed at gateway');
+        await PaymentService.completePayment({ tranId, status: 'FAILED', rawResponse: { error: error || 'Payment failed at gateway' } });
       }
       return res.redirect(`${process.env.APP_URL || 'http://localhost:3000'}/checkout/fail?tranId=${tranId || ''}`);
     } catch (err: any) {
@@ -114,7 +114,7 @@ export class PaymentController {
     try {
       const { tran_id: tranId } = req.body;
       if (tranId) {
-        await PaymentService.markPaymentCancelled(tranId);
+        await PaymentService.completePayment({ tranId, status: 'CANCELLED' });
       }
       return res.redirect(`${process.env.APP_URL || 'http://localhost:3000'}/checkout/cancel?tranId=${tranId || ''}`);
     } catch (err: any) {
@@ -136,9 +136,9 @@ export class PaymentController {
       }
 
       if (status === 'VALID' || status === 'VALIDATED') {
-        await PaymentService.validateAndComplete(tranId, valId);
+        await PaymentService.completePayment({ tranId, valId, status: 'SUCCESS' });
       } else {
-        await PaymentService.markPaymentFailed(tranId, `IPN status: ${status}`);
+        await PaymentService.completePayment({ tranId, status: 'FAILED', rawResponse: { error: `IPN status: ${status}` } });
       }
 
       return res.status(200).json({ message: 'IPN processed' });
@@ -156,30 +156,30 @@ export class PaymentController {
   static async getStatus(req: Request, res: Response) {
     try {
       const { tranId } = req.params;
-      const payment = await PaymentService.getPaymentByTranId(tranId);
+      const payment = await PaymentService.getPaymentStatus(tranId);
 
       if (!payment) {
         return res.status(404).json({ error: 'Payment not found' });
       }
 
       const isAuthorized = req.user && (
-        req.user.username === payment.user_id || 
+        req.user.username === payment.userId || 
         req.user.role === 'SUPER_ADMIN' || 
         req.user.role === 'ADMIN'
       );
 
       return res.status(200).json({
-        tranId: payment.tran_id,
+        tranId: payment.tranId,
         status: payment.status,
         amount: payment.amount,
         currency: payment.currency,
-        ticketName: payment.ticket_name,
-        eventTitle: payment.event_title,
-        eventSlug: payment.event_slug,
-        qrToken: isAuthorized ? payment.qr_token : undefined,
+        ticketName: payment.ticketName,
+        eventTitle: payment.eventTitle,
+        eventSlug: payment.eventSlug,
+        qrToken: isAuthorized ? payment.qrToken : undefined,
         email: isAuthorized ? payment.email : undefined,
-        paymentMethod: payment.payment_method,
-        paidAt: payment.paid_at,
+        paymentMethod: payment.paymentMethod,
+        paidAt: payment.paidAt,
       });
     } catch (error: any) {
       logger.error({ err: error }, 'Error fetching payment status');

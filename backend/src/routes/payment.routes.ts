@@ -8,12 +8,12 @@ const router = Router();
 router.post('/initiate', authMiddleware, PaymentController.initiate);
 
 // SSLCommerz callback endpoints (form-encoded POST from SSLCommerz gateway)
-router.post('/success', PaymentController.success);
-router.post('/fail', PaymentController.fail);
-router.post('/cancel', PaymentController.cancel);
+router.post('/success', PaymentController.handleSuccess);
+router.post('/fail', PaymentController.handleFail);
+router.post('/cancel', PaymentController.handleCancel);
 
 // SSLCommerz IPN webhook
-router.post('/ipn', PaymentController.ipn);
+router.post('/ipn', PaymentController.handleIPN);
 
 // Payment status check (for frontend polling after redirect)
 router.get('/status/:tranId', PaymentController.getStatus);

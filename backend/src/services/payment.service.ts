@@ -322,8 +322,10 @@ export class PaymentService {
       where: { tranId },
       include: {
         registration: {
-          select: { status: true, email: true, qrToken: true },
+          select: { status: true, email: true, qrToken: true, userId: true },
         },
+        ticketType: { select: { name: true } },
+        event: { select: { title: true, slug: true } },
       },
     });
 
@@ -339,6 +341,11 @@ export class PaymentService {
       registrationStatus: payment.registration.status,
       email: payment.registration.email,
       qrToken: payment.registration.qrToken,
+      userId: payment.registration.userId,
+      ticketName: payment.ticketType?.name,
+      eventTitle: payment.event?.title,
+      eventSlug: payment.event?.slug,
+      paymentMethod: payment.paymentMethod,
     };
   }
 }
