@@ -14,6 +14,7 @@ COPY backend ./backend
 
 # Build the TypeScript project
 WORKDIR /app/backend
+RUN npx prisma generate
 RUN npm run build
 
 # Stage 2: Runner
