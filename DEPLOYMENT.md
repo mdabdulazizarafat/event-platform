@@ -161,18 +161,22 @@ docker exec -t ayojok-postgres pg_dump -U ayojok_user ayojok_db > db_backup_$(da
 cat db_backup_xxx.sql | docker exec -i ayojok-postgres psql -U ayojok_user -d ayojok_db
 ```
 
-### Updating the Application (Git)
-Since the platform is built directly on the VPS using Docker Compose and Git, use the following sequence to deploy new updates (especially important after the Prisma migration):
+### Updating the Application (Pre-built Images from GHCR)
+Since the platform uses GitHub Actions to build and push Docker images to the GitHub Container Registry (GHCR), you do not need to build the source code directly on your VPS.
+
+Use the following sequence to deploy new updates:
 
 ```bash
-# 1. Pull the latest code from your Git repository
-git pull origin main
+# 1. Pull the latest pre-built images from the registry
+docker compose pull
 
-# 2. Rebuild the Docker containers with the new code
-docker compose up -d --build
+# 2. Recreate the Docker containers with the new images
+docker compose up -d
 
 # 3. Important: Apply any new database schema changes to the production DB
+# (Must be run after containers are up, especially important after Prisma migration)
 docker exec -it ayojok-backend npx prisma db push
 ```
+
 > [!NOTE]
-> Do not use `docker compose pull` unless you have switched to publishing pre-compiled images to a container registry (like Docker Hub or GHCR). Since you are pulling raw source code via Git, you must use `--build` to compile the changes.
+> Ensure your VPS is logged into GHCR if your repository is private. You can log in using `docker login ghcr.io -u <username> -p <PAT>`.

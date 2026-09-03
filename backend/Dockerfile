@@ -27,6 +27,7 @@ COPY --from=builder /app/package.json /app/package-lock.json ./
 COPY --from=builder /app/backend/package.json ./backend/
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/backend/dist ./backend/dist
+COPY --from=builder /app/backend/prisma ./backend/prisma
 
 # Run as non-root user for container hardening
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 expressjs
