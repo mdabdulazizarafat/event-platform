@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { EventController } from '../controllers/event.controller';
 import { TicketTypeController } from '../controllers/ticket-type.controller';
 import { authMiddleware, authMiddlewareOptional } from '../middleware/auth.middleware';
+import { EventService } from '../services/event.service';
 
 import { EventTeamController } from '../controllers/event-team.controller';
 import { EventActivityController } from '../controllers/event-activity.controller';
