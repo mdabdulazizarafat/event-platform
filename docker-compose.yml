@@ -13,7 +13,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
-    # No port published to host for maximum database security
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ayojok_user} -d ${DB_NAME:-ayojok_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - ayojok-network
 
@@ -25,7 +29,11 @@ services:
     command: redis-server --requirepass ${REDIS_PASSWORD:-redis_a84e6713b656f5088871d9c28f17a8c9}
     volumes:
       - redis_data:/data
-    # No port published to host for security
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_a84e6713b656f5088871d9c28f17a8c9}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - ayojok-network
 
@@ -38,8 +46,10 @@ services:
     container_name: ayojok-backend
     restart: always
     depends_on:
-      - ayojok-postgres
-      - ayojok-redis
+      ayojok-postgres:
+        condition: service_healthy
+      ayojok-redis:
+        condition: service_healthy
     ports:
       # Bound to 127.0.0.1 to prevent public internet access to this port
       - "127.0.0.1:3001:3001"

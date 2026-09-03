@@ -12,7 +12,7 @@ const rejectUnauthorized = process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false';
 
 const poolConfig: PoolConfig = {
   connectionString,
-  max: parseInt(process.env.DB_POOL_MAX || '25', 10),
+  max: parseInt(process.env.DB_POOL_MAX || '10', 10),
   idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS || '30000', 10),
   connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS || '5000', 10),
   allowExitOnIdle: false,

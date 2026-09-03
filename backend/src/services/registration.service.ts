@@ -282,21 +282,24 @@ export class RegistrationService {
           },
         });
       } else {
-        // Capacity check on global event
-        const activeCount = await tx.registration.count({
-          where: { eventId, status: { not: 'CANCELLED' } },
-        });
+      // 2. Atomic Event Fetch & Row Locking to prevent overbooking race conditions
+      const event = await tx.$queryRaw<Array<{ capacity: number }>>`
+        SELECT capacity FROM events WHERE id = ${eventId} FOR UPDATE
+      `;
 
-        const event = await tx.event.findUnique({
-          where: { id: eventId },
-          select: { capacity: true },
-        });
+      if (!event || event.length === 0) {
+        throw new Error('Registration failed: Event does not exist.');
+      }
 
-        if (!event || activeCount >= event.capacity) {
-          throw new Error('Registration failed: Event is at capacity or does not exist.');
-        }
+      const activeCount = await tx.registration.count({
+        where: { eventId, status: { not: 'CANCELLED' } },
+      });
 
-        qrToken = generateSecureQrToken();
+      if (activeCount >= event[0].capacity) {
+        throw new Error('Registration failed: Event is at capacity.');
+      }
+
+      qrToken = generateSecureQrToken();
 
         const createdReg = await tx.registration.create({
           data: {

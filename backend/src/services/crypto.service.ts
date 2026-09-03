@@ -20,6 +20,10 @@ if (isRealPrivateKey && isRealPublicKey) {
   publicKey = process.env.JWT_PUBLIC_KEY!.replace(/^"|"$/g, '').replace(/\\n/g, '\n');
   logger.info('Asymmetric JWT Keys loaded from environment configurations.');
 } else {
+  if (process.env.NODE_ENV === 'production') {
+    logger.error('CRITICAL: Production environment detected but valid JWT_PRIVATE_KEY and JWT_PUBLIC_KEY are missing from environment variables!');
+    throw new Error('FATAL: Production setup failure - missing real RSA JWT keypair in environment variables.');
+  }
   // Local development fallback: dynamically generate a 2048-bit RSA key pair at startup
   logger.info('Generating dynamic 2048-bit RSA keypair for stateless JWT signatures...');
   const { privateKey: genPrivate, publicKey: genPublic } = crypto.generateKeyPairSync('rsa', {

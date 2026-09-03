@@ -152,7 +152,10 @@ model Registration {
   ledRegistrationTeams  RegistrationTeam[]
 
   @@index([eventId, status], map: "idx_reg_event_status")
+  @@index([eventId, registeredAt(sort: Desc)], map: "idx_reg_event_registered_at")
   @@index([userId], map: "idx_reg_user")
+  @@index([fullName], map: "idx_reg_fullname")
+  @@index([phone], map: "idx_reg_phone")
   @@map("registrations")
 }
 

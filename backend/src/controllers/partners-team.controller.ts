@@ -6,6 +6,29 @@ import { createChildLogger } from '../lib/logger';
 const logger = createChildLogger('partners-team.controller');
 
 export class PartnersTeamController {
+  private static mapPartnerToFrontend(item: any) {
+    return {
+      ...item,
+      logo: item.image,
+      sort_order: item.sortOrder,
+      founder_name: item.founderName,
+      founder_title: item.founderTitle,
+      is_active: item.isActive,
+      created_at: item.createdAt,
+    };
+  }
+
+  private static mapTeamToFrontend(item: any) {
+    return {
+      ...item,
+      sort_order: item.sortOrder,
+      founder_name: item.founderName,
+      founder_title: item.founderTitle,
+      is_active: item.isActive,
+      created_at: item.createdAt,
+    };
+  }
+
   // --- Partners Endpoints ---
 
   static async listPartners(req: Request, res: Response) {
@@ -18,7 +41,7 @@ export class PartnersTeamController {
         where: whereClause,
         orderBy: [{ sortOrder: 'asc' }, { id: 'desc' }],
       });
-      return res.status(200).json(items);
+      return res.status(200).json(items.map(PartnersTeamController.mapPartnerToFrontend));
     } catch (error: any) {
       logger.error({ err: error }, 'Error listing partners');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -48,7 +71,7 @@ export class PartnersTeamController {
           isActive: is_active !== undefined ? is_active : true,
         },
       });
-      return res.status(201).json(item);
+      return res.status(201).json(PartnersTeamController.mapPartnerToFrontend(item));
     } catch (error: any) {
       logger.error({ err: error }, 'Error creating partner');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -84,7 +107,7 @@ export class PartnersTeamController {
         data: updateData,
       });
 
-      return res.status(200).json(item);
+      return res.status(200).json(PartnersTeamController.mapPartnerToFrontend(item));
     } catch (error: any) {
       logger.error({ err: error }, 'Error updating partner');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -101,7 +124,7 @@ export class PartnersTeamController {
       const item = await prisma.partnersTeam.delete({
         where: { id: parseInt(id, 10) },
       });
-      return res.status(200).json({ message: 'Partner successfully deleted', partner: item });
+      return res.status(200).json({ message: 'Partner successfully deleted', partner: PartnersTeamController.mapPartnerToFrontend(item) });
     } catch (error: any) {
       logger.error({ err: error }, 'Error deleting partner');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -120,7 +143,7 @@ export class PartnersTeamController {
         where: whereClause,
         orderBy: [{ sortOrder: 'asc' }, { id: 'desc' }],
       });
-      return res.status(200).json(items);
+      return res.status(200).json(items.map(PartnersTeamController.mapTeamToFrontend));
     } catch (error: any) {
       logger.error({ err: error }, 'Error listing team members');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -149,7 +172,7 @@ export class PartnersTeamController {
           isActive: is_active !== undefined ? is_active : true,
         },
       });
-      return res.status(201).json(item);
+      return res.status(201).json(PartnersTeamController.mapTeamToFrontend(item));
     } catch (error: any) {
       logger.error({ err: error }, 'Error creating team member');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -183,7 +206,7 @@ export class PartnersTeamController {
         data: updateData,
       });
 
-      return res.status(200).json(item);
+      return res.status(200).json(PartnersTeamController.mapTeamToFrontend(item));
     } catch (error: any) {
       logger.error({ err: error }, 'Error updating team member');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -200,7 +223,7 @@ export class PartnersTeamController {
       const item = await prisma.partnersTeam.delete({
         where: { id: parseInt(id, 10) },
       });
-      return res.status(200).json({ message: 'Team member successfully deleted', member: item });
+      return res.status(200).json({ message: 'Team member successfully deleted', member: PartnersTeamController.mapTeamToFrontend(item) });
     } catch (error: any) {
       logger.error({ err: error }, 'Error deleting team member');
       return res.status(500).json({ error: error.message || 'Internal server error' });

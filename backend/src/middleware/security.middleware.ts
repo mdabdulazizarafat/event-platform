@@ -18,14 +18,14 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
  * Production CORS Middleware
  */
 export function corsMiddleware(req: Request, res: Response, next: NextFunction) {
-  const allowedOriginsEnv = process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:3000';
+  const allowedOriginsEnv = process.env.CORS_ORIGIN || 'https://ayojok.rongplan.com,http://localhost:5173,http://localhost:3000';
   const allowedOrigins = allowedOriginsEnv.split(',').map((o) => o.trim());
   const origin = req.headers.origin;
 
-  if (origin && (allowedOrigins.includes(origin) || allowedOrigins.includes('*'))) {
+  if (origin && (allowedOrigins.includes(origin) || (process.env.NODE_ENV !== 'production' && allowedOrigins.includes('*')))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else if (!origin && process.env.NODE_ENV !== 'production') {
-    // Allow non-browser calls (Postman/curl) in dev
+    // Allow non-browser calls (Postman/curl) in dev mode only
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
 

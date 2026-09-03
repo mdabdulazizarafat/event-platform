@@ -165,7 +165,8 @@ export async function fetchEventsPaginated(params: {
       hasMore: res.hasMore !== undefined ? res.hasMore : false,
       total: res.pagination?.total || items.length,
     };
-  } catch (err) {
+  } catch (err: any) {
+    console.error('fetchEventsPaginated error:', err);
     return { data: [], nextCursor: null, hasMore: false, total: 0 };
   }
 }

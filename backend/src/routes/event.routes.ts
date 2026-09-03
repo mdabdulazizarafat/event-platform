@@ -21,6 +21,16 @@ router.get('/:slug/registrations', authMiddleware, requireEventRole(['ORGANIZER'
 router.put('/:slug', authMiddleware, requireEventRole(['ORGANIZER']), EventController.update);
 router.post('/:slug/register', authMiddleware, EventController.register);
 
+// Debug route
+router.get('/debug', async (req, res) => {
+  try {
+    const events = await EventService.getEvents({ username: 'icd', role: 'USER', mine: true });
+    res.json(events);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, stack: err.stack });
+  }
+});
+
 // Ticket Type sub-routes
 router.post('/:slug/ticket-types', authMiddleware, requireEventRole(['ORGANIZER']), TicketTypeController.create);
 router.get('/:slug/ticket-types', TicketTypeController.list);

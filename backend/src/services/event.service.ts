@@ -411,6 +411,8 @@ export class EventService {
       const isTeamMember = !!teamRecord;
       const regRecord = username && e.registrations && e.registrations.length > 0 ? e.registrations[0] : null;
       const isRegistered = !!regRecord;
+      delete computed.registrations;
+      delete computed.team;
 
       return {
         ...computed,
@@ -521,6 +523,8 @@ export class EventService {
     const isTeamMember = !!teamRecord;
     const regRecord = username && event.registrations ? event.registrations[0] : null;
     const isRegistered = !!regRecord;
+    delete computed.registrations;
+    delete computed.team;
 
     const formattedEvent = {
       ...computed,

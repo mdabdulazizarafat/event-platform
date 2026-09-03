@@ -10,8 +10,8 @@ declare global {
 
 function createPrismaClient(): PrismaClient {
   const numCPUs = os.cpus().length || 1;
-  // Calculate connection limit per cluster worker so total cluster connections <= 80 (leaving buffer for admin/jobs)
-  const connectionLimit = Math.max(2, Math.floor(80 / numCPUs));
+  // Calculate connection limit per cluster worker so total cluster connections <= 50 (leaving buffer for admin/jobs)
+  const connectionLimit = Math.min(10, Math.max(2, Math.floor(50 / numCPUs)));
 
   let dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/rong_plan';
 

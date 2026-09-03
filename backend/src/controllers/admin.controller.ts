@@ -34,7 +34,17 @@ export class AdminController {
    */
   static async createUser(req: Request, res: Response) {
     try {
-      return res.status(501).json({ error: 'Create user from admin dashboard is not implemented yet' });
+      const { username, name, email, password, role } = req.body;
+      if (!username || !name || !email || !password) {
+        return res.status(400).json({ error: 'Username, name, email, and password are required' });
+      }
+
+      const adminUsername = req.user!.username;
+      const newUser = await AdminService.createAdmin({ username, name, email, password, role }, adminUsername);
+      return res.status(201).json({
+        message: `Successfully created admin user "${username}".`,
+        user: newUser,
+      });
     } catch (error: any) {
       logger.error({ err: error }, 'Admin user create error');
       return res.status(500).json({ error: error.message || 'Internal server error' });

@@ -39,23 +39,25 @@ export function requireEventRole(allowedRoles: ('ORGANIZER' | 'MANAGER' | 'SCANN
 
     const { username, role: globalRole } = req.user;
 
-    const slug = req.params.slug || req.body.eventSlug || (req.query.eventSlug as string);
-    const eventIdParam = req.params.eventId || req.body.eventId || (req.query.eventId as string);
+    const slug = req.params.slug || req.params.eventSlug || req.body.slug || req.body.eventSlug || (req.query.slug as string) || (req.query.eventSlug as string);
+    const eventIdParam = req.params.eventId || req.params.id || req.body.eventId || (req.query.eventId as string);
 
     let eventId: number | null = null;
     let organizerUsername: string | null = null;
 
     try {
-      if (eventIdParam) {
+      if (eventIdParam && !isNaN(parseInt(eventIdParam, 10))) {
         eventId = parseInt(eventIdParam, 10);
         const eventRes = await prisma.event.findUnique({
           where: { id: eventId },
-          select: { organizerUsername: true },
+          select: { id: true, organizerUsername: true },
         });
         if (eventRes) {
           organizerUsername = eventRes.organizerUsername;
         }
-      } else if (slug) {
+      }
+      
+      if (!eventId && slug) {
         const eventRes = await prisma.event.findUnique({
           where: { slug },
           select: { id: true, organizerUsername: true },

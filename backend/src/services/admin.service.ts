@@ -1,5 +1,14 @@
 import prisma from '../lib/prisma';
 import bcrypt from 'bcryptjs';
+import redis from '../lib/redis';
+
+async function clearUserSessionCache(username: string) {
+  try {
+    await redis.del(`user:session:${username}`);
+  } catch (err) {
+    // Ignore cache eviction failure
+  }
+}
 
 export class AdminService {
   /**
@@ -105,6 +114,7 @@ export class AdminService {
       select: { username: true, name: true, email: true, role: true, organizerStatus: true, status: true },
     });
 
+    await clearUserSessionCache(username);
     await this.logAction(adminUsername, 'UPDATE_USER_ROLE', 'USER', username, { newRole });
     return updated;
   }
@@ -144,6 +154,7 @@ export class AdminService {
       select: { username: true, name: true, email: true, role: true, status: true, organizerStatus: true },
     });
 
+    await clearUserSessionCache(username);
     await this.logAction(adminUsername, 'UPDATE_USER', 'USER', username, updateData);
     return updated;
   }
@@ -303,6 +314,7 @@ export class AdminService {
       },
     });
 
+    await clearUserSessionCache(username);
     await this.logAction(adminUsername, 'APPROVE_ORGANIZER', 'USER', username);
     return updated;
   }
@@ -324,6 +336,7 @@ export class AdminService {
       },
     });
 
+    await clearUserSessionCache(username);
     await this.logAction(adminUsername, 'REJECT_ORGANIZER', 'USER', username);
     return updated;
   }
@@ -345,6 +358,7 @@ export class AdminService {
       },
     });
 
+    await clearUserSessionCache(username);
     await this.logAction(adminUsername, 'SUSPEND_ORGANIZER', 'USER', username);
     return updated;
   }
