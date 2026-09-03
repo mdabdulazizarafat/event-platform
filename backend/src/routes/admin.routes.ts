@@ -14,7 +14,7 @@ router.get('/users', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminControlle
 router.post('/users', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.createUser);
 router.put('/users/:username', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.updateUser);
 router.delete('/users/:username', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.deleteUser);
-router.put('/users/:username/role', requireGlobalRole(['SUPER_ADMIN']), AdminController.updateUserRole);
+router.put('/users/:username/role', requireGlobalRole(['ADMIN', 'SUPER_ADMIN']), AdminController.updateUserRole);
 router.post('/users/:username/impersonate', requireGlobalRole(['SUPER_ADMIN']), AdminController.impersonateUser);
 
 // Event moderation/administration routes

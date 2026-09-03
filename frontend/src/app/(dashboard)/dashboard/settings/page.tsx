@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import FormField from '@/components/ui/FormField';
 import Button from '@/components/ui/Button';
 import PageHeader from '@/components/ui/PageHeader';
-import { ArrowLeft, Save, Shield, Settings, Server, Mail, LogIn, UserPlus, Briefcase, Ticket } from 'lucide-react';
+import { Save, Shield, Settings, Mail, LogIn, UserPlus, Briefcase, Ticket, CalendarPlus } from 'lucide-react';
 import { Switch, App } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -21,11 +20,8 @@ export default function SettingsPage() {
     }
   }, [user, router]);
 
-  const [platformName, setPlatformName] = useState('Rong Plan');
-  const [supportEmail, setSupportEmail] = useState('support@rongplan.com');
-  const [platformFee, setPlatformFee] = useState('5');
-  
   // Toggles state
+  const [eventCreationEnabled, setEventCreationEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [signInEnabled, setSignInEnabled] = useState(true);
   const [signUpEnabled, setSignUpEnabled] = useState(true);
@@ -41,12 +37,8 @@ export default function SettingsPage() {
         const res = await fetch('/api/v1/admin/settings');
         if (res.ok) {
           const data = await res.json();
-          if (data.general) {
-            setPlatformName(data.general.platformName || 'Rong Plan');
-            setSupportEmail(data.general.supportEmail || 'support@rongplan.com');
-            setPlatformFee(data.general.platformFee || '5');
-          }
           if (data.features) {
+            setEventCreationEnabled(data.features.eventCreation ?? true);
             setEmailEnabled(data.features.email ?? true);
             setSignInEnabled(data.features.signIn ?? true);
             setSignUpEnabled(data.features.signUp ?? true);
@@ -73,12 +65,8 @@ export default function SettingsPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          general: {
-            platformName,
-            supportEmail,
-            platformFee
-          },
           features: {
+            eventCreation: eventCreationEnabled,
             email: emailEnabled,
             signIn: signInEnabled,
             signUp: signUpEnabled,
@@ -110,7 +98,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Global Platform Configurations"
-        description="Configure system fees, platform details, and global parameters."
+        description="Configure system parameters and global feature controls."
         action={
           <Settings className="w-12 h-12 text-primary opacity-20 hidden sm:block" />
         }
@@ -121,40 +109,7 @@ export default function SettingsPage() {
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
-        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          {/* Left Column - General Info */}
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 space-y-4 shadow-xs">
-            <div className="flex items-center gap-2 border-b border-outline-variant/60 pb-3 mb-4">
-              <Server className="text-primary w-5 h-5" />
-              <h3 className="font-heading text-lg font-bold m-0 text-foreground">General Settings</h3>
-            </div>
-            
-            <FormField
-              label="Platform Brand Name"
-              value={platformName}
-              onChange={(e) => setPlatformName(e.target.value)}
-              required
-            />
-
-            <FormField
-              label="Global Support Email"
-              type="email"
-              value={supportEmail}
-              onChange={(e) => setSupportEmail(e.target.value)}
-              required
-            />
-
-            <FormField
-              label="Platform Processing Fee (%)"
-              type="number"
-              value={platformFee}
-              onChange={(e) => setPlatformFee(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* Right Column - Service Toggles */}
+        <form onSubmit={handleSave} className="max-w-4xl space-y-6">
           <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 space-y-4 shadow-xs">
             <div className="flex items-center gap-2 border-b border-outline-variant/60 pb-3 mb-4">
               <Shield className="text-primary w-5 h-5" />
@@ -165,8 +120,19 @@ export default function SettingsPage() {
               Toggle essential platform services on or off globally.
             </p>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 border border-outline-variant/40 rounded-xl bg-surface-container-low/20">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center justify-between p-3.5 border border-outline-variant/40 rounded-xl bg-surface-container-low/20">
+                <div className="flex items-center gap-3">
+                  <CalendarPlus className="w-4 h-4 text-primary" />
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground m-0">Event Creation</h4>
+                    <p className="text-[10px] text-on-surface-variant m-0">Allow organizers to create events.</p>
+                  </div>
+                </div>
+                <Switch checked={eventCreationEnabled} onChange={setEventCreationEnabled} />
+              </div>
+
+              <div className="flex items-center justify-between p-3.5 border border-outline-variant/40 rounded-xl bg-surface-container-low/20">
                 <div className="flex items-center gap-3">
                   <Mail className="w-4 h-4 text-primary" />
                   <div>
@@ -177,7 +143,7 @@ export default function SettingsPage() {
                 <Switch checked={emailEnabled} onChange={setEmailEnabled} />
               </div>
 
-              <div className="flex items-center justify-between p-3 border border-outline-variant/40 rounded-xl bg-surface-container-low/20">
+              <div className="flex items-center justify-between p-3.5 border border-outline-variant/40 rounded-xl bg-surface-container-low/20">
                 <div className="flex items-center gap-3">
                   <LogIn className="w-4 h-4 text-primary" />
                   <div>
@@ -188,7 +154,7 @@ export default function SettingsPage() {
                 <Switch checked={signInEnabled} onChange={setSignInEnabled} />
               </div>
 
-              <div className="flex items-center justify-between p-3 border border-outline-variant/40 rounded-xl bg-surface-container-low/20">
+              <div className="flex items-center justify-between p-3.5 border border-outline-variant/40 rounded-xl bg-surface-container-low/20">
                 <div className="flex items-center gap-3">
                   <UserPlus className="w-4 h-4 text-primary" />
                   <div>
@@ -199,7 +165,7 @@ export default function SettingsPage() {
                 <Switch checked={signUpEnabled} onChange={setSignUpEnabled} />
               </div>
 
-              <div className="flex items-center justify-between p-3 border border-outline-variant/40 rounded-xl bg-surface-container-low/20">
+              <div className="flex items-center justify-between p-3.5 border border-outline-variant/40 rounded-xl bg-surface-container-low/20">
                 <div className="flex items-center gap-3">
                   <Briefcase className="w-4 h-4 text-primary" />
                   <div>
@@ -210,7 +176,7 @@ export default function SettingsPage() {
                 <Switch checked={orgAppEnabled} onChange={setOrgAppEnabled} />
               </div>
 
-              <div className="flex items-center justify-between p-3 border border-outline-variant/40 rounded-xl bg-surface-container-low/20">
+              <div className="flex items-center justify-between p-3.5 border border-outline-variant/40 rounded-xl bg-surface-container-low/20">
                 <div className="flex items-center gap-3">
                   <Ticket className="w-4 h-4 text-primary" />
                   <div>
@@ -223,7 +189,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="md:col-span-2 flex justify-end pt-4 border-t border-outline-variant/60">
+          <div className="flex justify-end pt-4 border-t border-outline-variant/60">
             <Button
               type="submit"
               variant="primary"

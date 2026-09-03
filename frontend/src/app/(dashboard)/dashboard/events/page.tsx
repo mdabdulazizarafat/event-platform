@@ -31,7 +31,7 @@ export default function EventsDirectoryPage() {
     setLoading(true);
     try {
       const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
-      const endpoint = isAdmin ? '/api/v1/admin/events' : `/api/v1/events?page=${currentPage}&limit=${pageSize}`;
+      const endpoint = isAdmin ? '/api/v1/admin/events' : `/api/v1/events?mine=true&page=${currentPage}&limit=${pageSize}`;
 
       const res = await fetch(endpoint);
       if (res.ok) {

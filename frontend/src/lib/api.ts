@@ -65,6 +65,7 @@ export interface Event {
   student_category?: string;
   category?: string;
   organizer?: any;
+  createdAt?: string;
 }
 
 export interface Organizer {
@@ -123,6 +124,7 @@ function mapBackendEventToFrontend(e: any): Event {
     event_for: e.event_for,
     student_category: e.student_category,
     category: e.category || 'Tech',
+    createdAt: e.created_at || e.createdAt,
   };
 }
 

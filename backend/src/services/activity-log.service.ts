@@ -24,6 +24,50 @@ export class ActivityLogService {
         throw new Error('This scanning checkpoint is currently inactive.');
       }
 
+      // Check event scanning window: [event starttime - 1h] to [event endtime + 1h]
+      const event = await tx.event.findUnique({
+        where: { id: input.eventId },
+        select: { date: true, time: true, startDate: true, endDate: true },
+      });
+
+      if (event) {
+        const now = new Date();
+        let startDateTime: Date | null = null;
+        if (event.startDate) {
+          startDateTime = new Date(event.startDate);
+        } else if (event.date) {
+          const dateStr = event.time ? `${event.date} ${event.time}` : event.date;
+          const parsed = new Date(dateStr);
+          if (!isNaN(parsed.getTime())) {
+            startDateTime = parsed;
+          } else {
+            const parsedJustDate = new Date(event.date);
+            if (!isNaN(parsedJustDate.getTime())) startDateTime = parsedJustDate;
+          }
+        }
+
+        let endDateTime: Date | null = null;
+        if (event.endDate) {
+          endDateTime = new Date(event.endDate);
+        } else if (startDateTime) {
+          endDateTime = new Date(startDateTime.getTime() + 8 * 60 * 60 * 1000);
+        }
+
+        if (startDateTime && !isNaN(startDateTime.getTime())) {
+          const scanAllowedStart = new Date(startDateTime.getTime() - 60 * 60 * 1000);
+          if (now < scanAllowedStart) {
+            throw new Error('Scanning is not open yet. Check-in opens 1 hour before event start time.');
+          }
+        }
+
+        if (endDateTime && !isNaN(endDateTime.getTime())) {
+          const scanAllowedEnd = new Date(endDateTime.getTime() + 60 * 60 * 1000);
+          if (now > scanAllowedEnd) {
+            throw new Error('Scanning window has closed. Check-in ended 1 hour after event end time.');
+          }
+        }
+      }
+
       // 2. Look up registration strictly by secure QR token for this event
       const registration = await tx.registration.findFirst({
         where: {

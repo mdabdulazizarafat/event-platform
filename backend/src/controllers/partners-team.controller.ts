@@ -10,8 +10,12 @@ export class PartnersTeamController {
 
   static async listPartners(req: Request, res: Response) {
     try {
+      const whereClause: any = { category: { in: ['Educational Institutions', 'Clubs', 'Companies', 'Other Organizations'] } };
+      if (req.user?.role !== 'SUPER_ADMIN' && req.user?.role !== 'ADMIN') {
+        whereClause.isActive = true;
+      }
       const items = await prisma.partnersTeam.findMany({
-        where: { category: { in: ['Educational Institutions', 'Clubs', 'Companies', 'Other Organizations'] } },
+        where: whereClause,
         orderBy: [{ sortOrder: 'asc' }, { id: 'desc' }],
       });
       return res.status(200).json(items);
@@ -23,7 +27,7 @@ export class PartnersTeamController {
 
   static async createPartner(req: Request, res: Response) {
     try {
-      const { name, logo, role, category, sort_order } = req.body;
+      const { name, logo, role, category, sort_order, description, website, founder_name, founder_title, bio, is_active } = req.body;
       const image = logo || req.body.image;
       if (!name || !image) {
         return res.status(400).json({ error: 'Partner name and logo image are required' });
@@ -36,6 +40,12 @@ export class PartnersTeamController {
           image,
           category: category || 'Other Organizations',
           sortOrder: sort_order !== undefined ? parseInt(sort_order, 10) : 0,
+          description: description || null,
+          website: website || null,
+          founderName: founder_name || null,
+          founderTitle: founder_title || null,
+          bio: bio || null,
+          isActive: is_active !== undefined ? is_active : true,
         },
       });
       return res.status(201).json(item);
@@ -48,7 +58,7 @@ export class PartnersTeamController {
   static async updatePartner(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { name, logo, role, category, sort_order } = req.body;
+      const { name, logo, role, category, sort_order, description, website, founder_name, founder_title, bio, is_active } = req.body;
       const image = logo || req.body.image;
 
       if (!id) {
@@ -62,6 +72,12 @@ export class PartnersTeamController {
       if (image !== undefined) updateData.image = image;
       if (category !== undefined) updateData.category = category;
       if (sort_order !== undefined) updateData.sortOrder = parseInt(sort_order, 10);
+      if (description !== undefined) updateData.description = description;
+      if (website !== undefined) updateData.website = website;
+      if (founder_name !== undefined) updateData.founderName = founder_name;
+      if (founder_title !== undefined) updateData.founderTitle = founder_title;
+      if (bio !== undefined) updateData.bio = bio;
+      if (is_active !== undefined) updateData.isActive = is_active;
 
       const item = await prisma.partnersTeam.update({
         where: { id: partnerId },
@@ -96,8 +112,12 @@ export class PartnersTeamController {
 
   static async listTeam(req: Request, res: Response) {
     try {
+      const whereClause: any = { category: { notIn: ['Educational Institutions', 'Clubs', 'Companies', 'Other Organizations'] } };
+      if (req.user?.role !== 'SUPER_ADMIN' && req.user?.role !== 'ADMIN') {
+        whereClause.isActive = true;
+      }
       const items = await prisma.partnersTeam.findMany({
-        where: { category: { notIn: ['Educational Institutions', 'Clubs', 'Companies', 'Other Organizations'] } },
+        where: whereClause,
         orderBy: [{ sortOrder: 'asc' }, { id: 'desc' }],
       });
       return res.status(200).json(items);
@@ -109,7 +129,7 @@ export class PartnersTeamController {
 
   static async createTeamMember(req: Request, res: Response) {
     try {
-      const { name, role, image, category, sort_order } = req.body;
+      const { name, role, image, category, sort_order, description, website, founder_name, founder_title, bio, is_active } = req.body;
       if (!name || !image) {
         return res.status(400).json({ error: 'Name and portrait image are required' });
       }
@@ -121,6 +141,12 @@ export class PartnersTeamController {
           image,
           category: category || 'Core Team',
           sortOrder: sort_order !== undefined ? parseInt(sort_order, 10) : 0,
+          description: description || null,
+          website: website || null,
+          founderName: founder_name || null,
+          founderTitle: founder_title || null,
+          bio: bio || null,
+          isActive: is_active !== undefined ? is_active : true,
         },
       });
       return res.status(201).json(item);
@@ -133,7 +159,7 @@ export class PartnersTeamController {
   static async updateTeamMember(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { name, role, image, category, sort_order } = req.body;
+      const { name, role, image, category, sort_order, description, website, founder_name, founder_title, bio, is_active } = req.body;
 
       if (!id) {
         return res.status(400).json({ error: 'Team member ID is required' });
@@ -145,6 +171,12 @@ export class PartnersTeamController {
       if (image !== undefined) updateData.image = image;
       if (category !== undefined) updateData.category = category;
       if (sort_order !== undefined) updateData.sortOrder = parseInt(sort_order, 10);
+      if (description !== undefined) updateData.description = description;
+      if (website !== undefined) updateData.website = website;
+      if (founder_name !== undefined) updateData.founderName = founder_name;
+      if (founder_title !== undefined) updateData.founderTitle = founder_title;
+      if (bio !== undefined) updateData.bio = bio;
+      if (is_active !== undefined) updateData.isActive = is_active;
 
       const item = await prisma.partnersTeam.update({
         where: { id: parseInt(id, 10) },

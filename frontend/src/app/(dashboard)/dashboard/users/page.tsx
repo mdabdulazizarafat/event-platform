@@ -478,6 +478,7 @@ export default function AdminAccountsPage() {
               rules={[{ required: true }]}
             >
               <Select className="h-10 rounded-lg">
+                <Select.Option value="SUPER_ADMIN">SUPER_ADMIN</Select.Option>
                 <Select.Option value="ADMIN">ADMIN</Select.Option>
                 <Select.Option value="ORGANIZER">ORGANIZER</Select.Option>
                 <Select.Option value="USER">USER</Select.Option>

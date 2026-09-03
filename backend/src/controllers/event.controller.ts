@@ -36,8 +36,10 @@ export class EventController {
       if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
-      if (req.user.role === 'USER') {
-        return res.status(403).json({ error: 'Users cannot create events. Please upgrade to Organizer.' });
+      const settings = await prisma.platformSetting.findUnique({ where: { key: 'features' } });
+      const features = (settings?.value as any) || {};
+      if (features.eventCreation === false && req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Event creation is currently disabled globally by the administrator.' });
       }
 
       const organizerUsername = req.user.username;
@@ -162,6 +164,7 @@ export class EventController {
       const search = req.query.search as string;
       const status = req.query.status as string;
       const category = req.query.category as string;
+      const mine = req.query.mine === 'true';
 
       const result = await EventService.getEvents({
         username: req.user?.username,
@@ -172,6 +175,7 @@ export class EventController {
         search,
         status,
         category,
+        mine,
       });
 
       if (page === undefined && limit === undefined && cursor === undefined) {

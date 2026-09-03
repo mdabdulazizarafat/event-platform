@@ -21,9 +21,10 @@ import {
 import { FacebookOutlined, TwitterOutlined } from '@ant-design/icons';
 import { theme } from '../../../../theme/theme';
 import type { Event, TicketType, ScheduleItem } from '@/lib/api';
-import { getEventBySlug, fetchTicketTypes, fetchSchedules } from '@/lib/api';
+import { getEventBySlug, fetchTicketTypes, fetchSchedules, fetchMyRegistrations } from '@/lib/api';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
+import { useAuth } from '@/context/AuthContext';
 
 
 
@@ -31,6 +32,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
   const { slug } = React.use(params);
   const ticketsSectionRef = useRef<HTMLDivElement>(null);
   const [messageApi, contextHolder] = message.useMessage();
+  const { user } = useAuth();
 
   // Page state
   const [event, setEvent] = useState<Event | null>(null);
@@ -53,6 +55,18 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
     }, 6000);
     return () => clearInterval(slideInterval);
   }, []);
+
+  const [myRegistrations, setMyRegistrations] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadRegs() {
+      if (user && event) {
+        const regs = await fetchMyRegistrations().catch(() => []);
+        setMyRegistrations(regs);
+      }
+    }
+    loadRegs();
+  }, [user, event]);
 
   useEffect(() => {
     async function loadEventData() {
@@ -440,18 +454,24 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                     const isFree = parseFloat(ticket.price) === 0 || ticket.isFree;
                     const priceDisplay = isFree ? '৳ 0' : `৳ ${parseFloat(ticket.price).toLocaleString('en-BD')}`;
                     const isSelected = selectedTicketIds.includes(ticket.id);
+                    const isAlreadyRegistered = myRegistrations.some((r: any) => 
+                      r.event_id === (event as any).id && r.tickets?.some((t: any) => t.id === ticket.id)
+                    );
 
                     return (
                       <div
                         key={ticket.id}
-                        onClick={() => toggleTicket(ticket.id)}
-                        className={`p-4 transition-all flex flex-col justify-between min-h-[120px] border cursor-pointer rounded-xl bg-white shadow-sm ${isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-slate-100 hover:border-slate-200'
-                          }`}
+                        onClick={() => { if (!isAlreadyRegistered) toggleTicket(ticket.id); }}
+                        className={`p-4 transition-all flex flex-col justify-between min-h-[120px] border rounded-xl bg-white shadow-sm ${
+                          isAlreadyRegistered ? 'opacity-70 cursor-not-allowed border-slate-100 bg-slate-50' 
+                          : isSelected ? 'border-primary ring-2 ring-primary/20 cursor-pointer' 
+                          : 'border-slate-100 hover:border-slate-200 cursor-pointer'
+                        }`}
                       >
                         {/* Card Top: Title on left, Price Badge on right */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1">
-                            <h4 className={`text-sm font-bold m-0 ${isSelected ? 'text-primary' : 'text-slate-900'}`}>
+                            <h4 className={`text-sm font-bold m-0 ${isSelected && !isAlreadyRegistered ? 'text-primary' : 'text-slate-900'}`}>
                               {ticket.name}
                             </h4>
                             <p className="text-[10px] text-slate-400 leading-normal m-0 line-clamp-2">
@@ -469,10 +489,12 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                           <div className="w-full flex">
                             <Button
                               size="md"
-                              className={`w-full rounded-md text-[11px] font-bold py-2 shadow-none flex justify-center items-center pointer-events-none transition-colors border-none ${isSelected ? 'bg-[#22c55e] text-white' : 'bg-[#4ade80] hover:bg-[#22c55e] text-white'
-                                }`}
+                              className={`w-full rounded-md text-[11px] font-bold py-2 shadow-none flex justify-center items-center pointer-events-none transition-colors border-none ${
+                                isAlreadyRegistered ? 'bg-slate-200 text-slate-500' :
+                                isSelected ? 'bg-[#22c55e] text-white' : 'bg-[#4ade80] hover:bg-[#22c55e] text-white'
+                              }`}
                             >
-                              <span>{isSelected ? 'Selected' : '+ Click to Select'}</span>
+                              <span>{isAlreadyRegistered ? 'Already Registered' : isSelected ? 'Selected' : '+ Click to Select'}</span>
                             </Button>
                           </div>
                         </div>

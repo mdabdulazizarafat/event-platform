@@ -47,7 +47,13 @@ export class AdminController {
    */
   static async updateUser(req: Request, res: Response) {
     try {
-      return res.status(501).json({ error: 'Update user from admin dashboard is not implemented yet' });
+      const { username } = req.params;
+      const adminUsername = req.user!.username;
+      const updatedUser = await AdminService.updateUser(username, req.body, adminUsername);
+      return res.status(200).json({
+        message: `Successfully updated user "${username}".`,
+        user: updatedUser,
+      });
     } catch (error: any) {
       logger.error({ err: error }, 'Admin user update error');
       return res.status(500).json({ error: error.message || 'Internal server error' });

@@ -92,13 +92,59 @@ export class AdminService {
       throw new Error(`User "${username}" not found.`);
     }
 
+    const updateData: any = { role: newRole };
+    if (newRole === 'ORGANIZER') {
+      updateData.organizerStatus = 'APPROVED';
+    } else if (newRole === 'USER') {
+      updateData.organizerStatus = 'NONE';
+    }
+
     const updated = await prisma.user.update({
       where: { username },
-      data: { role: newRole },
-      select: { username: true, name: true, email: true, role: true },
+      data: updateData,
+      select: { username: true, name: true, email: true, role: true, organizerStatus: true, status: true },
     });
 
     await this.logAction(adminUsername, 'UPDATE_USER_ROLE', 'USER', username, { newRole });
+    return updated;
+  }
+
+  /**
+   * Update generic user details from admin panel.
+   */
+  static async updateUser(username: string, data: any, adminUsername: string) {
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) {
+      throw new Error(`User "${username}" not found.`);
+    }
+
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.email !== undefined) updateData.email = data.email;
+    if (data.mobile !== undefined) updateData.mobile = data.mobile;
+    if (data.org !== undefined) updateData.org = data.org;
+    if (data.status !== undefined) updateData.status = data.status;
+
+    if (data.role !== undefined && ['SUPER_ADMIN', 'ADMIN', 'ORGANIZER', 'USER'].includes(data.role)) {
+      updateData.role = data.role;
+      if (data.role === 'ORGANIZER') {
+        updateData.organizerStatus = 'APPROVED';
+      } else if (data.role === 'USER') {
+        updateData.organizerStatus = 'NONE';
+      }
+    }
+
+    if (data.organizerStatus !== undefined) {
+      updateData.organizerStatus = data.organizerStatus;
+    }
+
+    const updated = await prisma.user.update({
+      where: { username },
+      data: updateData,
+      select: { username: true, name: true, email: true, role: true, status: true, organizerStatus: true },
+    });
+
+    await this.logAction(adminUsername, 'UPDATE_USER', 'USER', username, updateData);
     return updated;
   }
 
@@ -209,7 +255,12 @@ export class AdminService {
    */
   static async getPendingOrganizers() {
     const users = await prisma.user.findMany({
-      where: { organizerStatus: 'PENDING' },
+      where: {
+        OR: [
+          { organizerStatus: { in: ['PENDING', 'PENDING_APPROVAL', 'REJECTED', 'SUSPENDED'] } },
+          { AND: [{ organizerStatus: { not: 'NONE' } }, { organizerStatus: { not: null } }] }
+        ]
+      },
       select: {
         username: true,
         name: true,
@@ -229,7 +280,7 @@ export class AdminService {
 
     return users.map((u: any) => ({
       ...u,
-      organizer_status: u.organizerStatus,
+      organizer_status: u.organizerStatus || (u.role === 'ORGANIZER' ? 'APPROVED' : 'PENDING'),
       rejection_count: u.rejectionCount,
       created_at: u.createdAt,
     }));

@@ -357,13 +357,19 @@ model PlatformSetting {
 }
 
 model PartnersTeam {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(255)
-  role      String?  @db.VarChar(255)
-  image     String   @db.VarChar(512)
-  category  String   @db.VarChar(50)
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(255)
+  role         String?  @db.VarChar(255)
+  image        String   @db.VarChar(512)
+  category     String   @db.VarChar(50)
+  sortOrder    Int      @default(0) @map("sort_order")
+  description  String?  @db.Text
+  website      String?  @db.VarChar(255)
+  founderName  String?  @map("founder_name") @db.VarChar(255)
+  founderTitle String?  @map("founder_title") @db.VarChar(255)
+  bio          String?  @db.Text
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@map("partners_team")
 }

@@ -75,9 +75,9 @@ export default function MarketingPage() {
         });
 
         const futureEvents = activeEvents.filter(e => {
-          if (!e.date) return true;
+          if (!e.date) return false;
           const d = new Date(e.date);
-          return d.getMonth() !== currentMonth || d.getFullYear() !== currentYear;
+          return (d.getFullYear() > currentYear) || (d.getFullYear() === currentYear && d.getMonth() > currentMonth);
         });
 
         setRunningEvents(currentMonthEvents);

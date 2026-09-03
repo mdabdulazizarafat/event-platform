@@ -235,7 +235,17 @@ export class EventService {
       event.status === 'ENDED'
     ) {
       const now = new Date();
-      if (event.endDate && new Date(event.endDate) < now) {
+      let endDateTime: Date | null = null;
+      if (event.endDate) {
+        endDateTime = new Date(event.endDate);
+      } else if (event.date) {
+        endDateTime = new Date(event.date);
+        if (!isNaN(endDateTime.getTime()) && !event.time) {
+          endDateTime.setHours(23, 59, 59, 999);
+        }
+      }
+
+      if (endDateTime && !isNaN(endDateTime.getTime()) && endDateTime < now) {
         return { ...event, status: 'ENDED' };
       }
       if (event.startDate && new Date(event.startDate) <= now) {
@@ -263,6 +273,7 @@ export class EventService {
           search?: string;
           status?: string;
           category?: string;
+          mine?: boolean;
         },
     roleParam?: string,
     pageParam?: number,
@@ -276,6 +287,7 @@ export class EventService {
     let search: string | undefined;
     let statusFilter: string | undefined;
     let categoryFilter: string | undefined;
+    let mine: boolean | undefined;
 
     if (typeof usernameOrOptions === 'object' && usernameOrOptions !== null) {
       username = usernameOrOptions.username;
@@ -286,6 +298,7 @@ export class EventService {
       search = usernameOrOptions.search;
       statusFilter = usernameOrOptions.status;
       categoryFilter = usernameOrOptions.category;
+      mine = usernameOrOptions.mine;
     } else {
       username = usernameOrOptions;
       role = roleParam;
@@ -317,7 +330,13 @@ export class EventService {
     const where: any = {};
 
     if (username) {
-      if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
+      if (mine) {
+        where.OR = [
+          { organizerUsername: username },
+          { team: { some: { username } } },
+          { registrations: { some: { userId: username } } },
+        ];
+      } else if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
         where.OR = [
           { status: { not: 'DRAFT' }, isPrivate: false },
           { organizerUsername: username },

@@ -96,7 +96,30 @@ export default function EventsDiscoveryPage() {
     return 'Business';
   };
 
-  const activeCategories = Array.from(new Set(events.map(getEventCategory))).filter(Boolean);
+  const categoryOrder = [
+    'Tech',
+    'Business',
+    'Health & Fitness',
+    'Environment & Climate',
+    'Education',
+    'Culture & Arts',
+    'Entertainment',
+    'Sports',
+    'Design & Architecture',
+    'Productivity',
+    'Personal Development'
+  ];
+
+  const activeCategories = Array.from(new Set(events.map(getEventCategory)))
+    .filter(Boolean)
+    .sort((a, b) => {
+      const indexA = categoryOrder.indexOf(a);
+      const indexB = categoryOrder.indexOf(b);
+      if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
 
   const filteredEvents = events
     .filter((event) => {
@@ -169,7 +192,9 @@ export default function EventsDiscoveryPage() {
           ) : filteredEvents.length > 0 ? (
             <div className="flex flex-col space-y-16 mt-8">
               {activeCategories.map((category) => {
-                const categoryEvents = filteredEvents.filter((e) => getEventCategory(e) === category);
+                const categoryEvents = filteredEvents
+                  .filter((e) => getEventCategory(e) === category)
+                  .sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
 
                 if (categoryEvents.length === 0) return null;
 
