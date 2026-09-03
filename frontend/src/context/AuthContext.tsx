@@ -80,11 +80,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkSession = async () => {
     try {
-      const response = await fetch('/api/v1/auth/me');
+      const headers: Record<string, string> = {};
+      const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+      const response = await fetch('/api/v1/auth/me', { headers });
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
       } else {
+        if (storedToken) localStorage.removeItem('auth_token');
         setUser(null);
       }
     } catch (error) {
@@ -131,6 +137,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Received invalid response format from server.');
       }
 
+      if (data.token && typeof window !== 'undefined') {
+        localStorage.setItem('auth_token', data.token);
+      }
       setUser(data.user);
       message.success('Successfully logged in!');
       return true;
@@ -145,6 +154,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     setLoading(true);
     try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+      }
       await fetch('/api/v1/auth/logout', { method: 'POST' });
       setUser(null);
       message.success('Logged out successfully.');

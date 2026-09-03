@@ -146,10 +146,17 @@ export class AuthController {
         return res.status(400).json({ error: 'Email/Username and password are required' });
       }
 
-      const normalizedInput = emailOrUsername.trim().toLowerCase();
+      const rawInput = emailOrUsername.trim();
+      const normalizedInput = rawInput.toLowerCase();
+
       const user = await prisma.user.findFirst({
         where: {
-          OR: [{ email: normalizedInput }, { username: normalizedInput }],
+          OR: [
+            { email: { equals: normalizedInput, mode: 'insensitive' } },
+            { username: { equals: normalizedInput, mode: 'insensitive' } },
+            { email: rawInput },
+            { username: rawInput },
+          ],
         },
       });
 
@@ -159,7 +166,7 @@ export class AuthController {
 
       const settings = await prisma.platformSetting.findUnique({ where: { key: 'features' } });
       const features = (settings?.value as any) || {};
-      if (features.signIn === false && user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
+      if ((features.signIn === false || features.signIn === 'false') && user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
         return res.status(403).json({ error: 'Sign in is currently disabled by the administrator.' });
       }
 
@@ -196,6 +203,7 @@ export class AuthController {
 
       return res.status(200).json({
         message: 'Login successful',
+        token,
         user: {
           username: user.username,
           name: user.name,

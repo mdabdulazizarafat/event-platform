@@ -39,17 +39,11 @@ export default function EventsDirectoryPage() {
 
         const list = Array.isArray(result) ? result : (result.data || []);
 
-        if (isAdmin) {
-          setEvents(list);
-          setTotalItems(result.pagination?.total || list.length);
+        setEvents(list);
+        if (result.pagination) {
+          setTotalItems(result.pagination.total);
         } else {
-          const hostEvents = list.filter((e: any) => e.organizer_username === user?.username || e.is_team_member || e.is_registered);
-          setEvents(hostEvents);
-          if (result.pagination) {
-            setTotalItems(result.pagination.total);
-          } else {
-            setTotalItems(hostEvents.length);
-          }
+          setTotalItems(list.length);
         }
       } else {
         setEvents([]);

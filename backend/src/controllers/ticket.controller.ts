@@ -379,6 +379,11 @@ export class TicketController {
           ticketType: {
             select: { id: true, name: true, price: true, currency: true },
           },
+          ticketTypesJoinTable: {
+            include: {
+              ticketType: { select: { id: true, name: true, price: true, currency: true } }
+            }
+          },
           ledRegistrationTeams: {
             select: { teamName: true },
           },
@@ -392,30 +397,42 @@ export class TicketController {
         orderBy: { registeredAt: 'desc' },
       });
 
-      const enriched = registrations.map((r: any) => ({
-        id: Number(r.id),
-        event_id: r.eventId,
-        email: r.email,
-        status: r.status,
-        payment_status: r.paymentStatus,
-        qr_token: r.qrToken,
-        registered_at: r.registeredAt,
-        event_title: r.event.title,
-        event_date: r.event.date,
-        event_time: r.event.time,
-        event_location: r.event.location,
-        event_slug: r.event.slug,
-        contact_email: r.event.contactEmail,
-        contact_phone: r.event.contactPhone,
-        ticket_name: r.ticketType?.name || null,
-        tickets: r.ticketType ? [r.ticketType] : [],
-        team_name: r.ledRegistrationTeams[0]?.teamName || null,
-        is_leader: r.userId === username,
-        scanHistory: r.activityScans.map((s: any) => ({
-          activityName: s.activity.name,
-          scannedAt: s.scannedAt,
-        })),
-      }));
+      const enriched = registrations.map((r: any) => {
+        const ticketsList: any[] = [];
+        if (r.ticketType) ticketsList.push(r.ticketType);
+        if (r.ticketTypesJoinTable) {
+          r.ticketTypesJoinTable.forEach((jt: any) => {
+            if (jt.ticketType && !ticketsList.some((t: any) => t.id === jt.ticketType.id)) {
+              ticketsList.push(jt.ticketType);
+            }
+          });
+        }
+
+        return {
+          id: Number(r.id),
+          event_id: r.eventId,
+          email: r.email,
+          status: r.status,
+          payment_status: r.paymentStatus,
+          qr_token: r.qrToken,
+          registered_at: r.registeredAt,
+          event_title: r.event.title,
+          event_date: r.event.date,
+          event_time: r.event.time,
+          event_location: r.event.location,
+          event_slug: r.event.slug,
+          contact_email: r.event.contactEmail,
+          contact_phone: r.event.contactPhone,
+          ticket_name: ticketsList[0]?.name || r.ticketType?.name || null,
+          tickets: ticketsList,
+          team_name: r.ledRegistrationTeams[0]?.teamName || null,
+          is_leader: r.userId === username,
+          scanHistory: r.activityScans.map((s: any) => ({
+            activityName: s.activity.name,
+            scannedAt: s.scannedAt,
+          })),
+        };
+      });
 
       return res.status(200).json(enriched);
     } catch (err: any) {

@@ -255,9 +255,9 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
         // Fetch Certificates
         loadCertificates();
 
-        // If user is registered, fetch registration ticket details
-        if (eventData.is_registered) {
-          const myRegs = await fetchMyRegistrations();
+        // Fetch registration ticket details if logged in
+        const myRegs = await fetchMyRegistrations().catch(() => []);
+        if (myRegs && myRegs.length > 0) {
           const thisEventReg = myRegs.find((r: any) => r.event_id === eventData.id || r.event_slug === slug);
           setMyTicket(thisEventReg || null);
         }

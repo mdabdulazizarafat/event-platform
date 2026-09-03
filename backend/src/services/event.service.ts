@@ -327,6 +327,14 @@ export class EventService {
     }
 
     // Build Prisma where condition
+    const regWhere = username ? {
+      status: { not: 'CANCELLED' },
+      OR: [
+        { userId: username },
+        { ledRegistrationTeams: { some: { members: { some: { username } } } } }
+      ]
+    } : undefined;
+
     const where: any = {};
 
     if (username) {
@@ -334,14 +342,14 @@ export class EventService {
         where.OR = [
           { organizerUsername: username },
           { team: { some: { username } } },
-          { registrations: { some: { userId: username } } },
+          { registrations: { some: regWhere } },
         ];
       } else if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
         where.OR = [
           { status: { not: 'DRAFT' }, isPrivate: false },
           { organizerUsername: username },
           { team: { some: { username } } },
-          { registrations: { some: { userId: username } } },
+          { registrations: { some: regWhere } },
         ];
       }
     } else {
@@ -386,7 +394,7 @@ export class EventService {
           },
         },
         team: username ? { where: { username } } : false,
-        registrations: username ? { where: { userId: username } } : false,
+        registrations: username ? { where: regWhere } : false,
       },
     };
 
@@ -401,7 +409,7 @@ export class EventService {
       const isOrganizer = username ? e.organizerUsername === username : false;
       const teamRecord = username && e.team ? e.team[0] : null;
       const isTeamMember = !!teamRecord;
-      const regRecord = username && e.registrations ? e.registrations[0] : null;
+      const regRecord = username && e.registrations && e.registrations.length > 0 ? e.registrations[0] : null;
       const isRegistered = !!regRecord;
 
       return {
