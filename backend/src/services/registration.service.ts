@@ -52,6 +52,7 @@ export class RegistrationService {
     // 1. Validate if user is already registered for this segment
     const hasReg = await tx.registration.findFirst({
       where: {
+        eventId,
         ticketTypeId,
         userId,
         status: { not: 'CANCELLED' },
@@ -66,6 +67,7 @@ export class RegistrationService {
       where: {
         username: userId,
         team: {
+          eventId,
           ticketTypeId,
         },
       },
@@ -120,6 +122,7 @@ export class RegistrationService {
         // BATCH QUERY 2: Check existing registrations for all members in ONE query
         const existingMemberRegs = await tx.registration.findMany({
           where: {
+            eventId,
             ticketTypeId,
             userId: { in: memberUsernames },
             status: { not: 'CANCELLED' },
@@ -134,7 +137,7 @@ export class RegistrationService {
         const existingMemberTeams = await tx.registrationTeamMember.findMany({
           where: {
             username: { in: memberUsernames },
-            team: { ticketTypeId },
+            team: { eventId, ticketTypeId },
           },
           select: { username: true },
         });
@@ -416,6 +419,11 @@ export class RegistrationService {
       ...r,
       id: Number(r.id),
       registered_at: r.registeredAt,
+      full_name: r.fullName,
+      user_id: r.userId,
+      tshirt_size: r.tshirtSize,
+      transaction_id: r.transactionId,
+      job_title: r.jobTitle,
       ticket_type_name: r.ticketType?.name || null,
       ticket_price: r.ticketType ? Number(r.ticketType.price) : 0,
     }));

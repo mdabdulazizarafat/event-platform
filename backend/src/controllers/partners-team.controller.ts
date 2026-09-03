@@ -11,6 +11,7 @@ export class PartnersTeamController {
   static async listPartners(req: Request, res: Response) {
     try {
       const items = await prisma.partnersTeam.findMany({
+        where: { category: { in: ['Educational Institutions', 'Clubs', 'Companies', 'Other Organizations'] } },
         orderBy: [{ sortOrder: 'asc' }, { id: 'desc' }],
       });
       return res.status(200).json(items);
@@ -96,6 +97,7 @@ export class PartnersTeamController {
   static async listTeam(req: Request, res: Response) {
     try {
       const items = await prisma.partnersTeam.findMany({
+        where: { category: { notIn: ['Educational Institutions', 'Clubs', 'Companies', 'Other Organizations'] } },
         orderBy: [{ sortOrder: 'asc' }, { id: 'desc' }],
       });
       return res.status(200).json(items);

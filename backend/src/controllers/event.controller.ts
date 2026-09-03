@@ -325,12 +325,10 @@ export class EventController {
 
       const events = await prisma.event.findMany({
         where: {
-          team: {
-            some: {
-              username,
-              role: 'MANAGER',
-            },
-          },
+          OR: [
+            { organizerUsername: username },
+            { team: { some: { username } } },
+          ],
         },
         orderBy: { createdAt: 'desc' },
       });

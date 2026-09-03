@@ -902,9 +902,9 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
                   )}
                 </>
               ) : (
-                event.status === 'DRAFT' && (
-                  <Button variant="primary" size="sm" icon={<Power className="w-4 h-4" />} onClick={() => updateStatus(tickets.some(t => parseFloat(t.price) > 0) ? 'UNDER_REVIEW' : 'PUBLISHED')}>
-                    {tickets.some(t => parseFloat(t.price) > 0) ? 'Submit for Admin Review' : 'Publish Event'}
+                (event.status === 'DRAFT' || event.status === 'REJECTED') && (
+                  <Button variant="primary" size="sm" icon={<Power className="w-4 h-4" />} onClick={() => updateStatus((tickets.some(t => parseFloat(t.price) > 0) || rejectionReason || event.status === 'REJECTED') ? 'UNDER_REVIEW' : 'PUBLISHED')}>
+                    {(tickets.some(t => parseFloat(t.price) > 0) || rejectionReason || event.status === 'REJECTED') ? 'Submit for Admin Review' : 'Publish Event'}
                   </Button>
                 )
               )}
@@ -1069,13 +1069,13 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
                   <>
                     <DataTable
                       columns={[
-                        { key: 'full_name', title: 'Name', render: (row: any) => row.full_name || row.user_id },
-                        { key: 'user_id', title: 'Username' },
+                        { key: 'full_name', title: 'Name', render: (row: any) => row.full_name || row.fullName || row.user_id || row.userId },
+                        { key: 'user_id', title: 'Username', render: (row: any) => row.user_id || row.userId },
                         { key: 'email', title: 'Email Address' },
                         { key: 'phone', title: 'Phone Number', render: (row: any) => row.phone || '-' },
                         { key: 'organization', title: 'Organization', render: (row: any) => row.organization || '-' },
-                        { key: 'tshirt_size', title: 'T-Shirt', render: (row: any) => row.tshirt_size || '-' },
-                        { key: 'transaction_id', title: 'TxID', render: (row: any) => row.transaction_id || '-' },
+                        { key: 'tshirt_size', title: 'T-Shirt', render: (row: any) => row.tshirt_size || row.tshirtSize || '-' },
+                        { key: 'transaction_id', title: 'TxID', render: (row: any) => row.transaction_id || row.transactionId || '-' },
                         { key: 'ticket_name', title: 'Ticket Tier', render: (row: any) => row.ticket_type_name || row.ticket_name || '-' },
                         {
                           key: 'status',

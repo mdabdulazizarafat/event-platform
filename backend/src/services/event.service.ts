@@ -172,7 +172,33 @@ export class EventService {
     if (input.capacity !== undefined) updateData.capacity = input.capacity;
     if (input.contactEmail !== undefined) updateData.contactEmail = input.contactEmail;
     if (input.contactPhone !== undefined) updateData.contactPhone = input.contactPhone;
-    if (input.status !== undefined) updateData.status = input.status;
+    if (input.status !== undefined) {
+      if (
+        input.status === 'PUBLISHED' &&
+        userRole !== 'SUPER_ADMIN' &&
+        userRole !== 'ADMIN'
+      ) {
+        const isPaid =
+          event.paymentInstructions ||
+          event.bkashNumber ||
+          input.paymentInstructions ||
+          input.bkashNumber;
+        
+        let hasPaidTickets = false;
+        const tickets = await prisma.ticketType.findMany({ where: { eventId: event.id } });
+        if (tickets.some((t: any) => Number(t.price) > 0)) {
+          hasPaidTickets = true;
+        }
+
+        if (isPaid || hasPaidTickets || event.status === 'REJECTED' || event.status === 'UNDER_REVIEW' || event.rejectionReason) {
+          updateData.status = 'UNDER_REVIEW';
+        } else {
+          updateData.status = input.status;
+        }
+      } else {
+        updateData.status = input.status;
+      }
+    }
     if (input.startDate !== undefined) updateData.startDate = input.startDate;
     if (input.endDate !== undefined) updateData.endDate = input.endDate;
     if (input.registrationDeadline !== undefined) updateData.registrationDeadline = input.registrationDeadline;
