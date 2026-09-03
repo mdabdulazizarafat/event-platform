@@ -6,7 +6,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY backend/package.json ./backend/
 
-# Install workspace dependencies
+# Install workspace dependencies and OpenSSL for Prisma
+RUN apk add --no-cache openssl
 RUN npm install
 
 # Copy the backend source files
@@ -21,6 +22,9 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+
+# Install OpenSSL for Prisma query engine on Alpine
+RUN apk add --no-cache openssl
 
 # Copy root and backend packages, compiled JS and node_modules
 COPY --from=builder /app/package.json /app/package-lock.json ./
