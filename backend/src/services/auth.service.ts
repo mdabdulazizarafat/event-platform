@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { pool } from '../db/pool';
+import prisma from '../lib/prisma';
 import { getPrivateKey } from './crypto.service';
 
 export class AuthService {
@@ -10,36 +10,46 @@ export class AuthService {
     const firstName = name.split(' ')[0] || username;
     const lastName = name.split(' ').slice(1).join(' ') || null;
 
-    const insertQuery = `
-      INSERT INTO users (username, name, first_name, last_name, email, password_hash, role, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING username, name, first_name as "firstName", last_name as "lastName", email, role, status, created_at;
-    `;
-    const res = await pool.query(insertQuery, [
-      username.toLowerCase().trim(),
-      name,
-      firstName,
-      lastName,
-      email.toLowerCase().trim(),
-      hashedPassword,
-      'PARTICIPANT',
-      'ACTIVE'
-    ]);
-    return res.rows[0];
+    const user = await prisma.user.create({
+      data: {
+        username: username.toLowerCase().trim(),
+        name,
+        firstName,
+        lastName,
+        email: email.toLowerCase().trim(),
+        passwordHash: hashedPassword,
+        role: 'USER',
+        status: 'ACTIVE',
+      },
+      select: {
+        username: true,
+        name: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    return user;
   }
 
   static async login(emailOrUsername: string, password: string) {
-    const userQuery = `
-      SELECT * FROM users 
-      WHERE email = $1 OR username = $1;
-    `;
-    const userRes = await pool.query(userQuery, [emailOrUsername]);
-    if (userRes.rowCount === 0) {
+    const cleanInput = emailOrUsername.toLowerCase().trim();
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ email: cleanInput }, { username: cleanInput }],
+      },
+    });
+
+    if (!user) {
       throw new Error('Invalid credentials');
     }
 
-    const user = userRes.rows[0];
-    const isMatch = await bcrypt.compare(password, user.password_hash);
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       throw new Error('Invalid credentials');
     }
@@ -47,8 +57,8 @@ export class AuthService {
     const tokenPayload = {
       username: user.username,
       email: user.email,
-      role: user.role || 'PARTICIPANT',
-      status: user.status || 'ACTIVE'
+      role: user.role || 'USER',
+      status: user.status || 'ACTIVE',
     };
 
     const token = jwt.sign(tokenPayload, getPrivateKey(), {
@@ -61,10 +71,10 @@ export class AuthService {
         username: user.username,
         name: user.name,
         email: user.email,
-        role: user.role || 'PARTICIPANT',
-        status: user.status || 'ACTIVE'
+        role: user.role || 'USER',
+        status: user.status || 'ACTIVE',
       },
-      token
+      token,
     };
   }
 }

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { pool } from '../db/pool';
+import prisma from '../lib/prisma';
 import { StorageService } from '../services/storage.service';
 import { createChildLogger } from '../lib/logger';
 
@@ -10,13 +10,10 @@ export class PartnersTeamController {
 
   static async listPartners(req: Request, res: Response) {
     try {
-      const showAll = req.query.all === 'true'; // Admin might want to see inactive ones
-      const query = showAll 
-        ? 'SELECT * FROM partners ORDER BY sort_order ASC, id DESC'
-        : 'SELECT * FROM partners WHERE is_active = true ORDER BY sort_order ASC, id DESC';
-      
-      const result = await pool.query(query);
-      return res.status(200).json(result.rows);
+      const items = await prisma.partnersTeam.findMany({
+        orderBy: [{ sortOrder: 'asc' }, { id: 'desc' }],
+      });
+      return res.status(200).json(items);
     } catch (error: any) {
       logger.error({ err: error }, 'Error listing partners');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -25,30 +22,22 @@ export class PartnersTeamController {
 
   static async createPartner(req: Request, res: Response) {
     try {
-      const { name, logo, description, website, founder_name, founder_title, category, sort_order, is_active } = req.body;
-      if (!name || !logo) {
+      const { name, logo, role, category, sort_order } = req.body;
+      const image = logo || req.body.image;
+      if (!name || !image) {
         return res.status(400).json({ error: 'Partner name and logo image are required' });
       }
 
-      const query = `
-        INSERT INTO partners (name, logo, description, website, founder_name, founder_title, category, sort_order, is_active)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        RETURNING *;
-      `;
-      const values = [
-        name,
-        logo || null,
-        description || null,
-        website || null,
-        founder_name || null,
-        founder_title || null,
-        category || 'Other Organizations',
-        sort_order !== undefined ? parseInt(sort_order) : 0,
-        is_active !== undefined ? !!is_active : true
-      ];
-
-      const result = await pool.query(query, values);
-      return res.status(201).json(result.rows[0]);
+      const item = await prisma.partnersTeam.create({
+        data: {
+          name,
+          role: role || null,
+          image,
+          category: category || 'Other Organizations',
+          sortOrder: sort_order !== undefined ? parseInt(sort_order, 10) : 0,
+        },
+      });
+      return res.status(201).json(item);
     } catch (error: any) {
       logger.error({ err: error }, 'Error creating partner');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -58,45 +47,27 @@ export class PartnersTeamController {
   static async updatePartner(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { name, logo, description, website, founder_name, founder_title, category, sort_order, is_active } = req.body;
+      const { name, logo, role, category, sort_order } = req.body;
+      const image = logo || req.body.image;
 
       if (!id) {
         return res.status(400).json({ error: 'Partner ID is required' });
       }
 
-      const query = `
-        UPDATE partners
-        SET name = COALESCE($1, name),
-            logo = COALESCE($2, logo),
-            description = COALESCE($3, description),
-            website = COALESCE($4, website),
-            founder_name = COALESCE($5, founder_name),
-            founder_title = COALESCE($6, founder_title),
-            category = COALESCE($7, category),
-            sort_order = COALESCE($8, sort_order),
-            is_active = COALESCE($9, is_active),
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = $10
-        RETURNING *;
-      `;
-      const values = [
-        name || null,
-        logo || null,
-        description || null,
-        website || null,
-        founder_name || null,
-        founder_title || null,
-        category || null,
-        sort_order !== undefined ? parseInt(sort_order) : null,
-        is_active !== undefined ? !!is_active : null,
-        parseInt(id)
-      ];
+      const partnerId = parseInt(id, 10);
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (role !== undefined) updateData.role = role;
+      if (image !== undefined) updateData.image = image;
+      if (category !== undefined) updateData.category = category;
+      if (sort_order !== undefined) updateData.sortOrder = parseInt(sort_order, 10);
 
-      const result = await pool.query(query, values);
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'Partner not found' });
-      }
-      return res.status(200).json(result.rows[0]);
+      const item = await prisma.partnersTeam.update({
+        where: { id: partnerId },
+        data: updateData,
+      });
+
+      return res.status(200).json(item);
     } catch (error: any) {
       logger.error({ err: error }, 'Error updating partner');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -110,11 +81,10 @@ export class PartnersTeamController {
         return res.status(400).json({ error: 'Partner ID is required' });
       }
 
-      const result = await pool.query('DELETE FROM partners WHERE id = $1 RETURNING *', [parseInt(id)]);
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'Partner not found' });
-      }
-      return res.status(200).json({ message: 'Partner successfully deleted', partner: result.rows[0] });
+      const item = await prisma.partnersTeam.delete({
+        where: { id: parseInt(id, 10) },
+      });
+      return res.status(200).json({ message: 'Partner successfully deleted', partner: item });
     } catch (error: any) {
       logger.error({ err: error }, 'Error deleting partner');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -125,13 +95,10 @@ export class PartnersTeamController {
 
   static async listTeam(req: Request, res: Response) {
     try {
-      const showAll = req.query.all === 'true';
-      const query = showAll 
-        ? 'SELECT * FROM team_members ORDER BY sort_order ASC, id DESC'
-        : 'SELECT * FROM team_members WHERE is_active = true ORDER BY sort_order ASC, id DESC';
-      
-      const result = await pool.query(query);
-      return res.status(200).json(result.rows);
+      const items = await prisma.partnersTeam.findMany({
+        orderBy: [{ sortOrder: 'asc' }, { id: 'desc' }],
+      });
+      return res.status(200).json(items);
     } catch (error: any) {
       logger.error({ err: error }, 'Error listing team members');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -140,27 +107,21 @@ export class PartnersTeamController {
 
   static async createTeamMember(req: Request, res: Response) {
     try {
-      const { name, role, image, bio, sort_order, is_active } = req.body;
+      const { name, role, image, category, sort_order } = req.body;
       if (!name || !image) {
         return res.status(400).json({ error: 'Name and portrait image are required' });
       }
 
-      const query = `
-        INSERT INTO team_members (name, role, image, bio, sort_order, is_active)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING *;
-      `;
-      const values = [
-        name,
-        role,
-        image || null,
-        bio || null,
-        sort_order !== undefined ? parseInt(sort_order) : 0,
-        is_active !== undefined ? !!is_active : true
-      ];
-
-      const result = await pool.query(query, values);
-      return res.status(201).json(result.rows[0]);
+      const item = await prisma.partnersTeam.create({
+        data: {
+          name,
+          role: role || null,
+          image,
+          category: category || 'Core Team',
+          sortOrder: sort_order !== undefined ? parseInt(sort_order, 10) : 0,
+        },
+      });
+      return res.status(201).json(item);
     } catch (error: any) {
       logger.error({ err: error }, 'Error creating team member');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -170,39 +131,25 @@ export class PartnersTeamController {
   static async updateTeamMember(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { name, role, image, bio, sort_order, is_active } = req.body;
+      const { name, role, image, category, sort_order } = req.body;
 
       if (!id) {
         return res.status(400).json({ error: 'Team member ID is required' });
       }
 
-      const query = `
-        UPDATE team_members
-        SET name = COALESCE($1, name),
-            role = COALESCE($2, role),
-            image = COALESCE($3, image),
-            bio = COALESCE($4, bio),
-            sort_order = COALESCE($5, sort_order),
-            is_active = COALESCE($6, is_active),
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = $7
-        RETURNING *;
-      `;
-      const values = [
-        name || null,
-        role || null,
-        image || null,
-        bio || null,
-        sort_order !== undefined ? parseInt(sort_order) : null,
-        is_active !== undefined ? !!is_active : null,
-        parseInt(id)
-      ];
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (role !== undefined) updateData.role = role;
+      if (image !== undefined) updateData.image = image;
+      if (category !== undefined) updateData.category = category;
+      if (sort_order !== undefined) updateData.sortOrder = parseInt(sort_order, 10);
 
-      const result = await pool.query(query, values);
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'Team member not found' });
-      }
-      return res.status(200).json(result.rows[0]);
+      const item = await prisma.partnersTeam.update({
+        where: { id: parseInt(id, 10) },
+        data: updateData,
+      });
+
+      return res.status(200).json(item);
     } catch (error: any) {
       logger.error({ err: error }, 'Error updating team member');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -216,11 +163,10 @@ export class PartnersTeamController {
         return res.status(400).json({ error: 'Team member ID is required' });
       }
 
-      const result = await pool.query('DELETE FROM team_members WHERE id = $1 RETURNING *', [parseInt(id)]);
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'Team member not found' });
-      }
-      return res.status(200).json({ message: 'Team member successfully deleted', member: result.rows[0] });
+      const item = await prisma.partnersTeam.delete({
+        where: { id: parseInt(id, 10) },
+      });
+      return res.status(200).json({ message: 'Team member successfully deleted', member: item });
     } catch (error: any) {
       logger.error({ err: error }, 'Error deleting team member');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -243,9 +189,10 @@ export class PartnersTeamController {
 
       const isPng = matches[1].toLowerCase() === 'png';
       const buffer = Buffer.from(matches[2], 'base64');
-      const targetFilename = filename || `img-${Date.now()}`;
+      const safeFilename = (filename || 'img').replace(/[^a-zA-Z0-9_-]/g, '');
+      const targetFilename = `${safeFilename}-${Date.now()}`;
       const url = await StorageService.uploadPartnerOrTeamImage(targetFilename, buffer, isPng);
-      
+
       return res.status(200).json({ url });
     } catch (error: any) {
       logger.error({ err: error }, 'Error uploading partner/team image');

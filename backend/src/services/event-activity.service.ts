@@ -1,4 +1,4 @@
-import { pool } from '../db/pool';
+import prisma from '../lib/prisma';
 
 export interface CreateActivityInput {
   eventId: number;
@@ -19,102 +19,121 @@ export class EventActivityService {
    * Create a new scan operation/activity for an event.
    */
   static async createActivity(input: CreateActivityInput) {
-    const query = `
-      INSERT INTO event_activities (event_id, name, scan_limit, sort_order)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *;
-    `;
-    const res = await pool.query(query, [
-      input.eventId,
-      input.name,
-      input.scanLimit === undefined ? 1 : input.scanLimit,
-      input.sortOrder || 0
-    ]);
-    return res.rows[0];
+    const activity = await prisma.eventActivity.create({
+      data: {
+        eventId: input.eventId,
+        name: input.name,
+        scanLimit: input.scanLimit === undefined ? 1 : input.scanLimit,
+        sortOrder: input.sortOrder || 0,
+      },
+    });
+
+    return {
+      ...activity,
+      event_id: activity.eventId,
+      scan_limit: activity.scanLimit,
+      is_active: activity.isActive,
+      sort_order: activity.sortOrder,
+      created_at: activity.createdAt,
+    };
   }
 
   /**
-   * Get all active activities for an event, ordered by sort_order.
+   * Get all active activities for an event.
    */
   static async getActivities(eventId: number) {
-    const query = `
-      SELECT * FROM event_activities
-      WHERE event_id = $1 AND is_active = true
-      ORDER BY sort_order ASC, created_at ASC;
-    `;
-    const res = await pool.query(query, [eventId]);
-    return res.rows;
+    const activities = await prisma.eventActivity.findMany({
+      where: { eventId, isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    return activities.map((a: any) => ({
+      ...a,
+      event_id: a.eventId,
+      scan_limit: a.scanLimit,
+      is_active: a.isActive,
+      sort_order: a.sortOrder,
+      created_at: a.createdAt,
+    }));
   }
 
   /**
-   * Get all activities (including inactive ones) for host management.
+   * Get all activities (including inactive) for host management.
    */
   static async getAllActivities(eventId: number) {
-    const query = `
-      SELECT * FROM event_activities
-      WHERE event_id = $1
-      ORDER BY sort_order ASC, created_at ASC;
-    `;
-    const res = await pool.query(query, [eventId]);
-    return res.rows;
+    const activities = await prisma.eventActivity.findMany({
+      where: { eventId },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    return activities.map((a: any) => ({
+      ...a,
+      event_id: a.eventId,
+      scan_limit: a.scanLimit,
+      is_active: a.isActive,
+      sort_order: a.sortOrder,
+      created_at: a.createdAt,
+    }));
   }
 
   /**
    * Get a single activity by ID.
    */
   static async getActivityById(id: number) {
-    const res = await pool.query('SELECT * FROM event_activities WHERE id = $1', [id]);
-    return res.rows[0] || null;
+    const activity = await prisma.eventActivity.findUnique({ where: { id } });
+    if (!activity) return null;
+
+    return {
+      ...activity,
+      event_id: activity.eventId,
+      scan_limit: activity.scanLimit,
+      is_active: activity.isActive,
+      sort_order: activity.sortOrder,
+      created_at: activity.createdAt,
+    };
   }
 
   /**
    * Update an activity.
    */
   static async updateActivity(id: number, input: UpdateActivityInput) {
-    const fieldToColumnMap: Record<string, string> = {
-      name: 'name',
-      scanLimit: 'scan_limit',
-      isActive: 'is_active',
-      sortOrder: 'sort_order',
+    const updateData: any = {};
+    if (input.name !== undefined) updateData.name = input.name;
+    if (input.scanLimit !== undefined) updateData.scanLimit = input.scanLimit;
+    if (input.isActive !== undefined) updateData.isActive = input.isActive;
+    if (input.sortOrder !== undefined) updateData.sortOrder = input.sortOrder;
+
+    const activity = await prisma.eventActivity.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return {
+      ...activity,
+      event_id: activity.eventId,
+      scan_limit: activity.scanLimit,
+      is_active: activity.isActive,
+      sort_order: activity.sortOrder,
+      created_at: activity.createdAt,
     };
-
-    const updates: string[] = [];
-    const values: any[] = [];
-
-    for (const [key, columnName] of Object.entries(fieldToColumnMap)) {
-      const val = (input as Record<string, any>)[key];
-      if (val !== undefined) {
-        values.push(val);
-        updates.push(`${columnName} = $${values.length}`);
-      }
-    }
-
-    if (updates.length === 0) {
-      return await this.getActivityById(id);
-    }
-
-    values.push(id);
-    const query = `
-      UPDATE event_activities
-      SET ${updates.join(', ')}
-      WHERE id = $${values.length}
-      RETURNING *;
-    `;
-    const res = await pool.query(query, values);
-    return res.rows[0];
   }
 
   /**
    * Deactivate an activity.
    */
   static async deactivateActivity(id: number) {
-    const query = `
-      UPDATE event_activities
-      SET is_active = false
-      WHERE id = $1
-      RETURNING *;
-    `;
-    const res = await pool.query(query, [id]);
-    return res.rows[0];
+    const activity = await prisma.eventActivity.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    return {
+      ...activity,
+      event_id: activity.eventId,
+      scan_limit: activity.scanLimit,
+      is_active: activity.isActive,
+      sort_order: activity.sortOrder,
+      created_at: activity.createdAt,
+    };
   }
 }

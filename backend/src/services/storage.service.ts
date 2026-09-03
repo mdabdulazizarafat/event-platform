@@ -33,29 +33,26 @@ export class StorageService {
 
   /**
    * Dynamic image compression utility to ensure output buffer is strictly under 100KB.
+   * Uses efficient quality targets and single-pass resizing.
    */
   private static async compressImageUnder100kb(imageBuffer: Buffer, width: number, height: number, format: 'webp' | 'png'): Promise<Buffer> {
+    const resizedInstance = sharp(imageBuffer)
+      .resize(width, height, { fit: 'inside', withoutEnlargement: true });
+
     if (format === 'png') {
-      // PNG compression - standard lossless compression
-      return await sharp(imageBuffer)
-        .resize(width, height, { fit: 'inside', withoutEnlargement: true })
-        .png({ compressionLevel: 8, palette: true }) // palette: true enables pngquant-like optimization for small sizes
+      return await resizedInstance
+        .png({ compressionLevel: 8, palette: true })
         .toBuffer();
     }
 
-    let quality = 80;
-    let processed = await sharp(imageBuffer)
-      .resize(width, height, { fit: 'inside', withoutEnlargement: true })
-      .webp({ quality })
-      .toBuffer();
+    // Single-pass webp target at 75 quality first
+    let processed = await resizedInstance.clone().webp({ quality: 75, effort: 4 }).toBuffer();
 
-    while (processed.length > 100 * 1024 && quality > 10) {
-      quality -= 10;
-      processed = await sharp(imageBuffer)
-        .resize(width, height, { fit: 'inside', withoutEnlargement: true })
-        .webp({ quality })
-        .toBuffer();
+    // Fast single fallback if still over 100KB
+    if (processed.length > 100 * 1024) {
+      processed = await resizedInstance.clone().webp({ quality: 40, effort: 4 }).toBuffer();
     }
+
     return processed;
   }
 

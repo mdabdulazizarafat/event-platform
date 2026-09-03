@@ -22,10 +22,6 @@ export class TicketTypeController {
         return res.status(404).json({ error: 'Event not found' });
       }
 
-      if (event.organizer_username !== req.user.username) {
-        return res.status(403).json({ error: 'Unauthorized: Only the event host can manage ticket types.' });
-      }
-
       const { name, description, price, capacity, sortOrder, saleStart, saleEnd, isTeam, maxTeamSize } = req.body;
       if (!name || price === undefined) {
         return res.status(400).json({ error: 'Missing required fields: name and price are required.' });
@@ -99,10 +95,6 @@ export class TicketTypeController {
         return res.status(404).json({ error: 'Event not found' });
       }
 
-      if (event.organizer_username !== req.user.username) {
-        return res.status(403).json({ error: 'Unauthorized: Only the event host can manage ticket types.' });
-      }
-
       const ticketType = await TicketTypeService.getTicketTypeById(parseInt(id));
       if (!ticketType || ticketType.event_id !== event.id) {
         return res.status(404).json({ error: 'Ticket type not found for this event.' });
@@ -144,10 +136,6 @@ export class TicketTypeController {
       const event = await EventService.getEventBySlug(slug);
       if (!event) {
         return res.status(404).json({ error: 'Event not found' });
-      }
-
-      if (event.organizer_username !== req.user.username) {
-        return res.status(403).json({ error: 'Unauthorized: Only the event host can manage ticket types.' });
       }
 
       const ticketType = await TicketTypeService.getTicketTypeById(parseInt(id));

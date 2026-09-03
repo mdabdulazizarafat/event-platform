@@ -449,10 +449,12 @@ export async function runMigrations() {
         email VARCHAR(255) NOT NULL,
         code VARCHAR(6) NOT NULL,
         purpose VARCHAR(50) NOT NULL,
+        attempts INT DEFAULT 0,
         expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
     `).catch(() => {});
+    await client.query('ALTER TABLE verification_codes ADD COLUMN IF NOT EXISTS attempts INT DEFAULT 0').catch(() => {});
     await client.query('CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes (email)').catch(() => {});
 
     // 17. Optional environment-driven initial super admin provisioning

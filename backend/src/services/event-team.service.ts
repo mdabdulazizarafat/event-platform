@@ -1,4 +1,4 @@
-import { pool } from '../db/pool';
+import prisma from '../lib/prisma';
 
 export class EventTeamService {
   /**
@@ -10,78 +10,110 @@ export class EventTeamService {
       throw new Error(`Invalid role: ${role}`);
     }
 
-    // 1. Verify target user exists in users table and get their global role
-    const userCheck = await pool.query('SELECT username, role FROM users WHERE username = $1', [username]);
-    if (userCheck.rowCount === 0) {
+    const targetUser = await prisma.user.findUnique({
+      where: { username },
+      select: { username: true, role: true },
+    });
+    if (!targetUser) {
       throw new Error(`User "${username}" does not exist on the platform.`);
     }
-    const targetUser = userCheck.rows[0];
 
     if (role === 'ORGANIZER' && !['ORGANIZER', 'ADMIN', 'SUPER_ADMIN'].includes(targetUser.role)) {
       throw new Error('Only users with a global Organizer or Admin role can be invited as a Co-Organizer.');
     }
 
-    // 2. Prevent inviting yourself or inviting the owner
-    const eventRes = await pool.query('SELECT organizer_username FROM events WHERE id = $1', [eventId]);
-    if (eventRes.rows.length > 0 && eventRes.rows[0].organizer_username === username) {
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { organizerUsername: true },
+    });
+    if (event && event.organizerUsername === username) {
       throw new Error('The event owner is already the organizer.');
     }
 
-    // 3. Add to event_team
-    const query = `
-      INSERT INTO event_team (event_id, username, role, invited_by)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (event_id, username) 
-      DO UPDATE SET role = EXCLUDED.role, invited_by = EXCLUDED.invited_by
-      RETURNING *;
-    `;
-    const res = await pool.query(query, [eventId, username, role, invitedBy]);
-    return res.rows[0];
+    const teamMember = await prisma.eventTeam.upsert({
+      where: {
+        eventId_username: { eventId, username },
+      },
+      update: { role, invitedBy },
+      create: { eventId, username, role, invitedBy },
+    });
+
+    return teamMember;
   }
 
   /**
-   * Get all members of an event's team.
+   * Get all members of an event's team including primary organizer.
    */
   static async getTeam(eventId: number) {
-    const query = `
-      SELECT t.username, t.role, t.invited_by, t.joined_at, h.name, h.email, h.avatar, h.bio
-      FROM event_team t
-      JOIN users h ON t.username = h.username
-      WHERE t.event_id = $1
-      
-      UNION
-      
-      SELECT e.organizer_username as username, 'ORGANIZER' as role, NULL as invited_by, e.created_at as joined_at,
-             u.name, u.email, u.avatar, u.bio
-      FROM events e
-      JOIN users u ON e.organizer_username = u.username
-      WHERE e.id = $1 AND e.organizer_username NOT IN (SELECT username FROM event_team WHERE event_id = $1)
-      
-      ORDER BY role DESC, joined_at ASC;
-    `;
-    const res = await pool.query(query, [eventId]);
-    return res.rows;
+    const [teamMembers, event] = await Promise.all([
+      prisma.eventTeam.findMany({
+        where: { eventId },
+        include: {
+          user: {
+            select: { name: true, email: true, avatar: true, bio: true },
+          },
+        },
+        orderBy: [{ role: 'desc' }, { joinedAt: 'asc' }],
+      }),
+      prisma.event.findUnique({
+        where: { id: eventId },
+        include: {
+          organizer: {
+            select: { username: true, name: true, email: true, avatar: true, bio: true },
+          },
+        },
+      }),
+    ]);
+
+    const result = teamMembers.map((t: any) => ({
+      username: t.username,
+      role: t.role,
+      invited_by: t.invitedBy,
+      joined_at: t.joinedAt,
+      name: t.user.name,
+      email: t.user.email,
+      avatar: t.user.avatar,
+      bio: t.user.bio,
+    }));
+
+    // Check if primary organizer is in team list
+    if (event && event.organizer) {
+      const alreadyInTeam = result.some((r: any) => r.username === event.organizerUsername);
+      if (!alreadyInTeam) {
+        result.unshift({
+          username: event.organizer.username,
+          role: 'ORGANIZER',
+          invited_by: null,
+          joined_at: event.createdAt,
+          name: event.organizer.name,
+          email: event.organizer.email,
+          avatar: event.organizer.avatar,
+          bio: event.organizer.bio,
+        });
+      }
+    }
+
+    return result;
   }
 
   /**
    * Remove a member from the event's team.
-   * Organizers cannot be removed from the team.
    */
   static async removeMember(eventId: number, username: string) {
-    // Ensure we are not deleting the event owner/organizer
-    const checkQuery = 'SELECT role FROM event_team WHERE event_id = $1 AND username = $2';
-    const checkRes = await pool.query(checkQuery, [eventId, username]);
-    if (checkRes.rowCount === 0) {
+    const member = await prisma.eventTeam.findUnique({
+      where: { eventId_username: { eventId, username } },
+    });
+
+    if (!member) {
       throw new Error('Team member not found.');
     }
 
-    const member = checkRes.rows[0];
     if (member.role === 'ORGANIZER') {
       throw new Error('Cannot remove the Event Organizer from the team.');
     }
 
-    const deleteQuery = 'DELETE FROM event_team WHERE event_id = $1 AND username = $2 RETURNING *';
-    const deleteRes = await pool.query(deleteQuery, [eventId, username]);
-    return deleteRes.rows[0];
+    return await prisma.eventTeam.delete({
+      where: { eventId_username: { eventId, username } },
+    });
   }
 }

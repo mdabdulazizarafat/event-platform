@@ -160,3 +160,33 @@ docker exec -t ayojok-postgres pg_dump -U ayojok_user ayojok_db > db_backup_$(da
 # Restore database from host file
 cat db_backup_xxx.sql | docker exec -i ayojok-postgres psql -U ayojok_user -d ayojok_db
 ```
+
+---
+
+## 6. Updating the Deployment via Git
+
+When new code is pushed to your Git repository, follow these steps to pull the latest changes, update the Docker containers, and run any new database migrations on your VPS:
+
+1. **Pull the latest changes from Git:**
+   ```bash
+   cd /path/to/event-platform
+   git pull origin main
+   ```
+
+2. **Rebuild and restart the Docker containers:**
+   Use the `--build` flag to force Docker to rebuild the Next.js and Express images with the latest code, and `-d` to run them in the background.
+   ```bash
+   docker compose up -d --build
+   ```
+
+3. **Sync the Prisma Database Schema (if changed):**
+   If there were any database schema changes in `backend/prisma/schema.prisma`, you must apply them to the production database running inside the container:
+   ```bash
+   docker exec -it ayojok-backend npx prisma db push
+   ```
+
+4. **Verify the update:**
+   Check the logs to ensure the backend and frontend started successfully with the new code:
+   ```bash
+   docker compose logs -f ayojok-backend
+   ```

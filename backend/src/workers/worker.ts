@@ -1,5 +1,5 @@
 import { Worker } from 'bullmq';
-import { pool } from '../db/pool';
+import prisma from '../lib/prisma';
 import { EmailService } from '../services/email.service';
 import { createChildLogger } from '../lib/logger';
 
@@ -33,33 +33,40 @@ export function startWorkers() {
   logger.info('Initializing BullMQ Workers...');
 
   const redisConnection = getRedisConnection();
-  logger.info(`Connecting BullMQ worker to Redis at ${redisConnection.host}:${redisConnection.port}${redisConnection.tls ? ' (TLS)' : ''}...`);
+  logger.info(
+    `Connecting BullMQ worker to Redis at ${redisConnection.host}:${redisConnection.port}${
+      redisConnection.tls ? ' (TLS)' : ''
+    }...`
+  );
 
-  // 1. Email Notifications Worker
   const emailWorker = new Worker(
     'email-notifications',
     async (job) => {
       const { email, eventId, registrationId, qrToken } = job.data;
       logger.info({ jobId: job.id, jobName: job.name, registrationId }, 'Processing email job...');
 
-      // Fetch event title
-      const eventRes = await pool.query('SELECT title FROM events WHERE id = $1', [eventId]);
-      if (eventRes.rowCount === 0) {
+      const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { title: true },
+      });
+
+      if (!event) {
         throw new Error(`Event with ID ${eventId} not found`);
       }
-      const eventTitle = eventRes.rows[0].title;
+      const eventTitle = event.title;
 
       if (job.name === 'sendConfirmationEmail') {
-        // Check if registration still exists
-        const regRes = await pool.query('SELECT status FROM registrations WHERE id = $1 AND event_id = $2', [registrationId, eventId]);
-        if (regRes.rowCount === 0) {
+        const reg = await prisma.registration.findFirst({
+          where: { id: BigInt(registrationId), eventId },
+          select: { status: true },
+        });
+
+        if (!reg) {
           throw new Error(`Registration ${registrationId} not found`);
         }
 
-        // Generate QR Code URL via public API
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrToken}`;
 
-        // Call Email Service
         await EmailService.sendTicketConfirmation({
           email,
           eventTitle,
@@ -68,7 +75,6 @@ export function startWorkers() {
 
         logger.info({ registrationId }, 'Confirmation email sent successfully');
       } else if (job.name === 'sendCancellationEmail') {
-        // Call Email Service for Cancellation
         await EmailService.sendTicketCancellation({
           email,
           eventTitle,
@@ -86,19 +92,24 @@ export function startWorkers() {
     logger.error({ err }, 'Email Worker connection warning/error');
   });
 
-  // Handle final job failure (DLQ concept)
   emailWorker.on('failed', async (job, err) => {
     if (job) {
       const { attemptsMade, opts, data } = job;
       const maxAttempts = opts.attempts || 3;
       if (attemptsMade >= maxAttempts) {
-        logger.fatal({ jobId: job.id, registrationId: data.registrationId, attemptsMade, err }, 'Email job failed after max attempts. Marking DELIVERY_FAILED');
+        logger.fatal(
+          { jobId: job.id, registrationId: data.registrationId, attemptsMade, err },
+          'Email job failed after max attempts. Marking DELIVERY_FAILED'
+        );
         try {
-          // Do not overwrite CANCELLED status with DELIVERY_FAILED
-          await pool.query(
-            "UPDATE registrations SET status = 'DELIVERY_FAILED' WHERE id = $1 AND event_id = $2 AND status != 'CANCELLED'",
-            [data.registrationId, data.eventId]
-          );
+          await prisma.registration.updateMany({
+            where: {
+              id: BigInt(data.registrationId),
+              eventId: data.eventId,
+              status: { not: 'CANCELLED' },
+            },
+            data: { status: 'DELIVERY_FAILED' },
+          });
         } catch (dbErr: any) {
           logger.error({ err: dbErr, registrationId: data.registrationId }, 'Failed to update status to DELIVERY_FAILED');
         }
@@ -106,4 +117,3 @@ export function startWorkers() {
     }
   });
 }
-

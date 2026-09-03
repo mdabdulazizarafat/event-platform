@@ -12,16 +12,23 @@ export class PaymentController {
    */
   static async initiate(req: Request, res: Response) {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
       const { 
-        eventSlug, ticketTypeId, ticketTypeIds: incomingTicketTypeIds, userId, email, customerName, customerPhone,
-        jobTitle, organization, tshirtSize, reference, transactionId,
+        eventSlug, ticketTypeId, ticketTypeIds: incomingTicketTypeIds,
+        customerName, customerPhone, jobTitle, organization, tshirtSize, reference, transactionId,
         teamName, teamMembers
       } = req.body;
 
+      const userId = req.user.username;
+      const email = req.user.email;
+
       const ticketTypeIds = incomingTicketTypeIds || (ticketTypeId ? [ticketTypeId] : []);
 
-      if (!eventSlug || ticketTypeIds.length === 0 || !userId || !email || !customerName) {
-        return res.status(400).json({ error: 'Missing required fields: eventSlug, ticketTypeId, userId, email, and customerName are required.' });
+      if (!eventSlug || ticketTypeIds.length === 0 || !customerName) {
+        return res.status(400).json({ error: 'Missing required fields: eventSlug, ticketTypeId, and customerName are required.' });
       }
 
       const event = await EventService.getEventBySlug(eventSlug);
@@ -58,95 +65,80 @@ export class PaymentController {
       });
     } catch (error: any) {
       logger.error({ err: error }, 'Error initiating payment');
-      return res.status(500).json({ error: error.message || 'Failed to initiate payment' });
+      return res.status(500).json({ error: error.message || 'Payment initiation failed' });
     }
   }
 
   /**
-   * SSLCommerz success callback.
-   * POST /api/v1/payments/success (form-encoded POST from SSLCommerz)
+   * Payment success callback from SSLCommerz.
+   * POST /api/v1/payments/success
    */
-  static async success(req: Request, res: Response) {
+  static async handleSuccess(req: Request, res: Response) {
     try {
-      const { tran_id, val_id } = req.body;
-
-      if (!tran_id || !val_id) {
-        return res.status(400).json({ error: 'Invalid callback data' });
+      const { tran_id: tranId, val_id: valId } = req.body;
+      if (!tranId || !valId) {
+        return res.redirect(`${process.env.APP_URL || 'http://localhost:3000'}/checkout/fail?reason=missing_params`);
       }
 
-      const result = await PaymentService.validateAndComplete(tran_id, val_id);
-
-      // Redirect to frontend success page with transaction info
-      const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      const payment = await PaymentService.getPaymentByTranId(tran_id);
-      const eventSlug = payment?.event_slug || 'event';
-      const redirectUrl = `${frontendBaseUrl}/events/${eventSlug}/checkout/confirmation?tran_id=${encodeURIComponent(tran_id)}`;
+      const result = await PaymentService.validateAndComplete(tranId, valId);
+      const redirectUrl = `${process.env.APP_URL || 'http://localhost:3000'}/checkout/success?tranId=${tranId}&regId=${result.registrationId}`;
       return res.redirect(redirectUrl);
     } catch (error: any) {
-      logger.error({ err: error }, 'Error processing payment success');
-      const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return res.redirect(`${frontendBaseUrl}/payment/fail?error=${encodeURIComponent(error.message)}`);
+      logger.error({ err: error }, 'Error handling payment success');
+      return res.redirect(`${process.env.APP_URL || 'http://localhost:3000'}/checkout/fail?reason=${encodeURIComponent(error.message)}`);
     }
   }
 
   /**
-   * SSLCommerz fail callback.
+   * Payment fail callback from SSLCommerz.
    * POST /api/v1/payments/fail
    */
-  static async fail(req: Request, res: Response) {
+  static async handleFail(req: Request, res: Response) {
     try {
-      const { tran_id } = req.body;
-      if (tran_id) {
-        await PaymentService.handleFailure(tran_id);
+      const { tran_id: tranId, error } = req.body;
+      if (tranId) {
+        await PaymentService.markPaymentFailed(tranId, error || 'Payment failed at gateway');
       }
-
-      const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return res.redirect(`${frontendBaseUrl}/payment/fail?tran_id=${encodeURIComponent(tran_id || '')}`);
-    } catch (error: any) {
-      logger.error({ err: error }, 'Error processing payment failure');
-      const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return res.redirect(`${frontendBaseUrl}/payment/fail`);
+      return res.redirect(`${process.env.APP_URL || 'http://localhost:3000'}/checkout/fail?tranId=${tranId || ''}`);
+    } catch (err: any) {
+      logger.error({ err }, 'Error handling payment fail callback');
+      return res.redirect(`${process.env.APP_URL || 'http://localhost:3000'}/checkout/fail`);
     }
   }
 
   /**
-   * SSLCommerz cancel callback.
+   * Payment cancel callback from SSLCommerz.
    * POST /api/v1/payments/cancel
    */
-  static async cancel(req: Request, res: Response) {
+  static async handleCancel(req: Request, res: Response) {
     try {
-      const { tran_id } = req.body;
-      if (tran_id) {
-        await PaymentService.handleCancellation(tran_id);
+      const { tran_id: tranId } = req.body;
+      if (tranId) {
+        await PaymentService.markPaymentCancelled(tranId);
       }
-
-      const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return res.redirect(`${frontendBaseUrl}/payment/cancel?tran_id=${encodeURIComponent(tran_id || '')}`);
-    } catch (error: any) {
-      logger.error({ err: error }, 'Error processing payment cancellation');
-      const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return res.redirect(`${frontendBaseUrl}/payment/cancel`);
+      return res.redirect(`${process.env.APP_URL || 'http://localhost:3000'}/checkout/cancel?tranId=${tranId || ''}`);
+    } catch (err: any) {
+      logger.error({ err }, 'Error handling payment cancel callback');
+      return res.redirect(`${process.env.APP_URL || 'http://localhost:3000'}/checkout/cancel`);
     }
   }
 
   /**
-   * SSLCommerz IPN (Instant Payment Notification) webhook.
+   * IPN (Instant Payment Notification) webhook from SSLCommerz.
    * POST /api/v1/payments/ipn
    */
-  static async ipn(req: Request, res: Response) {
+  static async handleIPN(req: Request, res: Response) {
     try {
-      const { tran_id, val_id, status } = req.body;
+      const { tran_id: tranId, val_id: valId, status } = req.body;
 
-      if (!tran_id) {
-        return res.status(400).json({ error: 'Missing tran_id' });
+      if (!tranId || !valId) {
+        return res.status(400).json({ error: 'Missing tran_id or val_id' });
       }
 
       if (status === 'VALID' || status === 'VALIDATED') {
-        await PaymentService.validateAndComplete(tran_id, val_id);
-      } else if (status === 'FAILED') {
-        await PaymentService.handleFailure(tran_id);
-      } else if (status === 'CANCELLED') {
-        await PaymentService.handleCancellation(tran_id);
+        await PaymentService.validateAndComplete(tranId, valId);
+      } else {
+        await PaymentService.markPaymentFailed(tranId, `IPN status: ${status}`);
       }
 
       return res.status(200).json({ message: 'IPN processed' });
@@ -170,6 +162,12 @@ export class PaymentController {
         return res.status(404).json({ error: 'Payment not found' });
       }
 
+      const isAuthorized = req.user && (
+        req.user.username === payment.user_id || 
+        req.user.role === 'SUPER_ADMIN' || 
+        req.user.role === 'ADMIN'
+      );
+
       return res.status(200).json({
         tranId: payment.tran_id,
         status: payment.status,
@@ -178,8 +176,8 @@ export class PaymentController {
         ticketName: payment.ticket_name,
         eventTitle: payment.event_title,
         eventSlug: payment.event_slug,
-        qrToken: payment.qr_token,
-        email: payment.email,
+        qrToken: isAuthorized ? payment.qr_token : undefined,
+        email: isAuthorized ? payment.email : undefined,
         paymentMethod: payment.payment_method,
         paidAt: payment.paid_at,
       });

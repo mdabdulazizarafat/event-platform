@@ -1,13 +1,13 @@
 import { Request, Response } from 'express';
-import { pool } from '../db/pool';
+import prisma from '../lib/prisma';
 import { createChildLogger } from '../lib/logger';
+import { getEmailQueue } from '../services/registration.service';
 
 const logger = createChildLogger('ticket.controller');
 
 export class TicketController {
   /**
-   * Verify participant QR token and mark them checked-in
-   * Strict authorization checks: Ensures only the Event Host can change participant attendance status.
+   * Verify participant QR token and mark them checked-in.
    */
   static async verifyScan(req: Request, res: Response) {
     try {
@@ -23,25 +23,22 @@ export class TicketController {
 
       const activeHost = req.user.username;
 
-      // 1. Fetch the registration and event metadata using the token
-      const registrationQuery = `
-        SELECT r.id as registration_id, r.event_id, r.user_id, r.email, r.status, e.title as event_title, e.organizer_username
-        FROM registrations r
-        JOIN events e ON r.event_id = e.id
-        WHERE r.qr_token = $1;
-      `;
-      const regRes = await pool.query(registrationQuery, [qrToken]);
+      const registration = await prisma.registration.findUnique({
+        where: { qrToken },
+        include: {
+          event: {
+            select: { id: true, title: true, organizerUsername: true },
+          },
+        },
+      });
 
-      if (regRes.rowCount === 0) {
+      if (!registration) {
         return res.status(404).json({ error: 'Ticket invalid: Registration not found' });
       }
 
-      const registration = regRes.rows[0];
-
-      // 2. Strict Authorization Check: Only the Host who published the event can check-in participants
-      if (registration.organizer_username !== activeHost) {
-        return res.status(403).json({ 
-          error: 'Unauthorized: Only the host of this event can perform ticket verification and check-ins.' 
+      if (registration.event.organizerUsername !== activeHost) {
+        return res.status(403).json({
+          error: 'Unauthorized: Only the host of this event can perform ticket verification and check-ins.',
         });
       }
 
@@ -54,61 +51,56 @@ export class TicketController {
           message: 'Already checked in',
           alreadyCheckedIn: true,
           participant: {
-            userId: registration.user_id,
+            userId: registration.userId,
             email: registration.email,
             status: registration.status,
-            eventTitle: registration.event_title,
-          }
+            eventTitle: registration.event.title,
+          },
         });
       }
 
-      // 3. Perform atomic update changing attendance status and log check-in activity
-      const client = await pool.connect();
-      try {
-        await client.query('BEGIN');
+      await prisma.$transaction(async (tx: any) => {
+        await tx.registration.update({
+          where: { id: registration.id },
+          data: { status: 'CHECKED_IN' },
+        });
 
-        const updateQuery = `
-          UPDATE registrations 
-          SET status = 'CHECKED_IN'
-          WHERE id = $1 AND event_id = $2
-          RETURNING status;
-        `;
-        await client.query(updateQuery, [registration.registration_id, registration.event_id]);
+        let activity = await tx.eventActivity.findFirst({
+          where: { eventId: registration.eventId, name: 'Check-in' },
+        });
 
-        // Find or create default Check-in activity
-        let activityId: number;
-        const activityRes = await client.query("SELECT id FROM event_activities WHERE event_id = $1 AND name = 'Check-in'", [registration.event_id]);
-        if (activityRes.rows.length > 0) {
-          activityId = activityRes.rows[0].id;
-        } else {
-          const insertAct = await client.query("INSERT INTO event_activities (event_id, name, scan_limit, sort_order) VALUES ($1, 'Check-in', 1, 0) RETURNING id", [registration.event_id]);
-          activityId = insertAct.rows[0].id;
+        if (!activity) {
+          activity = await tx.eventActivity.create({
+            data: { eventId: registration.eventId, name: 'Check-in', scanLimit: 1, sortOrder: 0 },
+          });
         }
 
-        // Insert into activity_scans
-        await client.query(`
-          INSERT INTO activity_scans (registration_id, event_id, activity_id, scanned_by)
-          VALUES ($1, $2, $3, $4)
-          ON CONFLICT (registration_id, activity_id) DO NOTHING
-        `, [registration.registration_id, registration.event_id, activityId, activeHost]);
-
-        await client.query('COMMIT');
-      } catch (err) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw err;
-      } finally {
-        client.release();
-      }
+        await tx.activityScan.upsert({
+          where: {
+            registrationId_activityId: {
+              registrationId: registration.id,
+              activityId: activity.id,
+            },
+          },
+          update: { scannedBy: activeHost, scannedAt: new Date() },
+          create: {
+            registrationId: registration.id,
+            eventId: registration.eventId,
+            activityId: activity.id,
+            scannedBy: activeHost,
+          },
+        });
+      });
 
       return res.status(200).json({
         message: 'Ticket verified successfully',
         alreadyCheckedIn: false,
         participant: {
-          userId: registration.user_id,
+          userId: registration.userId,
           email: registration.email,
           status: 'CHECKED_IN',
-          eventTitle: registration.event_title,
-        }
+          eventTitle: registration.event.title,
+        },
       });
     } catch (error: any) {
       logger.error({ err: error }, 'Error verifying ticket scan');
@@ -117,8 +109,7 @@ export class TicketController {
   }
 
   /**
-   * Sync a batch of offline check-ins back to Express.
-   * Atomic transactional updates verifying event hosts.
+   * Sync a batch of offline check-ins in optimized batch queries.
    */
   static async syncOffline(req: Request, res: Response) {
     if (!req.user) {
@@ -131,78 +122,95 @@ export class TicketController {
     }
 
     const activeHost = req.user.username;
-    const client = await pool.connect();
 
     try {
-      await client.query('BEGIN');
+      const validQrTokens = scans.map((s: any) => s.qrToken).filter(Boolean);
+      if (validQrTokens.length === 0) {
+        return res.status(200).json({ message: 'No valid tokens provided', syncedCount: 0, syncedTokens: [], errors: [] });
+      }
+
+      // Batch query 1: Fetch all registrations in ONE query
+      const registrations = await prisma.registration.findMany({
+        where: { qrToken: { in: validQrTokens } },
+        include: {
+          event: { select: { id: true, organizerUsername: true } },
+        },
+      });
+
+      const regMap = new Map<string, any>(registrations.map((r: any) => [r.qrToken, r]));
       const syncedTokens: string[] = [];
       const errors: string[] = [];
-      const eventActivities: Record<number, number> = {};
+      const regIdsToUpdate: bigint[] = [];
+      const eventIdsSet = new Set<number>();
 
       for (const scan of scans) {
         const { qrToken } = scan;
         if (!qrToken) continue;
 
-        // Fetch registration and event info
-        const query = `
-          SELECT r.id, r.event_id, e.organizer_username, r.status
-          FROM registrations r
-          JOIN events e ON r.event_id = e.id
-          WHERE r.qr_token = $1
-        `;
-        const regRes = await client.query(query, [qrToken]);
-
-        if (regRes.rowCount === 0) {
+        const reg = regMap.get(qrToken);
+        if (!reg) {
           errors.push(`Token "${qrToken}" is invalid: registration not found`);
           continue;
         }
 
-        const registration = regRes.rows[0];
-
-        // Authorization check: only the event host can sync check-ins
-        if (registration.organizer_username !== activeHost) {
+        if (reg.event.organizerUsername !== activeHost) {
           errors.push(`Token "${qrToken}" unauthorized: host mismatch`);
           continue;
         }
 
-        if (registration.status === 'CANCELLED') {
+        if (reg.status === 'CANCELLED') {
           errors.push(`Token "${qrToken}" is invalid: registration has been cancelled`);
           continue;
         }
 
-        if (registration.status !== 'CHECKED_IN') {
-          const updateQuery = `
-            UPDATE registrations
-            SET status = 'CHECKED_IN'
-            WHERE id = $1 AND event_id = $2
-          `;
-          await client.query(updateQuery, [registration.id, registration.event_id]);
+        if (reg.status !== 'CHECKED_IN') {
+          regIdsToUpdate.push(reg.id);
         }
-
-        // Find or create default Check-in activity (cache in-memory per event_id to minimize queries)
-        let activityId = eventActivities[registration.event_id];
-        if (!activityId) {
-          const activityRes = await client.query("SELECT id FROM event_activities WHERE event_id = $1 AND name = 'Check-in'", [registration.event_id]);
-          if (activityRes.rows.length > 0) {
-            activityId = activityRes.rows[0].id;
-          } else {
-            const insertAct = await client.query("INSERT INTO event_activities (event_id, name, scan_limit, sort_order) VALUES ($1, 'Check-in', 1, 0) RETURNING id", [registration.event_id]);
-            activityId = insertAct.rows[0].id;
-          }
-          eventActivities[registration.event_id] = activityId;
-        }
-
-        // Log to activity_scans
-        await client.query(`
-          INSERT INTO activity_scans (registration_id, event_id, activity_id, scanned_by)
-          VALUES ($1, $2, $3, $4)
-          ON CONFLICT (registration_id, activity_id) DO NOTHING
-        `, [registration.id, registration.event_id, activityId, activeHost]);
-
+        eventIdsSet.add(reg.eventId);
         syncedTokens.push(qrToken);
       }
 
-      await client.query('COMMIT');
+      // Batch update registration status
+      if (regIdsToUpdate.length > 0) {
+        await prisma.registration.updateMany({
+          where: { id: { in: regIdsToUpdate } },
+          data: { status: 'CHECKED_IN' },
+        });
+      }
+
+      // Ensure Check-in activity exists for each event
+      const eventActivitiesMap = new Map<number, number>();
+      for (const eventId of Array.from(eventIdsSet)) {
+        let activity = await prisma.eventActivity.findFirst({
+          where: { eventId, name: 'Check-in' },
+        });
+        if (!activity) {
+          activity = await prisma.eventActivity.create({
+            data: { eventId, name: 'Check-in', scanLimit: 1, sortOrder: 0 },
+          });
+        }
+        eventActivitiesMap.set(eventId, activity.id);
+      }
+
+      // Batch log scans
+      const scansToCreate = syncedTokens.map((token: string) => {
+        const reg = regMap.get(token)!;
+        const activityId = eventActivitiesMap.get(reg.eventId)!;
+        return {
+          registrationId: reg.id,
+          eventId: reg.eventId,
+          activityId,
+          scannedBy: activeHost,
+        };
+      });
+
+      if (scansToCreate.length > 0) {
+        await prisma.activityScan.createMany({
+          data: scansToCreate,
+          skipDuplicates: true,
+        });
+      }
+
       return res.status(200).json({
         message: 'Batch synchronization completed',
         syncedCount: syncedTokens.length,
@@ -210,11 +218,8 @@ export class TicketController {
         errors,
       });
     } catch (err: any) {
-      await client.query('ROLLBACK');
       logger.error({ err }, 'Offline sync database failure');
       return res.status(500).json({ error: 'Database transaction failed during batch synchronization' });
-    } finally {
-      client.release();
     }
   }
 
@@ -226,47 +231,47 @@ export class TicketController {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const ticketId = parseInt(req.params.id);
+    const ticketId = BigInt(req.params.id);
     const { email: newEmail } = req.body;
     const activeHost = req.user.username;
 
     try {
-      // Fetch current registration details
-      const query = `
-        SELECT r.id, r.event_id, r.email, r.qr_token, e.organizer_username
-        FROM registrations r
-        JOIN events e ON r.event_id = e.id
-        WHERE r.id = $1
-      `;
-      const regRes = await pool.query(query, [ticketId]);
-      if (regRes.rowCount === 0) {
+      const registration = await prisma.registration.findUnique({
+        where: { id: ticketId },
+        include: {
+          event: { select: { id: true, organizerUsername: true } },
+        },
+      });
+
+      if (!registration) {
         return res.status(404).json({ error: 'Registration ticket not found' });
       }
 
-      const registration = regRes.rows[0];
+      const isPlatformAdmin = req.user.role === 'SUPER_ADMIN' || req.user.role === 'ADMIN';
+      const isHost = registration.event.organizerUsername === activeHost;
+      let isTeamOrganizer = false;
 
-      // Authorization check
-      if (registration.organizer_username !== activeHost) {
-        return res.status(403).json({ error: 'Unauthorized: Only the event host can resend this ticket.' });
+      if (!isPlatformAdmin && !isHost) {
+        const teamCheck = await prisma.eventTeam.findFirst({
+          where: { eventId: registration.eventId, username: activeHost, role: 'ORGANIZER' },
+        });
+        isTeamOrganizer = !!teamCheck;
+      }
+
+      if (!isPlatformAdmin && !isHost && !isTeamOrganizer) {
+        return res.status(403).json({ error: 'Unauthorized: Only event organizers and administrators can resend this ticket.' });
       }
 
       const targetEmail = newEmail || registration.email;
 
-      // Update email and reset status to CONFIRMED
-      const updateQuery = `
-        UPDATE registrations
-        SET email = $1, status = 'CONFIRMED'
-        WHERE id = $2 AND event_id = $3
-        RETURNING email, qr_token;
-      `;
-      const updateRes = await pool.query(updateQuery, [targetEmail, registration.id, registration.event_id]);
-      const { email, qr_token: qrToken } = updateRes.rows[0];
+      const updated = await prisma.registration.update({
+        where: { id: ticketId },
+        data: { email: targetEmail, status: 'CONFIRMED' },
+      });
 
-      // Re-enqueue BullMQ job
-      const { getEmailQueue } = require('../services/registration.service');
       await getEmailQueue().add(
         'sendConfirmationEmail',
-        { email, eventId: registration.event_id, registrationId: registration.id, qrToken },
+        { email: updated.email, eventId: registration.eventId, registrationId: Number(registration.id), qrToken: updated.qrToken },
         { attempts: 3, backoff: { type: 'exponential', delay: 2000 } }
       );
 
@@ -279,51 +284,50 @@ export class TicketController {
 
   /**
    * Cancel ticket: update status to CANCELLED and enqueue cancellation email.
-   * Strict authorization checks: Ensures only the Event Host can cancel the ticket.
    */
   static async cancelTicket(req: Request, res: Response) {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const ticketId = parseInt(req.params.id);
+    const ticketId = BigInt(req.params.id);
     const activeHost = req.user.username;
 
     try {
-      // Fetch current registration details
-      const query = `
-        SELECT r.id, r.event_id, r.email, r.qr_token, e.organizer_username
-        FROM registrations r
-        JOIN events e ON r.event_id = e.id
-        WHERE r.id = $1
-      `;
-      const regRes = await pool.query(query, [ticketId]);
-      if (regRes.rowCount === 0) {
+      const registration = await prisma.registration.findUnique({
+        where: { id: ticketId },
+        include: {
+          event: { select: { id: true, organizerUsername: true } },
+        },
+      });
+
+      if (!registration) {
         return res.status(404).json({ error: 'Registration ticket not found' });
       }
 
-      const registration = regRes.rows[0];
+      const isPlatformAdmin = req.user.role === 'SUPER_ADMIN' || req.user.role === 'ADMIN';
+      const isHost = registration.event.organizerUsername === activeHost;
+      let isTeamOrganizer = false;
 
-      // Authorization check
-      if (registration.organizer_username !== activeHost) {
-        return res.status(403).json({ error: 'Unauthorized: Only the event host can cancel this ticket.' });
+      if (!isPlatformAdmin && !isHost) {
+        const teamCheck = await prisma.eventTeam.findFirst({
+          where: { eventId: registration.eventId, username: activeHost, role: 'ORGANIZER' },
+        });
+        isTeamOrganizer = !!teamCheck;
       }
 
-      // Perform atomic update changing status to CANCELLED
-      const updateQuery = `
-        UPDATE registrations
-        SET status = 'CANCELLED'
-        WHERE id = $1 AND event_id = $2
-        RETURNING email, qr_token;
-      `;
-      const updateRes = await pool.query(updateQuery, [registration.id, registration.event_id]);
-      const { email, qr_token: qrToken } = updateRes.rows[0];
+      if (!isPlatformAdmin && !isHost && !isTeamOrganizer) {
+        return res.status(403).json({ error: 'Unauthorized: Only event organizers and administrators can cancel this ticket.' });
+      }
 
-      // Enqueue cancellation email BullMQ job
-      const { getEmailQueue } = require('../services/registration.service');
+      const updated = await prisma.registration.update({
+        where: { id: ticketId },
+        data: { status: 'CANCELLED' },
+      });
+
       await getEmailQueue().add(
         'sendCancellationEmail',
-        { email, eventId: registration.event_id, registrationId: registration.id, qrToken },
+        { email: updated.email, eventId: registration.eventId, registrationId: Number(registration.id), qrToken: updated.qrToken },
         { attempts: 3, backoff: { type: 'exponential', delay: 2000 } }
       );
 
@@ -335,7 +339,7 @@ export class TicketController {
   }
 
   /**
-   * Fetch all registered events for the logged-in participant.
+   * Fetch all registered events for the logged-in participant with scan history.
    * GET /api/v1/tickets/my-registrations
    */
   static async myRegistrations(req: Request, res: Response) {
@@ -346,53 +350,72 @@ export class TicketController {
     try {
       const username = req.user.username;
 
-      // 1. Fetch all registrations for this user (both as leader and team member)
-      const query = `
-        SELECT DISTINCT r.id, r.event_id, r.email, r.status, r.payment_status, r.qr_token, r.registered_at,
-          e.title as event_title, e.date as event_date, e.time as event_time, e.location as event_location, e.slug as event_slug, e.contact_email, e.contact_phone,
-          (
-            SELECT jsonb_agg(json_build_object('id', ttt.id, 'name', ttt.name, 'price', ttt.price, 'currency', ttt.currency))
-            FROM ticket_types ttt
-            WHERE ttt.id = r.ticket_type_id
-          ) as tickets,
-          rt.team_name,
-          (r.user_id = $1) as is_leader
-        FROM registrations r
-        JOIN events e ON r.event_id = e.id
-        LEFT JOIN registration_teams rt ON rt.leader_registration_id = r.id
-        LEFT JOIN registration_team_members rtm ON rtm.team_id = rt.id
-        WHERE r.user_id = $1 OR rtm.username = $1
-        ORDER BY r.registered_at DESC;
-      `;
-      const regRes = await pool.query(query, [username]);
-      const registrations = regRes.rows;
-
-      if (registrations.length === 0) {
-        return res.status(200).json([]);
-      }
-
-      // 2. Fetch all scan activity logs for these registrations to show checkpoint updates
-      const regIds = registrations.map(r => r.id);
-      const logsQuery = `
-        SELECT al.registration_id, al.scanned_at, ea.name as activity_name
-        FROM activity_scans al
-        JOIN event_activities ea ON al.activity_id = ea.id
-        WHERE al.registration_id = ANY($1::bigint[]);
-      `;
-      const logsRes = await pool.query(logsQuery, [regIds]);
-      const logs = logsRes.rows;
-
-      // 3. Map logs to their respective registrations
-      const enriched = registrations.map(reg => {
-        const regLogs = logs.filter(log => log.registration_id === reg.id);
-        return {
-          ...reg,
-          scanHistory: regLogs.map(l => ({
-            activityName: l.activity_name,
-            scannedAt: l.scanned_at
-          }))
-        };
+      const registrations = await prisma.registration.findMany({
+        where: {
+          OR: [
+            { userId: username },
+            {
+              ledRegistrationTeams: {
+                some: {
+                  members: { some: { username } },
+                },
+              },
+            },
+          ],
+        },
+        include: {
+          event: {
+            select: {
+              id: true,
+              title: true,
+              date: true,
+              time: true,
+              location: true,
+              slug: true,
+              contactEmail: true,
+              contactPhone: true,
+            },
+          },
+          ticketType: {
+            select: { id: true, name: true, price: true, currency: true },
+          },
+          ledRegistrationTeams: {
+            select: { teamName: true },
+          },
+          activityScans: {
+            include: {
+              activity: { select: { name: true } },
+            },
+            orderBy: { scannedAt: 'desc' },
+          },
+        },
+        orderBy: { registeredAt: 'desc' },
       });
+
+      const enriched = registrations.map((r: any) => ({
+        id: Number(r.id),
+        event_id: r.eventId,
+        email: r.email,
+        status: r.status,
+        payment_status: r.paymentStatus,
+        qr_token: r.qrToken,
+        registered_at: r.registeredAt,
+        event_title: r.event.title,
+        event_date: r.event.date,
+        event_time: r.event.time,
+        event_location: r.event.location,
+        event_slug: r.event.slug,
+        contact_email: r.event.contactEmail,
+        contact_phone: r.event.contactPhone,
+        ticket_name: r.ticketType?.name || null,
+        tickets: r.ticketType ? [r.ticketType] : [],
+        team_name: r.ledRegistrationTeams[0]?.teamName || null,
+        is_leader: r.userId === username,
+        scanHistory: r.activityScans.map((s: any) => ({
+          activityName: s.activity.name,
+          scannedAt: s.scannedAt,
+        })),
+      }));
 
       return res.status(200).json(enriched);
     } catch (err: any) {

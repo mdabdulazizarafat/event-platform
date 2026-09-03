@@ -126,19 +126,51 @@ function mapBackendEventToFrontend(e: any): Event {
   };
 }
 
-export async function getUpcomingEvents(): Promise<Event[]> {
+export interface PaginatedEventsResult {
+  data: Event[];
+  nextCursor: number | null;
+  hasMore: boolean;
+  total: number;
+}
+
+export async function fetchEventsPaginated(params: {
+  limit?: number;
+  cursor?: number;
+  page?: number;
+  search?: string;
+  category?: string;
+  status?: string;
+} = {}): Promise<PaginatedEventsResult> {
   try {
-    const response = await fetch('/api/v1/events');
+    const query = new URLSearchParams();
+    if (params.limit) query.set('limit', String(params.limit));
+    if (params.cursor) query.set('cursor', String(params.cursor));
+    if (params.page) query.set('page', String(params.page));
+    if (params.search) query.set('search', params.search);
+    if (params.category && params.category !== 'All') query.set('category', params.category);
+    if (params.status && params.status !== 'All') query.set('status', params.status);
+
+    const response = await fetch(`/api/v1/events?${query.toString()}`);
     if (!response.ok) throw new Error('Backend response not ok');
-    const data = await response.json();
-    const eventsArray = Array.isArray(data) ? data : (data.data || data.events || []);
-    if (eventsArray.length > 0) {
-      return eventsArray.map(mapBackendEventToFrontend);
-    }
-  } catch {
-    // Return empty on error
+    const res = await response.json();
+
+    const eventsArray = Array.isArray(res) ? res : (res.data || []);
+    const items = eventsArray.map(mapBackendEventToFrontend);
+
+    return {
+      data: items,
+      nextCursor: res.nextCursor || null,
+      hasMore: res.hasMore !== undefined ? res.hasMore : false,
+      total: res.pagination?.total || items.length,
+    };
+  } catch (err) {
+    return { data: [], nextCursor: null, hasMore: false, total: 0 };
   }
-  return [];
+}
+
+export async function getUpcomingEvents(): Promise<Event[]> {
+  const result = await fetchEventsPaginated({ limit: 50 });
+  return result.data;
 }
 
 export async function getEventBySlug(slug: string): Promise<Event | null> {
@@ -158,16 +190,13 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
 
 export async function getEventsByOrganizer(organizerUsername: string): Promise<Event[]> {
   try {
-    const response = await fetch('/api/v1/events');
+    const response = await fetch(`/api/v1/events?search=${encodeURIComponent(organizerUsername)}`);
     if (response.ok) {
       const data = await response.json();
-      const eventsArray = Array.isArray(data) ? data : (data.data || data.events || []);
-      if (eventsArray.length > 0) {
-        const filtered = eventsArray.filter((e: any) => (e.organizer_username || e.organizerUsername) === organizerUsername);
-        if (filtered.length > 0) {
-          return filtered.map(mapBackendEventToFrontend);
-        }
-      }
+      const eventsArray = Array.isArray(data) ? data : (data.data || []);
+      return eventsArray
+        .filter((e: any) => (e.organizer_username || e.organizerUsername) === organizerUsername)
+        .map(mapBackendEventToFrontend);
     }
   } catch {
     // Error fetching events

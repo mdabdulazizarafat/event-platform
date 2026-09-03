@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { pool } from '../db/pool';
+import prisma from '../lib/prisma';
 import { createChildLogger } from '../lib/logger';
 
 const logger = createChildLogger('schedule.controller');
@@ -14,13 +14,25 @@ export class ScheduleController {
         return res.status(400).json({ error: 'Missing required schedule fields' });
       }
 
-      const result = await pool.query(`
-        INSERT INTO schedules (event_slug, title, date, start_time, end_time, room, speaker, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, 'CONFIRMED')
-        RETURNING *
-      `, [slug, title, date, start_time, end_time, room, speaker]);
+      const schedule = await prisma.schedule.create({
+        data: {
+          eventSlug: slug,
+          title,
+          date,
+          startTime: start_time,
+          endTime: end_time,
+          room: room || '',
+          speaker: speaker || '',
+          status: 'CONFIRMED',
+        },
+      });
 
-      return res.status(201).json(result.rows[0]);
+      return res.status(201).json({
+        ...schedule,
+        event_slug: schedule.eventSlug,
+        start_time: schedule.startTime,
+        end_time: schedule.endTime,
+      });
     } catch (error: any) {
       logger.error({ err: error }, 'Error creating schedule');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -30,11 +42,19 @@ export class ScheduleController {
   static async list(req: Request, res: Response) {
     try {
       const { slug } = req.params;
-      const result = await pool.query(`
-        SELECT * FROM schedules WHERE event_slug = $1 ORDER BY date ASC, start_time ASC
-      `, [slug]);
+      const schedules = await prisma.schedule.findMany({
+        where: { eventSlug: slug },
+        orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+      });
 
-      return res.status(200).json(result.rows);
+      const formatted = schedules.map((s: any) => ({
+        ...s,
+        event_slug: s.eventSlug,
+        start_time: s.startTime,
+        end_time: s.endTime,
+      }));
+
+      return res.status(200).json(formatted);
     } catch (error: any) {
       logger.error({ err: error }, 'Error fetching schedules');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -44,9 +64,12 @@ export class ScheduleController {
   static async delete(req: Request, res: Response) {
     try {
       const { slug, id } = req.params;
-      
-      await pool.query('DELETE FROM schedules WHERE id = $1 AND event_slug = $2', [id, slug]);
-      
+      const scheduleId = parseInt(id, 10);
+
+      await prisma.schedule.deleteMany({
+        where: { id: scheduleId, eventSlug: slug },
+      });
+
       return res.status(200).json({ message: 'Schedule deleted successfully' });
     } catch (error: any) {
       logger.error({ err: error }, 'Error deleting schedule');

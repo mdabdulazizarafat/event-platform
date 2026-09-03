@@ -340,15 +340,14 @@ function OrganizerDashboardView() {
     async function loadDashboardData() {
       try {
         const [eventsRes, statsRes] = await Promise.all([
-          fetch('/api/v1/events'),
+          fetch('/api/v1/events/my-managed'),
           fetch('/api/v1/events/dashboard-stats')
         ]);
 
         if (eventsRes.ok) {
           const data = await eventsRes.json();
           const list = Array.isArray(data) ? data : (data.data || []);
-          const hostEvents = list.filter((e: any) => e.organizer_username === user?.username || e.is_team_member);
-          setEvents(hostEvents);
+          setEvents(list);
         }
 
         if (statsRes.ok) {

@@ -137,50 +137,36 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
     try {
       const isPaid = ticket && parseFloat(ticket.price) > 0;
       
-      if (isPaid && !transactionId) {
-        // Route to payment page with details in query params
-        const qs = new URLSearchParams({
-          ticketId: ticketId.toString(),
-          name, 
-          email, 
-          phone, 
-          institution,
-          jobTitle: classOrPosition,
-          tshirtSize,
-          reference,
-          transactionId,
-          teamName: ticket.is_team ? teamName : '',
-          teamMembers: ticket.is_team ? JSON.stringify(teamMembers.filter(m => m.trim())) : '',
-        });
-        router.push(`/events/${slug}/checkout/payment?${qs.toString()}`);
-      } else {
-        // Register immediately for free tickets
-        const res = await fetch(`/api/v1/events/${slug}/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: user.username,
-            email: email,
-            ticketTypeId: ticketId,
-            fullName: name,
-            phone: phone,
-            organization: institution,
-            jobTitle: classOrPosition,
-            tshirtSize: event?.form_tshirt_size ? tshirtSize : undefined,
-            reference: event?.form_reference ? reference : undefined,
-            transactionId: event?.form_transaction_id ? transactionId : undefined,
-            teamName: ticket?.is_team ? teamName : undefined,
-            teamMembers: ticket?.is_team ? teamMembers.filter(m => m.trim()) : undefined,
-          })
-        });
+      if (isPaid && !transactionId.trim()) {
+        message.error('Please enter your bKash / mobile banking transaction ID to complete registration');
+        setSubmitting(false);
+        return;
+      }
 
-        if (res.ok) {
-          const data = await res.json();
-          router.push(`/events/${slug}/checkout/confirmation?regId=${data.registrationId}&token=${data.qrToken}`);
-        } else {
-          const err = await res.json();
-          message.error(err.error || 'Registration failed');
-        }
+      // Register directly with manual transaction ID
+      const res = await fetch(`/api/v1/events/${slug}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticketTypeId: ticketId,
+          fullName: name,
+          phone: phone,
+          organization: institution,
+          jobTitle: classOrPosition,
+          tshirtSize: event?.form_tshirt_size ? tshirtSize : undefined,
+          reference: event?.form_reference ? reference : undefined,
+          transactionId: transactionId.trim() || undefined,
+          teamName: ticket?.is_team ? teamName : undefined,
+          teamMembers: ticket?.is_team ? teamMembers.filter(m => m.trim()) : undefined,
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        router.push(`/events/${slug}/checkout/confirmation?regId=${data.registrationId}&token=${encodeURIComponent(data.qrToken)}`);
+      } else {
+        const err = await res.json();
+        message.error(err.error || 'Registration failed');
       }
     } catch (err: any) {
       message.error(err.message || 'An error occurred during registration');
@@ -304,7 +290,7 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
                   />
                 )}
 
-                {event?.form_transaction_id && (
+                {(event?.form_transaction_id || (ticket && parseFloat(ticket.price) > 0)) && (
                   <div className="space-y-4">
                     {(event?.payment_instructions || event?.bkash_number) && (
                       <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">

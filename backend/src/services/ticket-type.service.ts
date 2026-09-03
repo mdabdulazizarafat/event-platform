@@ -1,4 +1,4 @@
-import { pool } from '../db/pool';
+import prisma from '../lib/prisma';
 
 export interface CreateTicketTypeInput {
   eventId: number;
@@ -32,159 +32,203 @@ export class TicketTypeService {
    * Create a new ticket type for an event.
    */
   static async createTicketType(input: CreateTicketTypeInput) {
-    const query = `
-      INSERT INTO ticket_types (event_id, name, description, price, currency, capacity, sort_order, sale_start, sale_end, is_team, max_team_size)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *;
-    `;
-    const res = await pool.query(query, [
-      input.eventId,
-      input.name,
-      input.description || null,
-      input.price,
-      input.currency || 'BDT',
-      input.capacity || null,
-      input.sortOrder || 0,
-      input.saleStart || null,
-      input.saleEnd || null,
-      input.isTeam !== undefined ? input.isTeam : false,
-      input.maxTeamSize || 1,
-    ]);
-    return res.rows[0];
+    const tt = await prisma.ticketType.create({
+      data: {
+        eventId: input.eventId,
+        name: input.name,
+        description: input.description || null,
+        price: input.price,
+        currency: input.currency || 'BDT',
+        capacity: input.capacity || null,
+        sortOrder: input.sortOrder || 0,
+        saleStart: input.saleStart ? new Date(input.saleStart) : null,
+        saleEnd: input.saleEnd ? new Date(input.saleEnd) : null,
+        isTeam: input.isTeam !== undefined ? input.isTeam : false,
+        maxTeamSize: input.maxTeamSize || 1,
+      },
+    });
+
+    return {
+      ...tt,
+      event_id: tt.eventId,
+      sort_order: tt.sortOrder,
+      is_active: tt.isActive,
+      is_team: tt.isTeam,
+      max_team_size: tt.maxTeamSize,
+      sale_start: tt.saleStart,
+      sale_end: tt.saleEnd,
+      created_at: tt.createdAt,
+      updated_at: tt.updatedAt,
+    };
   }
 
   /**
-   * Get all active ticket types for an event, ordered by sort_order.
+   * Get all active ticket types for an event with sold count.
    */
   static async getTicketTypesByEvent(eventId: number) {
-    const query = `
-      SELECT tt.*, 
-        COALESCE(
-          (SELECT COUNT(DISTINCT r.id) 
-           FROM registrations r 
-           LEFT JOIN registration_ticket_types rtt ON r.id = rtt.registration_id 
-           WHERE r.event_id = tt.event_id 
-             AND (r.ticket_type_id = tt.id OR rtt.ticket_type_id = tt.id) 
-             AND r.status != 'CANCELLED'),
-          0
-        )::INTEGER AS sold_count
-      FROM ticket_types tt
-      WHERE tt.event_id = $1 AND tt.is_active = true
-      ORDER BY tt.sort_order ASC, tt.created_at ASC;
-    `;
-    const res = await pool.query(query, [eventId]);
-    return res.rows;
+    const ticketTypes = await prisma.ticketType.findMany({
+      where: { eventId, isActive: true },
+      include: {
+        _count: {
+          select: {
+            registrations: {
+              where: { status: { not: 'CANCELLED' } },
+            },
+          },
+        },
+      },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    return ticketTypes.map((tt: any) => ({
+      ...tt,
+      event_id: tt.eventId,
+      sort_order: tt.sortOrder,
+      is_active: tt.isActive,
+      is_team: tt.isTeam,
+      max_team_size: tt.maxTeamSize,
+      sale_start: tt.saleStart,
+      sale_end: tt.saleEnd,
+      created_at: tt.createdAt,
+      updated_at: tt.updatedAt,
+      sold_count: tt._count.registrations,
+    }));
   }
 
   /**
-   * Get all ticket types (including inactive) for host management.
+   * Get all ticket types for host management.
    */
   static async getAllTicketTypesByEvent(eventId: number) {
-    const query = `
-      SELECT tt.*,
-        COALESCE(
-          (SELECT COUNT(DISTINCT r.id) 
-           FROM registrations r 
-           LEFT JOIN registration_ticket_types rtt ON r.id = rtt.registration_id 
-           WHERE r.event_id = tt.event_id 
-             AND (r.ticket_type_id = tt.id OR rtt.ticket_type_id = tt.id) 
-             AND r.status != 'CANCELLED'),
-          0
-        )::INTEGER AS sold_count
-      FROM ticket_types tt
-      WHERE tt.event_id = $1
-      ORDER BY tt.sort_order ASC, tt.created_at ASC;
-    `;
-    const res = await pool.query(query, [eventId]);
-    return res.rows;
+    const ticketTypes = await prisma.ticketType.findMany({
+      where: { eventId },
+      include: {
+        _count: {
+          select: {
+            registrations: {
+              where: { status: { not: 'CANCELLED' } },
+            },
+          },
+        },
+      },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    return ticketTypes.map((tt: any) => ({
+      ...tt,
+      event_id: tt.eventId,
+      sort_order: tt.sortOrder,
+      is_active: tt.isActive,
+      is_team: tt.isTeam,
+      max_team_size: tt.maxTeamSize,
+      sale_start: tt.saleStart,
+      sale_end: tt.saleEnd,
+      created_at: tt.createdAt,
+      updated_at: tt.updatedAt,
+      sold_count: tt._count.registrations,
+    }));
   }
 
   /**
    * Get a single ticket type by ID.
    */
   static async getTicketTypeById(id: number) {
-    const res = await pool.query('SELECT * FROM ticket_types WHERE id = $1', [id]);
-    return res.rows[0] || null;
+    const tt = await prisma.ticketType.findUnique({ where: { id } });
+    if (!tt) return null;
+
+    return {
+      ...tt,
+      event_id: tt.eventId,
+      sort_order: tt.sortOrder,
+      is_active: tt.isActive,
+      is_team: tt.isTeam,
+      max_team_size: tt.maxTeamSize,
+      sale_start: tt.saleStart,
+      sale_end: tt.saleEnd,
+      created_at: tt.createdAt,
+      updated_at: tt.updatedAt,
+    };
   }
 
   /**
    * Update a ticket type.
    */
   static async updateTicketType(id: number, input: UpdateTicketTypeInput) {
-    const fieldToColumnMap: Record<string, string> = {
-      name: 'name',
-      description: 'description',
-      price: 'price',
-      capacity: 'capacity',
-      sortOrder: 'sort_order',
-      isActive: 'is_active',
-      saleStart: 'sale_start',
-      saleEnd: 'sale_end',
-      isTeam: 'is_team',
-      maxTeamSize: 'max_team_size',
+    const updateData: any = {};
+    if (input.name !== undefined) updateData.name = input.name;
+    if (input.description !== undefined) updateData.description = input.description;
+    if (input.price !== undefined) updateData.price = input.price;
+    if (input.capacity !== undefined) updateData.capacity = input.capacity;
+    if (input.sortOrder !== undefined) updateData.sortOrder = input.sortOrder;
+    if (input.isActive !== undefined) updateData.isActive = input.isActive;
+    if (input.saleStart !== undefined) updateData.saleStart = input.saleStart ? new Date(input.saleStart) : null;
+    if (input.saleEnd !== undefined) updateData.saleEnd = input.saleEnd ? new Date(input.saleEnd) : null;
+    if (input.isTeam !== undefined) updateData.isTeam = input.isTeam;
+    if (input.maxTeamSize !== undefined) updateData.maxTeamSize = input.maxTeamSize;
+
+    const tt = await prisma.ticketType.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return {
+      ...tt,
+      event_id: tt.eventId,
+      sort_order: tt.sortOrder,
+      is_active: tt.isActive,
+      is_team: tt.isTeam,
+      max_team_size: tt.maxTeamSize,
+      sale_start: tt.saleStart,
+      sale_end: tt.saleEnd,
+      created_at: tt.createdAt,
+      updated_at: tt.updatedAt,
     };
-
-    const updates: string[] = [];
-    const values: any[] = [];
-
-    for (const [key, columnName] of Object.entries(fieldToColumnMap)) {
-      const val = (input as Record<string, any>)[key];
-      if (val !== undefined) {
-        values.push(val);
-        updates.push(`${columnName} = $${values.length}`);
-      }
-    }
-
-    if (updates.length === 0) {
-      return await this.getTicketTypeById(id);
-    }
-
-    values.push(id);
-    const query = `
-      UPDATE ticket_types
-      SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $${values.length}
-      RETURNING *;
-    `;
-    const res = await pool.query(query, values);
-    return res.rows[0];
   }
 
   /**
-   * Soft-delete a ticket type by setting is_active to false.
+   * Soft-delete a ticket type.
    */
   static async deactivateTicketType(id: number) {
-    const query = `
-      UPDATE ticket_types
-      SET is_active = false, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING *;
-    `;
-    const res = await pool.query(query, [id]);
-    return res.rows[0];
+    const tt = await prisma.ticketType.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    return {
+      ...tt,
+      event_id: tt.eventId,
+      sort_order: tt.sortOrder,
+      is_active: tt.isActive,
+      is_team: tt.isTeam,
+      max_team_size: tt.maxTeamSize,
+      sale_start: tt.saleStart,
+      sale_end: tt.saleEnd,
+      created_at: tt.createdAt,
+      updated_at: tt.updatedAt,
+    };
   }
 
   /**
    * Check if a ticket type has available capacity.
    */
   static async checkAvailability(ticketTypeId: number): Promise<{ available: boolean; remaining: number | null }> {
-    const ticketType = await this.getTicketTypeById(ticketTypeId);
+    const ticketType = await prisma.ticketType.findUnique({ where: { id: ticketTypeId } });
     if (!ticketType) {
       return { available: false, remaining: 0 };
     }
 
     if (!ticketType.capacity) {
-      // No per-ticket-type limit
       return { available: true, remaining: null };
     }
 
-    const countRes = await pool.query(
-      "SELECT COUNT(*) FROM registrations WHERE ticket_type_id = $1 AND event_id = $2 AND status != 'CANCELLED'",
-      [ticketTypeId, ticketType.event_id]
-    );
-    const soldCount = parseInt(countRes.rows[0].count);
-    const remaining = ticketType.capacity - soldCount;
+    const soldCount = await prisma.registration.count({
+      where: {
+        ticketTypeId,
+        eventId: ticketType.eventId,
+        status: { not: 'CANCELLED' },
+      },
+    });
 
+    const remaining = ticketType.capacity - soldCount;
     return { available: remaining > 0, remaining };
   }
 }

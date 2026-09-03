@@ -1,11 +1,10 @@
-import { pool } from '../db/pool';
+import prisma from '../lib/prisma';
 import { TicketTypeService } from './ticket-type.service';
 import { getEmailQueue, RegistrationService } from './registration.service';
 import { createChildLogger } from '../lib/logger';
 
 const logger = createChildLogger('payment.service');
 
-// SSLCommerz is loaded dynamically to avoid issues if not installed yet
 let SSLCommerzPayment: any = null;
 
 function getSSLCommerz() {
@@ -23,9 +22,6 @@ function getSSLCommerz() {
   return new SSLCommerzPayment(storeId, storePasswd, isLive);
 }
 
-/**
- * Generate a unique transaction ID for SSLCommerz.
- */
 function generateTranId(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -33,11 +29,6 @@ function generateTranId(): string {
 }
 
 export class PaymentService {
-  /**
-   * Initiate a payment session for a paid ticket.
-   * Creates a PENDING registration and PENDING payment record,
-   * then calls SSLCommerz init() to get the GatewayPageURL.
-   */
   static async initiatePayment(input: {
     eventId: number;
     eventSlug: string;
@@ -55,14 +46,11 @@ export class PaymentService {
     teamName?: string;
     teamMembers?: string[];
   }) {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-
+    const result = await prisma.$transaction(async (tx: any) => {
       // 1. Validate team and registration
       for (const ticketTypeId of input.ticketTypeIds) {
         await RegistrationService.validateTeamAndRegistration(
-          client,
+          tx,
           input.eventId,
           ticketTypeId,
           input.userId,
@@ -71,10 +59,10 @@ export class PaymentService {
         );
       }
 
-      // 2. Validate ticket types and calculate total price
+      // 2. Validate ticket types and calculate price
       let totalPrice = 0;
       let currency = 'BDT';
-      const ticketNames = [];
+      const ticketNames: string[] = [];
 
       for (const ticketTypeId of input.ticketTypeIds) {
         const ticketType = await TicketTypeService.getTicketTypeById(ticketTypeId);
@@ -85,17 +73,18 @@ export class PaymentService {
           throw new Error('This ticket type is no longer available.');
         }
 
-        totalPrice += parseFloat(ticketType.price || '0');
+        totalPrice += Number(ticketType.price || 0);
         currency = ticketType.currency || currency;
         ticketNames.push(ticketType.name);
 
-        // 3. Check per-ticket-type capacity
         if (ticketType.capacity) {
-          const countRes = await client.query(
-            "SELECT COUNT(*) FROM registrations WHERE ticket_type_id = $1 AND event_id = $2 AND status != 'CANCELLED'",
-            [ticketTypeId, input.eventId]
-          );
-          const soldCount = parseInt(countRes.rows[0].count);
+          const soldCount = await tx.registration.count({
+            where: {
+              ticketTypeId,
+              eventId: input.eventId,
+              status: { not: 'CANCELLED' },
+            },
+          });
           if (soldCount >= ticketType.capacity) {
             throw new Error(`Ticket type ${ticketType.name} is sold out.`);
           }
@@ -108,54 +97,57 @@ export class PaymentService {
 
       const primaryTicketTypeId = input.ticketTypeIds.length > 0 ? input.ticketTypeIds[0] : null;
 
-      // 4. Check global event capacity
-      const capacityRes = await client.query(
-        "SELECT capacity, (SELECT COUNT(*) FROM registrations WHERE event_id = $1 AND status != 'CANCELLED') as current_count FROM events WHERE id = $1",
-        [input.eventId]
-      );
-      if (capacityRes.rows[0]) {
-        const { capacity, current_count } = capacityRes.rows[0];
-        if (parseInt(current_count) >= capacity) {
-          throw new Error('Event is at capacity.');
-        }
+      // 3. Check event capacity
+      const event = await tx.event.findUnique({
+        where: { id: input.eventId },
+        select: { capacity: true },
+      });
+
+      const currentCount = await tx.registration.count({
+        where: { eventId: input.eventId, status: { not: 'CANCELLED' } },
+      });
+
+      if (!event || currentCount >= event.capacity) {
+        throw new Error('Event is at capacity.');
       }
 
-      // 5. Create PENDING registration
-      const registerQuery = `
-        INSERT INTO registrations (
-          event_id, ticket_type_id, user_id, email, status, payment_status,
-          full_name, phone, job_title, organization, tshirt_size, reference, transaction_id
-        )
-        VALUES ($1, $2, $3, $4, 'PENDING', 'PENDING', $5, $6, $7, $8, $9, $10, $11)
-        RETURNING id, qr_token;
-      `;
-      const regRes = await client.query(registerQuery, [
-        input.eventId,
-        primaryTicketTypeId,
-        input.userId,
-        input.email,
-        input.customerName,
-        input.customerPhone || null,
-        input.jobTitle || null,
-        input.organization || null,
-        input.tshirtSize || null,
-        input.reference || null,
-        input.transactionId || null,
-      ]);
-      const { id: registrationId, qr_token: qrToken } = regRes.rows[0];
+      // 4. Create PENDING registration
+      const registration = await tx.registration.create({
+        data: {
+          eventId: input.eventId,
+          ticketTypeId: primaryTicketTypeId,
+          userId: input.userId,
+          email: input.email,
+          status: 'PENDING',
+          paymentStatus: 'PENDING',
+          fullName: input.customerName,
+          phone: input.customerPhone || null,
+          jobTitle: input.jobTitle || null,
+          organization: input.organization || null,
+          tshirtSize: input.tshirtSize || null,
+          reference: input.reference || null,
+          transactionId: input.transactionId || null,
+        },
+      });
 
-      // Save to join table
-      for (const tId of input.ticketTypeIds) {
-        await client.query(
-          'INSERT INTO registration_ticket_types (registration_id, ticket_type_id) VALUES ($1, $2)',
-          [registrationId, tId]
-        );
+      const registrationId = registration.id;
+      const qrToken = registration.qrToken;
+
+      // Join table
+      if (input.ticketTypeIds.length > 0) {
+        await tx.registrationTicketType.createMany({
+          data: input.ticketTypeIds.map((tId) => ({
+            registrationId,
+            ticketTypeId: tId,
+          })),
+          skipDuplicates: true,
+        });
       }
 
-      // Save team and team members if applicable
+      // Team
       if (input.teamName && primaryTicketTypeId) {
         await RegistrationService.saveTeamAndMembers(
-          client,
+          tx,
           input.eventId,
           primaryTicketTypeId,
           registrationId,
@@ -164,27 +156,26 @@ export class PaymentService {
         );
       }
 
-      // 6. Create PENDING payment record
+      // Create Payment record
       const tranId = generateTranId();
-      const paymentQuery = `
-        INSERT INTO payments (registration_id, event_id, ticket_type_id, tran_id, amount, currency, status)
-        VALUES ($1, $2, $3, $4, $5, $6, 'PENDING')
-        RETURNING id;
-      `;
-      await client.query(paymentQuery, [
-        registrationId,
-        input.eventId,
-        primaryTicketTypeId,
-        tranId,
-        totalPrice,
-        currency,
-      ]);
+      await tx.payment.create({
+        data: {
+          registrationId,
+          eventId: input.eventId,
+          ticketTypeId: primaryTicketTypeId || 1,
+          tranId,
+          amount: totalPrice,
+          currency,
+          status: 'PENDING',
+        },
+      });
 
-      await client.query('COMMIT');
+      return { registrationId, qrToken, tranId, totalPrice, currency, ticketNames };
+    });
 
-      // 6. Call SSLCommerz init() to get GatewayPageURL
-      let gatewayUrl = 'http://localhost:3000/payment/mock-gateway';
-      if (process.env.NODE_ENV !== 'test' && process.env.SSLCOMMERZ_STORE_ID && process.env.SSLCOMMERZ_STORE_PASSWORD) {
+    let gatewayUrl = 'http://localhost:3000/payment/mock-gateway';
+    if (process.env.NODE_ENV !== 'test' && process.env.SSLCOMMERZ_STORE_ID && process.env.SSLCOMMERZ_STORE_PASSWORD) {
+      try {
         const sslcz = getSSLCommerz();
         const successUrl = process.env.SSLCOMMERZ_SUCCESS_URL || 'http://localhost:3000/payment/success';
         const failUrl = process.env.SSLCOMMERZ_FAIL_URL || 'http://localhost:3000/payment/fail';
@@ -192,15 +183,15 @@ export class PaymentService {
         const ipnUrl = process.env.SSLCOMMERZ_IPN_URL || 'http://localhost:3001/api/v1/payments/ipn';
 
         const sslData = {
-          total_amount: totalPrice,
-          currency: currency,
-          tran_id: tranId,
+          total_amount: result.totalPrice,
+          currency: result.currency,
+          tran_id: result.tranId,
           success_url: successUrl,
           fail_url: failUrl,
           cancel_url: cancelUrl,
           ipn_url: ipnUrl,
           shipping_method: 'NO',
-          product_name: `${input.eventTitle} - ${ticketNames.join(', ')}`,
+          product_name: `${input.eventTitle} - ${result.ticketNames.join(', ')}`,
           product_category: 'Event Ticket',
           product_profile: 'non-physical-goods',
           cus_name: input.customerName,
@@ -215,146 +206,139 @@ export class PaymentService {
           ship_city: 'N/A',
           ship_postcode: 'N/A',
           ship_country: 'Bangladesh',
-          value_a: registrationId.toString(),
+          value_a: result.registrationId.toString(),
           value_b: input.eventId.toString(),
           value_c: input.eventSlug,
-          value_d: qrToken,
+          value_d: result.qrToken,
         };
 
         const apiResponse = await sslcz.init(sslData);
 
         if (!apiResponse?.GatewayPageURL) {
-          // Rollback registration + payment if SSLCommerz init fails
-          await pool.query("UPDATE registrations SET status = 'CANCELLED' WHERE id = $1 AND event_id = $2", [registrationId, input.eventId]);
-          await pool.query("UPDATE payments SET status = 'FAILED' WHERE tran_id = $1", [tranId]);
+          await prisma.registration.update({ where: { id: result.registrationId }, data: { status: 'CANCELLED' } });
+          await prisma.payment.update({ where: { tranId: result.tranId }, data: { status: 'FAILED' } });
           throw new Error('Failed to initialize payment gateway. Please try again.');
         }
         gatewayUrl = apiResponse.GatewayPageURL;
+      } catch (err) {
+        await prisma.registration.update({ where: { id: result.registrationId }, data: { status: 'CANCELLED' } });
+        await prisma.payment.update({ where: { tranId: result.tranId }, data: { status: 'FAILED' } });
+        throw err;
       }
-
-      return {
-        gatewayUrl,
-        tranId,
-        registrationId,
-      };
-    } catch (error) {
-      await client.query('ROLLBACK').catch(() => {});
-      throw error;
-    } finally {
-      client.release();
     }
+
+    return {
+      gatewayUrl,
+      tranId: result.tranId,
+      registrationId: Number(result.registrationId),
+    };
   }
 
-  /**
-   * Validate and complete a payment after SSLCommerz callback.
-   */
-  static async validateAndComplete(tranId: string, valId: string) {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
+  static async completePayment(payload: {
+    tranId: string;
+    valId?: string;
+    status: 'SUCCESS' | 'FAILED' | 'CANCELLED';
+    paymentMethod?: string;
+    rawResponse?: any;
+  }) {
+    return await prisma.$transaction(async (tx: any) => {
+      const payment = await tx.payment.findUnique({
+        where: { tranId: payload.tranId },
+        include: {
+          registration: true,
+          event: { select: { title: true } },
+        },
+      });
 
-      // 1. Find the payment record
-      const paymentRes = await client.query('SELECT * FROM payments WHERE tran_id = $1', [tranId]);
-      if (paymentRes.rowCount === 0) {
-        throw new Error('Payment record not found for this transaction.');
-      }
-      const payment = paymentRes.rows[0];
-
-      if (payment.status === 'COMPLETED') {
-        // Already processed (idempotent)
-        await client.query('COMMIT');
-        return { alreadyProcessed: true, registrationId: payment.registration_id, eventId: payment.event_id };
-      }
-
-      // 2. Validate with SSLCommerz API
-      const sslcz = getSSLCommerz();
-      const validationResponse = await sslcz.validate({ val_id: valId });
-
-      if (validationResponse.status !== 'VALID' && validationResponse.status !== 'VALIDATED') {
-        // Payment not valid
-        await client.query("UPDATE payments SET status = 'FAILED', gateway_response = $1, updated_at = CURRENT_TIMESTAMP WHERE tran_id = $2", 
-          [JSON.stringify(validationResponse), tranId]);
-        await client.query("UPDATE registrations SET status = 'CANCELLED', payment_status = 'FAILED' WHERE id = $1 AND event_id = $2", 
-          [payment.registration_id, payment.event_id]);
-        await client.query('COMMIT');
-        throw new Error('Payment validation failed.');
+      if (!payment) {
+        throw new Error(`Payment record not found for transaction ID: ${payload.tranId}`);
       }
 
-      // 3. Update payment record to COMPLETED
-      await client.query(
-        `UPDATE payments 
-         SET status = 'COMPLETED', val_id = $1, payment_method = $2, gateway_response = $3, paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP 
-         WHERE tran_id = $4`,
-        [valId, validationResponse.card_type || 'Unknown', JSON.stringify(validationResponse), tranId]
-      );
-
-      // 4. Confirm registration
-      await client.query(
-        "UPDATE registrations SET status = 'CONFIRMED', payment_status = 'COMPLETED' WHERE id = $1 AND event_id = $2",
-        [payment.registration_id, payment.event_id]
-      );
-
-      // 5. Get QR token for email
-      const regRes = await client.query('SELECT qr_token, email FROM registrations WHERE id = $1 AND event_id = $2', [payment.registration_id, payment.event_id]);
-      const { qr_token: qrToken, email } = regRes.rows[0];
-
-      await client.query('COMMIT');
-
-      // 6. Queue confirmation email (non-blocking)
-      try {
-        await getEmailQueue().add(
-          'sendConfirmationEmail',
-          { email, eventId: payment.event_id, registrationId: payment.registration_id, qrToken },
-          { attempts: 3, backoff: { type: 'exponential', delay: 2000 } }
-        );
-      } catch (queueError: any) {
-        logger.warn({ err: queueError }, 'Failed to queue email after payment (Redis offline)');
+      if (payment.status === 'COMPLETED' || payment.status === 'SUCCESS') {
+        return { success: true, message: 'Payment already completed previously.', payment };
       }
 
-      return { alreadyProcessed: false, registrationId: payment.registration_id, eventId: payment.event_id, qrToken };
-    } catch (error) {
-      await client.query('ROLLBACK').catch(() => {});
-      throw error;
-    } finally {
-      client.release();
-    }
+      if (payload.status === 'SUCCESS') {
+        const updatedPayment = await tx.payment.update({
+          where: { tranId: payload.tranId },
+          data: {
+            status: 'COMPLETED',
+            valId: payload.valId || null,
+            paymentMethod: payload.paymentMethod || 'SSLCOMMERZ',
+            gatewayResponse: payload.rawResponse || null,
+            paidAt: new Date(),
+          },
+        });
+
+        await tx.registration.update({
+          where: { id: payment.registrationId },
+          data: {
+            status: 'CONFIRMED',
+            paymentStatus: 'COMPLETED',
+          },
+        });
+
+        // Enqueue email confirmation
+        try {
+          await getEmailQueue().add(
+            'sendConfirmationEmail',
+            {
+              email: payment.registration.email,
+              eventId: payment.eventId,
+              registrationId: Number(payment.registrationId),
+              qrToken: payment.registration.qrToken,
+            },
+            { attempts: 3, backoff: { type: 'exponential', delay: 2000 } }
+          );
+        } catch (queueErr) {
+          logger.warn({ err: queueErr }, 'Failed to queue email notification after payment completion');
+        }
+
+        return { success: true, message: 'Payment completed successfully.', payment: updatedPayment };
+      } else {
+        const updatedPayment = await tx.payment.update({
+          where: { tranId: payload.tranId },
+          data: {
+            status: payload.status,
+            gatewayResponse: payload.rawResponse || null,
+          },
+        });
+
+        await tx.registration.update({
+          where: { id: payment.registrationId },
+          data: {
+            status: 'CANCELLED',
+            paymentStatus: 'FAILED',
+          },
+        });
+
+        return { success: false, message: `Payment ${payload.status.toLowerCase()}.`, payment: updatedPayment };
+      }
+    });
   }
 
-  /**
-   * Handle payment failure — mark payment and registration as failed.
-   */
-  static async handleFailure(tranId: string) {
-    const res = await pool.query("UPDATE payments SET status = 'FAILED', updated_at = CURRENT_TIMESTAMP WHERE tran_id = $1 AND status != 'COMPLETED' RETURNING registration_id, event_id", [tranId]);
-    if (res.rowCount && res.rowCount > 0) {
-      const { registration_id, event_id } = res.rows[0];
-      await pool.query("UPDATE registrations SET status = 'CANCELLED', payment_status = 'FAILED' WHERE id = $1 AND event_id = $2 AND status != 'CONFIRMED'", [registration_id, event_id]);
-    }
-  }
+  static async getPaymentStatus(tranId: string) {
+    const payment = await prisma.payment.findUnique({
+      where: { tranId },
+      include: {
+        registration: {
+          select: { status: true, email: true, qrToken: true },
+        },
+      },
+    });
 
-  /**
-   * Handle payment cancellation — mark payment and registration as cancelled.
-   */
-  static async handleCancellation(tranId: string) {
-    const res = await pool.query("UPDATE payments SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP WHERE tran_id = $1 AND status != 'COMPLETED' RETURNING registration_id, event_id", [tranId]);
-    if (res.rowCount && res.rowCount > 0) {
-      const { registration_id, event_id } = res.rows[0];
-      await pool.query("UPDATE registrations SET status = 'CANCELLED', payment_status = 'CANCELLED' WHERE id = $1 AND event_id = $2 AND status != 'CONFIRMED'", [registration_id, event_id]);
-    }
-  }
+    if (!payment) return null;
 
-  /**
-   * Get payment details by transaction ID.
-   */
-  static async getPaymentByTranId(tranId: string) {
-    const res = await pool.query(
-      `SELECT p.*, tt.name as ticket_name, e.title as event_title, e.slug as event_slug, r.qr_token, r.email, r.user_id
-       FROM payments p
-       JOIN ticket_types tt ON p.ticket_type_id = tt.id
-       JOIN events e ON p.event_id = e.id
-       JOIN registrations r ON p.registration_id = r.id AND p.event_id = r.event_id
-       WHERE p.tran_id = $1`,
-      [tranId]
-    );
-    return res.rows[0] || null;
+    return {
+      id: payment.id,
+      tranId: payment.tranId,
+      amount: Number(payment.amount),
+      currency: payment.currency,
+      status: payment.status,
+      paidAt: payment.paidAt,
+      registrationStatus: payment.registration.status,
+      email: payment.registration.email,
+      qrToken: payment.registration.qrToken,
+    };
   }
 }

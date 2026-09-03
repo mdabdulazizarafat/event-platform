@@ -1,0 +1,383 @@
+// Ayojok Event Platform - Prisma Schema
+// Optimized for high concurrency, type safety, and fast index lookups.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  username          String   @id @db.VarChar(100)
+  name              String   @db.VarChar(255)
+  email             String   @unique @db.VarChar(255)
+  passwordHash      String   @map("password_hash") @db.VarChar(255)
+  avatar            String?  @db.VarChar(512)
+  bio               String?  @db.Text
+  mobile            String?  @db.VarChar(20)
+  org               String?  @db.VarChar(255)
+  role              String   @default("USER") @db.VarChar(20)
+  status            String   @default("ACTIVE") @db.VarChar(20)
+  organizerStatus   String?  @map("organizer_status") @db.VarChar(20)
+  rejectionCount    Int      @default(0) @map("rejection_count")
+  firstName         String?  @map("first_name") @db.VarChar(100)
+  lastName          String?  @map("last_name") @db.VarChar(100)
+  dateOfBirth       String?  @map("date_of_birth") @db.VarChar(50)
+  gender            String?  @db.VarChar(20)
+  occupationType    String?  @map("occupation_type") @db.VarChar(20)
+  institutionName   String?  @map("institution_name") @db.VarChar(255)
+  classLevel        String?  @map("class_level") @db.VarChar(100)
+  position          String?  @db.VarChar(100)
+  district          String?  @db.VarChar(100)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  events                 Event[]                  @relation("EventOrganizer")
+  registrations          Registration[]
+  adminLogs              AdminLog[]
+  teamMemberships        EventTeam[]              @relation("TeamUser")
+  teamInvitations        EventTeam[]              @relation("TeamInviter")
+  activityScans          ActivityScan[]
+  grantedPermissions     AdminPermission[]        @relation("UserPermissions")
+  givenPermissions       AdminPermission[]        @relation("GranterPermissions")
+  registrationTeamMember RegistrationTeamMember[]
+  receivedCertificates   Certificate[]            @relation("CertRecipient")
+  issuedCertificates     Certificate[]            @relation("CertIssuer")
+
+  @@map("users")
+}
+
+model Event {
+  id                   Int       @id @default(autoincrement())
+  slug                 String    @unique @db.VarChar(255)
+  title                String    @db.VarChar(255)
+  description          String?   @db.Text
+  thumbnail            String?   @db.VarChar(512)
+  date                 String    @db.VarChar(100)
+  time                 String    @db.VarChar(100)
+  location             String    @db.VarChar(512)
+  capacity             Int       @default(100)
+  contactEmail         String?   @map("contact_email") @db.VarChar(255)
+  contactPhone         String?   @map("contact_phone") @db.VarChar(50)
+  organizerUsername    String    @map("organizer_username") @db.VarChar(100)
+  status               String    @default("DRAFT") @db.VarChar(50)
+  startDate            String?   @map("start_date") @db.VarChar(100)
+  endDate              String?   @map("end_date") @db.VarChar(100)
+  registrationDeadline String?   @map("registration_deadline") @db.VarChar(100)
+  formPhone            Boolean   @default(true) @map("form_phone")
+  formJobTitle         Boolean   @default(true) @map("form_job_title")
+  formOrganization     Boolean   @default(true) @map("form_organization")
+  formTshirtSize       Boolean   @default(false) @map("form_tshirt_size")
+  formReference        Boolean   @default(false) @map("form_reference")
+  formTransactionId    Boolean   @default(false) @map("form_transaction_id")
+  isPrivate            Boolean   @default(false) @map("is_private")
+  eventFor             String?   @default("BOTH") @map("event_for") @db.VarChar(50)
+  studentCategory      String?   @map("student_category") @db.VarChar(100)
+  category             String?   @default("Tech") @db.VarChar(255)
+  paymentInstructions  String?   @map("payment_instructions") @db.Text
+  bkashNumber          String?   @map("bkash_number") @db.VarChar(50)
+  rejectionReason      String?   @map("rejection_reason") @db.Text
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organizer           User                 @relation("EventOrganizer", fields: [organizerUsername], references: [username], onDelete: Cascade, onUpdate: Cascade)
+  ticketTypes         TicketType[]
+  registrations       Registration[]
+  payments            Payment[]
+  team                EventTeam[]
+  activities          EventActivity[]
+  activityScans       ActivityScan[]
+  registrationTeams   RegistrationTeam[]
+  certificates        Certificate[]
+  certificateTemplate CertificateTemplate?
+  schedules           Schedule[]
+
+  @@map("events")
+}
+
+model TicketType {
+  id          Int       @id @default(autoincrement())
+  eventId     Int       @map("event_id")
+  name        String    @db.VarChar(255)
+  description String?   @db.Text
+  price       Decimal   @default(0.00) @db.Decimal(10, 2)
+  currency    String    @default("BDT") @db.VarChar(10)
+  capacity    Int?
+  sortOrder   Int       @default(0) @map("sort_order")
+  isActive    Boolean   @default(true) @map("is_active")
+  isTeam      Boolean   @default(false) @map("is_team")
+  maxTeamSize Int?      @map("max_team_size")
+  saleStart   DateTime? @map("sale_start") @db.Timestamptz
+  saleEnd     DateTime? @map("sale_end") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  event                  Event                    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrations          Registration[]
+  registrationJoinTable  RegistrationTicketType[]
+  payments               Payment[]
+  registrationTeams      RegistrationTeam[]
+
+  @@index([eventId], map: "idx_ticket_types_event_id")
+  @@map("ticket_types")
+}
+
+model Registration {
+  id            BigInt   @id @default(autoincrement())
+  eventId       Int      @map("event_id")
+  ticketTypeId  Int?     @map("ticket_type_id")
+  userId        String   @map("user_id") @db.VarChar(100)
+  email         String   @db.VarChar(255)
+  status        String   @default("CONFIRMED") @db.VarChar(50)
+  paymentStatus String   @default("NOT_REQUIRED") @map("payment_status") @db.VarChar(50)
+  qrToken       String   @unique @map("qr_token") @db.VarChar(64)
+  fullName      String?  @map("full_name") @db.VarChar(255)
+  phone         String?  @db.VarChar(50)
+  jobTitle      String?  @map("job_title") @db.VarChar(255)
+  organization  String?  @db.VarChar(255)
+  tshirtSize    String?  @map("tshirt_size") @db.VarChar(50)
+  reference     String?  @db.VarChar(255)
+  transactionId String?  @map("transaction_id") @db.VarChar(255)
+  registeredAt  DateTime @default(now()) @map("registered_at") @db.Timestamptz
+
+  event                 Event                    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user                  User                     @relation(fields: [userId], references: [username], onDelete: Cascade, onUpdate: Cascade)
+  ticketType            TicketType?              @relation(fields: [ticketTypeId], references: [id])
+  ticketTypesJoinTable  RegistrationTicketType[]
+  payments              Payment[]
+  activityScans         ActivityScan[]
+  ledRegistrationTeams  RegistrationTeam[]
+
+  @@index([eventId, status], map: "idx_reg_event_status")
+  @@index([userId], map: "idx_reg_user")
+  @@map("registrations")
+}
+
+model RegistrationTicketType {
+  registrationId BigInt @map("registration_id")
+  ticketTypeId   Int    @map("ticket_type_id")
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  ticketType   TicketType   @relation(fields: [ticketTypeId], references: [id], onDelete: Cascade)
+
+  @@id([registrationId, ticketTypeId])
+  @@map("registration_ticket_types")
+}
+
+model Payment {
+  id              Int       @id @default(autoincrement())
+  registrationId  BigInt    @map("registration_id")
+  eventId         Int       @map("event_id")
+  ticketTypeId    Int       @map("ticket_type_id")
+  tranId          String    @unique @map("tran_id") @db.VarChar(255)
+  amount          Decimal   @db.Decimal(10, 2)
+  currency        String    @default("BDT") @db.VarChar(10)
+  status          String    @default("PENDING") @db.VarChar(50)
+  paymentMethod   String?   @map("payment_method") @db.VarChar(100)
+  gatewayResponse Json?     @map("gateway_response")
+  valId           String?   @map("val_id") @db.VarChar(255)
+  paidAt          DateTime? @map("paid_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id])
+  ticketType   TicketType   @relation(fields: [ticketTypeId], references: [id])
+
+  @@index([tranId], map: "idx_payments_tran_id")
+  @@index([registrationId, eventId], map: "idx_payments_registration")
+  @@map("payments")
+}
+
+model AdminLog {
+  id            Int      @id @default(autoincrement())
+  adminUsername String   @map("admin_username") @db.VarChar(100)
+  action        String   @db.VarChar(100)
+  targetType    String?  @map("target_type") @db.VarChar(50)
+  targetId      String?  @map("target_id") @db.VarChar(100)
+  details       Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  admin User @relation(fields: [adminUsername], references: [username], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("admin_logs")
+}
+
+model EventTeam {
+  id        Int      @id @default(autoincrement())
+  eventId   Int      @map("event_id")
+  username  String   @db.VarChar(100)
+  role      String   @default("MANAGER") @db.VarChar(20)
+  invitedBy String?  @map("invited_by") @db.VarChar(100)
+  joinedAt  DateTime @default(now()) @map("joined_at") @db.Timestamptz
+
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user    User  @relation("TeamUser", fields: [username], references: [username], onDelete: Cascade, onUpdate: Cascade)
+  inviter User? @relation("TeamInviter", fields: [invitedBy], references: [username], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([eventId, username])
+  @@map("event_team")
+}
+
+model EventActivity {
+  id        Int      @id @default(autoincrement())
+  eventId   Int      @map("event_id")
+  name      String   @db.VarChar(100)
+  scanLimit Int?     @default(1) @map("scan_limit")
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  event Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  scans ActivityScan[]
+
+  @@map("event_activities")
+}
+
+model ActivityScan {
+  id             BigInt   @id @default(autoincrement())
+  registrationId BigInt   @map("registration_id")
+  eventId        Int      @map("event_id")
+  activityId     Int      @map("activity_id")
+  scannedBy      String   @map("scanned_by") @db.VarChar(100)
+  scannedAt      DateTime @default(now()) @map("scanned_at") @db.Timestamptz
+
+  registration Registration  @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  event        Event         @relation(fields: [eventId], references: [id])
+  activity     EventActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  scanner      User          @relation(fields: [scannedBy], references: [username], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([registrationId, activityId])
+  @@index([eventId, scannedAt(sort: Desc)], map: "idx_scans_event")
+  @@index([activityId], map: "idx_scans_activity")
+  @@map("activity_scans")
+}
+
+model AdminPermission {
+  id         Int      @id @default(autoincrement())
+  username   String   @db.VarChar(100)
+  permission String   @db.VarChar(50)
+  grantedBy  String?  @map("granted_by") @db.VarChar(100)
+  grantedAt  DateTime @default(now()) @map("granted_at") @db.Timestamptz
+
+  user    User  @relation("UserPermissions", fields: [username], references: [username], onDelete: Cascade, onUpdate: Cascade)
+  granter User? @relation("GranterPermissions", fields: [grantedBy], references: [username], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([username, permission])
+  @@index([username], map: "idx_admin_permissions_user")
+  @@map("admin_permissions")
+}
+
+model RegistrationTeam {
+  id                   Int      @id @default(autoincrement())
+  eventId              Int      @map("event_id")
+  ticketTypeId         Int      @map("ticket_type_id")
+  leaderRegistrationId BigInt   @map("leader_registration_id")
+  teamName             String   @map("team_name") @db.VarChar(255)
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  event              Event                    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticketType         TicketType               @relation(fields: [ticketTypeId], references: [id], onDelete: Cascade)
+  leaderRegistration Registration             @relation(fields: [leaderRegistrationId], references: [id], onDelete: Cascade)
+  members            RegistrationTeamMember[]
+
+  @@map("registration_teams")
+}
+
+model RegistrationTeamMember {
+  id       Int      @id @default(autoincrement())
+  teamId   Int      @map("team_id")
+  username String   @db.VarChar(100)
+  joinedAt DateTime @default(now()) @map("joined_at") @db.Timestamptz
+
+  team RegistrationTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User             @relation(fields: [username], references: [username], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([username], map: "idx_team_members_username")
+  @@map("registration_team_members")
+}
+
+model Certificate {
+  id             Int      @id @default(autoincrement())
+  eventId        Int      @map("event_id")
+  issuedTo       String   @map("issued_to") @db.VarChar(100)
+  certificateUrl String   @map("certificate_url") @db.VarChar(512)
+  issuedBy       String?  @map("issued_by") @db.VarChar(100)
+  issuedAt       DateTime @default(now()) @map("issued_at") @db.Timestamptz
+
+  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  recipient User  @relation("CertRecipient", fields: [issuedTo], references: [username], onDelete: Cascade, onUpdate: Cascade)
+  issuer    User? @relation("CertIssuer", fields: [issuedBy], references: [username], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([eventId], map: "idx_certificates_event")
+  @@index([issuedTo], map: "idx_certificates_issued_to")
+  @@map("certificates")
+}
+
+model CertificateTemplate {
+  id          Int       @id @default(autoincrement())
+  eventId     Int       @unique @map("event_id")
+  templateUrl String    @map("template_url") @db.VarChar(512)
+  sendingTime DateTime? @map("sending_time") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("certificate_templates")
+}
+
+model Schedule {
+  id        Int      @id @default(autoincrement())
+  eventSlug String   @map("event_slug") @db.VarChar(255)
+  title     String   @db.VarChar(255)
+  date      String   @db.VarChar(100)
+  startTime String   @map("start_time") @db.VarChar(100)
+  endTime   String   @map("end_time") @db.VarChar(100)
+  room      String   @db.VarChar(100)
+  speaker   String   @db.VarChar(255)
+  status    String   @default("UPCOMING") @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  event Event @relation(fields: [eventSlug], references: [slug], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([eventSlug], map: "idx_schedules_event_slug")
+  @@map("schedules")
+}
+
+model PlatformSetting {
+  key       String   @id @db.VarChar(100)
+  value     Json
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("platform_settings")
+}
+
+model PartnersTeam {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  role      String?  @db.VarChar(255)
+  image     String   @db.VarChar(512)
+  category  String   @db.VarChar(50)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("partners_team")
+}
+
+model VerificationCode {
+  id        Int      @id @default(autoincrement())
+  email     String   @db.VarChar(255)
+  code      String   @db.VarChar(10)
+  purpose   String   @db.VarChar(50)
+  attempts  Int      @default(0)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([email], map: "idx_verification_codes_email")
+  @@map("verification_codes")
+}
+

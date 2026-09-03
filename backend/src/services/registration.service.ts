@@ -1,12 +1,10 @@
-import { pool } from '../db/pool';
+import prisma from '../lib/prisma';
 import { Queue } from 'bullmq';
 import { createChildLogger } from '../lib/logger';
 import { generateSecureQrToken } from '../lib/crypto';
 
 const logger = createChildLogger('registration.service');
 
-// BullMQ Sidecar Worker Offloading Queues
-// Lazy initialization to ensure dotenv has loaded before reading env vars
 let _emailQueue: Queue | null = null;
 
 function getRedisConnection(): any {
@@ -39,18 +37,12 @@ export function getEmailQueue(): Queue {
   return _emailQueue;
 }
 
-
-
 export class RegistrationService {
   /**
-   * Atomic concurrent registration query checking capacity dynamically
-   * in the insert statement to prevent race conditions during ticket drop spikes.
-   * 
-   * Now supports ticket types with per-ticket-type capacity enforcement.
-   * For free tickets only — paid tickets go through PaymentService.
+   * Batched team and registration validation to prevent N+1 queries.
    */
   static async validateTeamAndRegistration(
-    client: any,
+    tx: any,
     eventId: number,
     ticketTypeId: number,
     userId: string,
@@ -58,128 +50,142 @@ export class RegistrationService {
     teamMembers?: string[]
   ) {
     // 1. Validate if user is already registered for this segment
-    const hasReg = await client.query(
-      "SELECT 1 FROM registrations WHERE ticket_type_id = $1 AND user_id = $2 AND status != 'CANCELLED'",
-      [ticketTypeId, userId]
-    );
-    if (hasReg.rowCount > 0) {
+    const hasReg = await tx.registration.findFirst({
+      where: {
+        ticketTypeId,
+        userId,
+        status: { not: 'CANCELLED' },
+      },
+    });
+    if (hasReg) {
       throw new Error(`User ${userId} is already registered for this category.`);
     }
 
     // 2. Validate if user is already in a team for this segment
-    const hasTeam = await client.query(
-      `SELECT 1 FROM registration_team_members rtm 
-       JOIN registration_teams rt ON rtm.team_id = rt.id 
-       WHERE rt.ticket_type_id = $1 AND rtm.username = $2`,
-      [ticketTypeId, userId]
-    );
-    if (hasTeam.rowCount > 0) {
+    const hasTeam = await tx.registrationTeamMember.findFirst({
+      where: {
+        username: userId,
+        team: {
+          ticketTypeId,
+        },
+      },
+    });
+    if (hasTeam) {
       throw new Error(`User ${userId} is already a member of a team for this category.`);
     }
 
-    // 3. If it's a team ticket, validate team properties
-    const ttRes = await client.query(
-      'SELECT * FROM ticket_types WHERE id = $1 AND event_id = $2 AND is_active = true',
-      [ticketTypeId, eventId]
-    );
-    if (ttRes.rowCount === 0) {
+    // 3. Validate ticket type
+    const ticketType = await tx.ticketType.findFirst({
+      where: { id: ticketTypeId, eventId, isActive: true },
+    });
+    if (!ticketType) {
       throw new Error('Invalid or inactive ticket type.');
     }
-    const ticketType = ttRes.rows[0];
 
-    if (ticketType.is_team) {
+    if (ticketType.isTeam) {
       if (!teamName || !teamName.trim()) {
         throw new Error('Team name is required for team registration.');
       }
-      
-      const members = teamMembers || [];
-      // Total size = leader (1) + members
-      const totalSize = 1 + members.length;
-      if (ticketType.max_team_size && totalSize > ticketType.max_team_size) {
-        throw new Error(`Team size exceeds the maximum allowed size of ${ticketType.max_team_size}.`);
+
+      const rawMembers = (teamMembers || []).map((m) => m.trim()).filter(Boolean);
+      const totalSize = 1 + rawMembers.length;
+
+      if (ticketType.maxTeamSize && totalSize > ticketType.maxTeamSize) {
+        throw new Error(`Team size exceeds the maximum allowed size of ${ticketType.maxTeamSize}.`);
       }
 
-      // Check each member
-      for (const memberEmail of members) {
-        const trimmed = memberEmail.trim();
-        if (!trimmed) continue;
+      if (rawMembers.length > 0) {
+        // BATCH QUERY 1: Fetch all team member users by email in ONE query
+        const memberUsers = await tx.user.findMany({
+          where: { email: { in: rawMembers } },
+          select: { username: true, email: true },
+        });
 
-        // Verify member exists in users table by email
-        const userRes = await client.query('SELECT username FROM users WHERE email = $1', [trimmed]);
-        if (userRes.rowCount === 0) {
-          throw new Error(`User with email "${trimmed}" does not exist on Ayojok.`);
-        }
-        const memberUsername = userRes.rows[0].username;
+        const foundEmailsMap = new Map<string, string>(memberUsers.map((u: any) => [u.email.toLowerCase(), u.username]));
 
-        if (memberUsername.toLowerCase() === userId.toLowerCase()) {
-          throw new Error('You cannot add yourself as an additional team member.');
-        }
-
-        // Verify member is not registered for this segment
-        const memberReg = await client.query(
-          "SELECT 1 FROM registrations WHERE ticket_type_id = $1 AND user_id = $2 AND status != 'CANCELLED'",
-          [ticketTypeId, memberUsername]
-        );
-        if (memberReg.rowCount > 0) {
-          throw new Error(`Team member with email ${trimmed} is already registered for this category.`);
+        // Ensure all member emails exist
+        for (const email of rawMembers) {
+          const lower = email.toLowerCase();
+          if (!foundEmailsMap.has(lower)) {
+            throw new Error(`User with email "${email}" does not exist on Ayojok.`);
+          }
+          const memberUsername = foundEmailsMap.get(lower)!;
+          if (memberUsername.toLowerCase() === userId.toLowerCase()) {
+            throw new Error('You cannot add yourself as an additional team member.');
+          }
         }
 
-        // Verify member is not already in a team for this segment
-        const memberTeam = await client.query(
-          `SELECT 1 FROM registration_team_members rtm 
-           JOIN registration_teams rt ON rtm.team_id = rt.id 
-           WHERE rt.ticket_type_id = $1 AND rtm.username = $2`,
-          [ticketTypeId, memberUsername]
-        );
-        if (memberTeam.rowCount > 0) {
-          throw new Error(`Team member with email ${trimmed} is already a member of another team for this category.`);
+        const memberUsernames = Array.from(foundEmailsMap.values());
+
+        // BATCH QUERY 2: Check existing registrations for all members in ONE query
+        const existingMemberRegs = await tx.registration.findMany({
+          where: {
+            ticketTypeId,
+            userId: { in: memberUsernames },
+            status: { not: 'CANCELLED' },
+          },
+          select: { userId: true },
+        });
+        if (existingMemberRegs.length > 0) {
+          throw new Error(`One or more team members are already registered for this category.`);
+        }
+
+        // BATCH QUERY 3: Check team memberships for all members in ONE query
+        const existingMemberTeams = await tx.registrationTeamMember.findMany({
+          where: {
+            username: { in: memberUsernames },
+            team: { ticketTypeId },
+          },
+          select: { username: true },
+        });
+        if (existingMemberTeams.length > 0) {
+          throw new Error(`One or more team members are already part of another team for this category.`);
         }
       }
     }
   }
 
   static async saveTeamAndMembers(
-    client: any,
+    tx: any,
     eventId: number,
     ticketTypeId: number,
-    registrationId: number | string,
+    registrationId: bigint | number,
     teamName: string,
     teamMembers?: string[]
   ) {
-    // Insert team
-    const teamInsert = await client.query(
-      `INSERT INTO registration_teams (event_id, ticket_type_id, leader_registration_id, team_name)
-       VALUES ($1, $2, $3, $4) RETURNING id`,
-      [eventId, ticketTypeId, registrationId, teamName.trim()]
-    );
-    const teamId = teamInsert.rows[0].id;
+    const regIdBigInt = BigInt(registrationId);
 
-    // Insert members
-    const members = teamMembers || [];
-    for (const memberEmail of members) {
-      const trimmed = memberEmail.trim();
-      if (!trimmed) continue;
-      const userRes = await client.query('SELECT username FROM users WHERE email = $1', [trimmed]);
-      const memberUsername = userRes.rows[0].username;
-      await client.query(
-        `INSERT INTO registration_team_members (team_id, username)
-         VALUES ($1, $2)`,
-        [teamId, memberUsername]
-      );
+    const team = await tx.registrationTeam.create({
+      data: {
+        eventId,
+        ticketTypeId,
+        leaderRegistrationId: regIdBigInt,
+        teamName: teamName.trim(),
+      },
+    });
+
+    const rawMembers = (teamMembers || []).map((m) => m.trim()).filter(Boolean);
+    if (rawMembers.length > 0) {
+      const users = await tx.user.findMany({
+        where: { email: { in: rawMembers } },
+        select: { username: true },
+      });
+
+      if (users.length > 0) {
+        await tx.registrationTeamMember.createMany({
+          data: users.map((u: any) => ({
+            teamId: team.id,
+            username: u.username,
+          })),
+        });
+      }
     }
   }
 
-  /**
-   * Atomic concurrent registration query checking capacity dynamically
-   * in the insert statement to prevent race conditions during ticket drop spikes.
-   * 
-   * Now supports ticket types with per-ticket-type capacity enforcement.
-   * For free tickets only — paid tickets go through PaymentService.
-   */
   static async registerForEvent(
-    eventId: number, 
-    userId: string, 
-    email: string, 
+    eventId: number,
+    userId: string,
+    email: string,
     ticketTypeIds: number[] = [],
     details?: {
       fullName?: string;
@@ -193,16 +199,12 @@ export class RegistrationService {
       teamMembers?: string[];
     }
   ) {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-
-      // If ticket types are specified, validate all of them
+    const result = await prisma.$transaction(async (tx: any) => {
+      // 1. Validate all ticket types
       if (ticketTypeIds.length > 0) {
         for (const ticketTypeId of ticketTypeIds) {
-          // Validate team and registration
           await this.validateTeamAndRegistration(
-            client,
+            tx,
             eventId,
             ticketTypeId,
             userId,
@@ -210,126 +212,126 @@ export class RegistrationService {
             details?.teamMembers
           );
 
-        const ttRes = await client.query(
-          'SELECT * FROM ticket_types WHERE id = $1 AND event_id = $2 AND is_active = true',
-          [ticketTypeId, eventId]
-        );
-        const ticketType = ttRes.rows[0];
+          const ticketType = await tx.ticketType.findFirst({
+            where: { id: ticketTypeId, eventId, isActive: true },
+          });
 
-        // Reject paid tickets from this flow unless manual transaction ID is provided
-        if (parseFloat(ticketType.price) > 0 && !details?.transactionId) {
-          throw new Error('Paid tickets must be registered through the payment flow.');
-        }
-
-        // Check per-ticket-type capacity
-        if (ticketType.capacity) {
-          const countRes = await client.query(
-            `SELECT COUNT(DISTINCT r.id) 
-             FROM registrations r 
-             LEFT JOIN registration_ticket_types rtt ON r.id = rtt.registration_id 
-             WHERE r.event_id = $2 
-               AND (r.ticket_type_id = $1 OR rtt.ticket_type_id = $1) 
-               AND r.status != 'CANCELLED'`,
-            [ticketTypeId, eventId]
-          );
-          const soldCount = parseInt(countRes.rows[0].count);
-          if (soldCount >= ticketType.capacity) {
-            throw new Error('This ticket type is sold out.');
+          if (!ticketType) {
+            throw new Error('Invalid or inactive ticket type.');
           }
-        }
+
+          if (Number(ticketType.price) > 0) {
+            if (!details?.transactionId || !details.transactionId.trim()) {
+              throw new Error(
+                `Ticket type "${ticketType.name}" requires payment. Please enter your mobile banking (bKash/Nagad) transaction ID.`
+              );
+            }
+          }
+
+          // Per-ticket-type capacity enforcement
+          if (ticketType.capacity) {
+            const soldCount = await tx.registration.count({
+              where: {
+                eventId,
+                status: { not: 'CANCELLED' },
+                OR: [
+                  { ticketTypeId },
+                  { ticketTypesJoinTable: { some: { ticketTypeId } } },
+                ],
+              },
+            });
+
+            if (soldCount >= ticketType.capacity) {
+              throw new Error(`Ticket type "${ticketType.name}" is sold out.`);
+            }
+          }
         }
       }
 
       const primaryTicketTypeId = ticketTypeIds.length > 0 ? ticketTypeIds[0] : null;
+      const hasPaidTicket = ticketTypeIds.length > 0 && details?.transactionId?.trim();
+      const paymentStatus = hasPaidTicket ? 'COMPLETED' : 'NOT_REQUIRED';
+      const cleanTransactionId = details?.transactionId ? details.transactionId.trim() : null;
 
-      // Check if user is already registered for this event
-      const existingRegRes = await client.query(
-        "SELECT id, qr_token FROM registrations WHERE event_id = $1 AND user_id = $2 AND status != 'CANCELLED'",
-        [eventId, userId]
-      );
+      // Check existing registration
+      const existingReg = await tx.registration.findFirst({
+        where: { eventId, userId, status: { not: 'CANCELLED' } },
+      });
 
-      let registrationId;
-      let qrToken;
+      let registrationId: bigint;
+      let qrToken: string;
 
-      if ((existingRegRes.rowCount ?? 0) > 0) {
-        // Retain existing QR token so the QR code stays identical for all segments of this event
-        registrationId = existingRegRes.rows[0].id;
-        qrToken = existingRegRes.rows[0].qr_token || generateSecureQrToken();
-        
-        await client.query(
-          `UPDATE registrations SET 
-             full_name = COALESCE($1, full_name),
-             phone = COALESCE($2, phone),
-             job_title = COALESCE($3, job_title),
-             organization = COALESCE($4, organization),
-             tshirt_size = COALESCE($5, tshirt_size),
-             reference = COALESCE($6, reference),
-             transaction_id = COALESCE($7, transaction_id)
-           WHERE id = $8`,
-          [
-            details?.fullName || null,
-            details?.phone || null,
-            details?.jobTitle || null,
-            details?.organization || null,
-            details?.tshirtSize || null,
-            details?.reference || null,
-            details?.transactionId || null,
-            registrationId
-          ]
-        );
+      if (existingReg) {
+        registrationId = existingReg.id;
+        qrToken = existingReg.qrToken || generateSecureQrToken();
+
+        await tx.registration.update({
+          where: { id: existingReg.id },
+          data: {
+            fullName: details?.fullName || existingReg.fullName,
+            phone: details?.phone || existingReg.phone,
+            jobTitle: details?.jobTitle || existingReg.jobTitle,
+            organization: details?.organization || existingReg.organization,
+            tshirtSize: details?.tshirtSize || existingReg.tshirtSize,
+            reference: details?.reference || existingReg.reference,
+            transactionId: cleanTransactionId || existingReg.transactionId,
+            paymentStatus: cleanTransactionId ? 'COMPLETED' : existingReg.paymentStatus,
+          },
+        });
       } else {
-        // Generate secure random QR token for new registration
-        qrToken = generateSecureQrToken();
+        // Capacity check on global event
+        const activeCount = await tx.registration.count({
+          where: { eventId, status: { not: 'CANCELLED' } },
+        });
 
-        // Atomic insert checking current count against global event capacity
-        const registerQuery = `
-          INSERT INTO registrations (
-            event_id, ticket_type_id, user_id, email, status, payment_status,
-            full_name, phone, job_title, organization, tshirt_size, reference, transaction_id, qr_token
-          )
-          SELECT $1, $2, $3, $4, 'CONFIRMED', 'NOT_REQUIRED', $5, $6, $7, $8, $9, $10, $11, $12
-          WHERE (
-            SELECT COUNT(*) FROM registrations WHERE event_id = $1 AND status != 'CANCELLED'
-          ) < (
-            SELECT capacity FROM events WHERE id = $1
-          )
-          RETURNING id;
-        `;
-        
-        const res = await client.query(registerQuery, [
-          eventId, 
-          primaryTicketTypeId, 
-          userId, 
-          email,
-          details?.fullName || null,
-          details?.phone || null,
-          details?.jobTitle || null,
-          details?.organization || null,
-          details?.tshirtSize || null,
-          details?.reference || null,
-          details?.transactionId || null,
-          qrToken
-        ]);
+        const event = await tx.event.findUnique({
+          where: { id: eventId },
+          select: { capacity: true },
+        });
 
-        if (res.rowCount === 0) {
+        if (!event || activeCount >= event.capacity) {
           throw new Error('Registration failed: Event is at capacity or does not exist.');
         }
 
-        registrationId = res.rows[0].id;
+        qrToken = generateSecureQrToken();
+
+        const createdReg = await tx.registration.create({
+          data: {
+            eventId,
+            ticketTypeId: primaryTicketTypeId,
+            userId,
+            email,
+            status: 'CONFIRMED',
+            paymentStatus,
+            fullName: details?.fullName || null,
+            phone: details?.phone || null,
+            jobTitle: details?.jobTitle || null,
+            organization: details?.organization || null,
+            tshirtSize: details?.tshirtSize || null,
+            reference: details?.reference || null,
+            transactionId: cleanTransactionId,
+            qrToken,
+          },
+        });
+
+        registrationId = createdReg.id;
       }
 
-      // Save to join table, ignoring duplicates
-      for (const tId of ticketTypeIds) {
-        await client.query(
-          'INSERT INTO registration_ticket_types (registration_id, ticket_type_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-          [registrationId, tId]
-        );
+      // Batch save join table
+      if (ticketTypeIds.length > 0) {
+        await tx.registrationTicketType.createMany({
+          data: ticketTypeIds.map((tId) => ({
+            registrationId,
+            ticketTypeId: tId,
+          })),
+          skipDuplicates: true,
+        });
       }
 
-      // Save team and team members if applicable (associating with the first team ticket type)
+      // Save team if applicable
       if (ticketTypeIds.length > 0 && details?.teamName) {
         await this.saveTeamAndMembers(
-          client,
+          tx,
           eventId,
           ticketTypeIds[0],
           registrationId,
@@ -338,27 +340,21 @@ export class RegistrationService {
         );
       }
 
-      await client.query('COMMIT');
+      return { registrationId: Number(registrationId), qrToken };
+    });
 
-      // Offload heavy non-blocking operations via BullMQ (handled gracefully if Redis is offline)
-      try {
-        await getEmailQueue().add(
-          'sendConfirmationEmail', 
-          { email, eventId, registrationId, qrToken },
-          { attempts: 3, backoff: { type: 'exponential', delay: 2000 } }
-        );
-
-      } catch (queueError: any) {
-        logger.warn({ err: queueError }, 'Failed to queue email confirmation job (Redis offline)');
-      }
-
-      return { registrationId, qrToken };
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
+    // Queue email confirmation job safely
+    try {
+      await getEmailQueue().add(
+        'sendConfirmationEmail',
+        { email, eventId, registrationId: result.registrationId, qrToken: result.qrToken },
+        { attempts: 3, backoff: { type: 'exponential', delay: 2000 } }
+      );
+    } catch (queueError: any) {
+      logger.warn({ err: queueError }, 'Failed to queue email confirmation job (Redis offline)');
     }
+
+    return result;
   }
 
   static async getRegistrationsByEvent(
@@ -383,47 +379,55 @@ export class RegistrationService {
 
     const pageNum = Math.max(1, page);
     const limitNum = Math.min(100, Math.max(1, limit));
-    const offset = (pageNum - 1) * limitNum;
+    const skip = (pageNum - 1) * limitNum;
 
-    const values: any[] = [eventId];
-    const whereConditions: string[] = ['r.event_id = $1'];
+    const where: any = { eventId };
 
     if (statusFilter) {
-      values.push(statusFilter);
-      whereConditions.push(`r.status = $${values.length}`);
+      where.status = statusFilter;
     }
 
     if (search) {
-      values.push(`%${search}%`);
-      const sIdx = values.length;
-      whereConditions.push(`(r.full_name ILIKE $${sIdx} OR r.email ILIKE $${sIdx} OR r.phone ILIKE $${sIdx} OR r.user_id ILIKE $${sIdx} OR r.job_title ILIKE $${sIdx})`);
+      where.OR = [
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+        { userId: { contains: search, mode: 'insensitive' } },
+        { jobTitle: { contains: search, mode: 'insensitive' } },
+      ];
     }
 
-    const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
+    const [total, items] = await Promise.all([
+      prisma.registration.count({ where }),
+      prisma.registration.findMany({
+        where,
+        include: {
+          ticketType: {
+            select: { name: true, price: true },
+          },
+        },
+        orderBy: { registeredAt: 'desc' },
+        skip,
+        take: limitNum,
+      }),
+    ]);
 
-    const countQuery = `SELECT COUNT(*) as total FROM registrations r ${whereClause}`;
-    const countRes = await pool.query(countQuery, values);
-    const total = parseInt(countRes.rows[0]?.total || '0');
+    const formattedData = items.map((r: any) => ({
+      ...r,
+      id: Number(r.id),
+      registered_at: r.registeredAt,
+      ticket_type_name: r.ticketType?.name || null,
+      ticket_price: r.ticketType ? Number(r.ticketType.price) : 0,
+    }));
 
-    const dataQuery = `
-      SELECT r.*, tt.name as ticket_type_name, tt.price as ticket_price
-      FROM registrations r
-      LEFT JOIN ticket_types tt ON r.ticket_type_id = tt.id
-      ${whereClause}
-      ORDER BY r.registered_at DESC
-      LIMIT $${values.length + 1} OFFSET $${values.length + 2}
-    `;
-    values.push(limitNum, offset);
-
-    const res = await pool.query(dataQuery, values);
     return {
-      data: res.rows,
+      data: formattedData,
       pagination: {
         total,
         page: pageNum,
         limit: limitNum,
-        totalPages: Math.ceil(total / limitNum)
-      }
+        totalPages: Math.ceil(total / limitNum),
+      },
     };
   }
 }

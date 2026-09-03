@@ -3,7 +3,8 @@ import jwt from 'jsonwebtoken';
 import { getPublicKey } from '../services/crypto.service';
 import { UserPayload } from '../types';
 import { createChildLogger } from '../lib/logger';
-import { pool } from '../db/pool';
+import prisma from '../lib/prisma';
+import redis from '../lib/redis';
 
 const logger = createChildLogger('auth.middleware');
 
@@ -11,13 +12,13 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   try {
     let token: string | undefined;
 
-    // 1. Check Authorization Bearer header (for APIs/third-party calls)
+    // 1. Check Authorization Bearer header
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.substring(7);
     }
 
-    // 2. Fallback: Check cookies (for frontend web sessions)
+    // 2. Fallback: Check cookies
     if (!token && req.cookies) {
       token = req.cookies.session_token;
     }
@@ -26,14 +27,13 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       return res.status(401).json({ error: 'Authentication token required' });
     }
 
-    // 3. Cryptographically validate token via Asymmetric Public Key
+    // 3. Validate token via Asymmetric Public Key (RS256)
     const decoded = jwt.verify(token, getPublicKey(), { algorithms: ['RS256'] }) as UserPayload;
-    
-    // 4. Redis caching for user status and role (realtime enforcement)
-    let dbUser: { status?: string, role?: UserPayload['role'] } = {};
+
+    // 4. Redis session caching
+    let dbUser: { status?: string; role?: UserPayload['role'] } = {};
     const redisKey = `user:session:${decoded.username}`;
-    const redis = await import('../lib/redis').then(m => m.default);
-    
+
     try {
       const cached = await redis.get(redisKey);
       if (cached) {
@@ -44,12 +44,20 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     }
 
     if (!dbUser.status) {
-      const dbUserRes = await pool.query('SELECT status, role FROM users WHERE username = $1', [decoded.username]);
-      if (dbUserRes.rowCount === 0) {
+      const foundUser = await prisma.user.findUnique({
+        where: { username: decoded.username },
+        select: { status: true, role: true },
+      });
+
+      if (!foundUser) {
         return res.status(401).json({ error: 'User not found' });
       }
-      dbUser = dbUserRes.rows[0];
-      
+
+      dbUser = {
+        status: foundUser.status,
+        role: foundUser.role as UserPayload['role'],
+      };
+
       try {
         await redis.setex(redisKey, 60, JSON.stringify(dbUser));
       } catch (e) {
@@ -58,7 +66,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     }
 
     if (dbUser.status === 'SUSPENDED') {
-      return res.status(403).json({ error: 'Your account has been suspended. Please contact the Ayojok support team to resolve this problem.' });
+      return res.status(403).json({ error: 'Your account has been suspended. Please contact Ayojok support.' });
     }
 
     // 5. Inject payload context into Express request
@@ -93,7 +101,7 @@ export function authMiddlewareOptional(req: Request, res: Response, next: NextFu
     }
 
     const decoded = jwt.verify(token, getPublicKey(), { algorithms: ['RS256'] }) as UserPayload;
-    
+
     req.user = {
       username: decoded.username,
       email: decoded.email,
@@ -102,7 +110,6 @@ export function authMiddlewareOptional(req: Request, res: Response, next: NextFu
 
     return next();
   } catch (error: any) {
-    // Just ignore token errors in optional middleware
     return next();
   }
 }

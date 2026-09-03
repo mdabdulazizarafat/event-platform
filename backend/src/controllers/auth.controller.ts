@@ -1,21 +1,22 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { pool } from '../db/pool';
+import crypto from 'crypto';
+import prisma from '../lib/prisma';
 import { getPrivateKey } from '../services/crypto.service';
 import { EmailService } from '../services/email.service';
+import { StorageService } from '../services/storage.service';
 import { createChildLogger } from '../lib/logger';
 
 const logger = createChildLogger('auth.controller');
 
 export class AuthController {
   /**
-   * Register a new user (PARTICIPANT or ORGANIZER).
-   * POST /api/v1/auth/register
+   * Register a new user.
    */
   static async register(req: Request, res: Response) {
     try {
-      let { username, name, firstName, lastName, email, password, role, mobile, org, code } = req.body;
+      let { username, name, firstName, lastName, email, password, mobile, org, code } = req.body;
 
       if (!firstName || !email || !password || !code) {
         return res.status(400).json({ error: 'First Name, email, password, and verification code are required' });
@@ -25,16 +26,32 @@ export class AuthController {
         return res.status(400).json({ error: 'Password must be at least 8 characters long' });
       }
 
-      // Verify OTP code
       const emailLower = email.toLowerCase().trim();
-      const codeCheck = await pool.query(
-        `SELECT * FROM verification_codes 
-         WHERE email = $1 AND code = $2 AND purpose = 'SIGNUP' AND expires_at > CURRENT_TIMESTAMP`,
-        [emailLower, code]
-      );
 
-      if (codeCheck.rowCount === 0) {
-        return res.status(400).json({ error: 'Invalid or expired verification code.' });
+      // Verify OTP code
+      const activeCode = await prisma.verificationCode.findFirst({
+        where: {
+          email: emailLower,
+          purpose: 'SIGNUP',
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (!activeCode) {
+        return res.status(400).json({ error: 'Invalid or expired verification code. Please request a new code.' });
+      }
+
+      if (activeCode.code !== code) {
+        const newAttempts = activeCode.attempts + 1;
+        if (newAttempts >= 5) {
+          await prisma.verificationCode.delete({ where: { id: activeCode.id } });
+          return res.status(400).json({ error: 'Too many invalid code attempts. Please request a new verification code.' });
+        }
+        await prisma.verificationCode.update({
+          where: { id: activeCode.id },
+          data: { attempts: newAttempts },
+        });
+        return res.status(400).json({ error: 'Invalid verification code.' });
       }
 
       const derivedName = name || `${firstName} ${lastName || ''}`.trim();
@@ -44,8 +61,8 @@ export class AuthController {
         let attempt = baseUsername;
         let count = 12;
         while (true) {
-          const check = await pool.query('SELECT 1 FROM users WHERE username = $1', [attempt]);
-          if (check.rowCount === 0) {
+          const check = await prisma.user.findUnique({ where: { username: attempt } });
+          if (!check) {
             username = attempt;
             break;
           }
@@ -54,65 +71,63 @@ export class AuthController {
         }
       }
 
-      // Enforce valid roles for public registration
-      const targetRole = 'USER';
-      const targetStatus = 'ACTIVE';
-
-      // Enforce Service Controls
-      const settingsRes = await pool.query("SELECT value FROM platform_settings WHERE key = 'features'");
-      const features = settingsRes.rows[0]?.value || {};
+      const settings = await prisma.platformSetting.findUnique({ where: { key: 'features' } });
+      const features = (settings?.value as any) || {};
       if (features.signUp === false) {
         return res.status(403).json({ error: 'New account registration is currently disabled.' });
       }
 
-      // Check if username or email is already taken
-      const checkUser = await pool.query(
-        'SELECT username, email FROM users WHERE username = $1 OR email = $2',
-        [username.toLowerCase().trim(), email.toLowerCase().trim()]
-      );
+      const cleanUsername = username.toLowerCase().trim();
+      const existingUser = await prisma.user.findFirst({
+        where: { OR: [{ username: cleanUsername }, { email: emailLower }] },
+      });
 
-      if (checkUser.rows.length > 0) {
-        const existing = checkUser.rows[0];
-        if (existing.username === username.toLowerCase().trim()) {
+      if (existingUser) {
+        if (existingUser.username === cleanUsername) {
           return res.status(400).json({ error: 'Username is already taken' });
         }
         return res.status(400).json({ error: 'Email is already registered' });
       }
 
-      // Hash password using bcrypt
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
 
-      // Insert new user into users table
-      const insertQuery = `
-        INSERT INTO users (username, name, first_name, last_name, email, password_hash, role, mobile, org, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        RETURNING username, name, first_name, last_name, email, mobile, org, role, status, created_at;
-      `;
-      const insertRes = await pool.query(insertQuery, [
-        username.toLowerCase().trim(),
-        derivedName,
-        firstName.trim(),
-        lastName ? lastName.trim() : null,
-        email.toLowerCase().trim(),
-        hashedPassword,
-        targetRole,
-        mobile || null,
-        org || null,
-        targetStatus
-      ]);
+      const newUser = await prisma.user.create({
+        data: {
+          username: cleanUsername,
+          name: derivedName,
+          firstName: firstName.trim(),
+          lastName: lastName ? lastName.trim() : null,
+          email: emailLower,
+          passwordHash: hashedPassword,
+          role: 'USER',
+          mobile: mobile || null,
+          org: org || null,
+          status: 'ACTIVE',
+        },
+        select: {
+          username: true,
+          name: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          mobile: true,
+          org: true,
+          role: true,
+          status: true,
+          createdAt: true,
+        },
+      });
 
-      const newUser = insertRes.rows[0];
+      await prisma.verificationCode.deleteMany({
+        where: { email: emailLower, purpose: 'SIGNUP' },
+      });
 
-      // Delete the used verification code
-      await pool.query('DELETE FROM verification_codes WHERE email = $1 AND purpose = $2', [emailLower, 'SIGNUP']);
-      
-      // Send Welcome Email
       await EmailService.sendWelcomeEmail(emailLower, newUser.username);
 
       return res.status(201).json({
         message: 'Registration successful',
-        user: newUser
+        user: newUser,
       });
     } catch (error: any) {
       logger.error({ err: error }, 'Registration error');
@@ -121,7 +136,7 @@ export class AuthController {
   }
 
   /**
-   * Log in user, sign JWT, and drop secure HttpOnly cookie
+   * Log in user.
    */
   static async login(req: Request, res: Response) {
     try {
@@ -132,35 +147,31 @@ export class AuthController {
       }
 
       const normalizedInput = emailOrUsername.trim().toLowerCase();
-      // Lookup user in users database
-      const userQuery = `
-        SELECT * FROM users 
-        WHERE email = $1 OR username = $1;
-      `;
-      const userRes = await pool.query(userQuery, [normalizedInput]);
-      if (userRes.rowCount === 0) {
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [{ email: normalizedInput }, { username: normalizedInput }],
+        },
+      });
+
+      if (!user) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      const user = userRes.rows[0];
-
-      const settingsRes = await pool.query("SELECT value FROM platform_settings WHERE key = 'features'");
-      const features = settingsRes.rows[0]?.value || {};
+      const settings = await prisma.platformSetting.findUnique({ where: { key: 'features' } });
+      const features = (settings?.value as any) || {};
       if (features.signIn === false && user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
         return res.status(403).json({ error: 'Sign in is currently disabled by the administrator.' });
       }
 
-      // Validate credentials using bcrypt
-      const isMatch = await bcrypt.compare(password, user.password_hash);
+      const isMatch = await bcrypt.compare(password, user.passwordHash);
       if (!isMatch) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
       if (user.status === 'SUSPENDED') {
-        return res.status(403).json({ error: 'Your account has been suspended. Please contact the Ayojok support team to resolve this problem.' });
+        return res.status(403).json({ error: 'Your account has been suspended. Please contact Ayojok support.' });
       }
 
-      // Sign Stateless JWT via Asymmetric Private Key (RS256)
       const tokenPayload = {
         username: user.username,
         email: user.email,
@@ -168,20 +179,19 @@ export class AuthController {
         mobile: user.mobile,
         org: user.org,
         status: user.status || 'ACTIVE',
-        organizerStatus: user.organizer_status
+        organizerStatus: user.organizerStatus,
       };
-      
+
       const token = jwt.sign(tokenPayload, getPrivateKey(), {
         algorithm: 'RS256',
         expiresIn: '24h',
       });
 
-      // Set cookie in response jar (HttpOnly, Secure, Lax SameSite)
       res.cookie('session_token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        maxAge: 24 * 60 * 60 * 1000,
       });
 
       return res.status(200).json({
@@ -189,8 +199,8 @@ export class AuthController {
         user: {
           username: user.username,
           name: user.name,
-          firstName: user.first_name,
-          lastName: user.last_name,
+          firstName: user.firstName,
+          lastName: user.lastName,
           email: user.email,
           avatar: user.avatar,
           bio: user.bio,
@@ -198,16 +208,16 @@ export class AuthController {
           mobile: user.mobile,
           org: user.org,
           status: user.status || 'ACTIVE',
-          organizerStatus: user.organizer_status,
-          rejectionCount: user.rejection_count,
-          dateOfBirth: user.date_of_birth,
+          organizerStatus: user.organizerStatus,
+          rejectionCount: user.rejectionCount,
+          dateOfBirth: user.dateOfBirth,
           gender: user.gender,
-          occupationType: user.occupation_type,
-          institutionName: user.institution_name,
-          classLevel: user.class_level,
+          occupationType: user.occupationType,
+          institutionName: user.institutionName,
+          classLevel: user.classLevel,
           position: user.position,
-          district: user.district
-        }
+          district: user.district,
+        },
       });
     } catch (error: any) {
       logger.error({ err: error }, 'Login error');
@@ -215,60 +225,75 @@ export class AuthController {
     }
   }
 
-  /**
-   * Log out user by clearing the HTTP cookie
-   */
   static async logout(req: Request, res: Response) {
     res.clearCookie('session_token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
+      sameSite: 'lax',
     });
     return res.status(200).json({ message: 'Logged out successfully' });
   }
 
-  /**
-   * Return profile payload if token remains valid
-   */
   static async me(req: Request, res: Response) {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthenticated' });
     }
-    
+
     try {
-      const userRes = await pool.query('SELECT username, name, first_name as "firstName", last_name as "lastName", email, avatar, bio, role, mobile, org, status, organizer_status as "organizerStatus", rejection_count as "rejectionCount", date_of_birth as "dateOfBirth", gender, occupation_type as "occupationType", institution_name as "institutionName", class_level as "classLevel", position, district FROM users WHERE username = $1', [req.user.username]);
-      if (userRes.rowCount === 0) {
+      const user = await prisma.user.findUnique({
+        where: { username: req.user.username },
+      });
+      if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
-      return res.status(200).json({ user: userRes.rows[0] });
+
+      return res.status(200).json({
+        user: {
+          username: user.username,
+          name: user.name,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          avatar: user.avatar,
+          bio: user.bio,
+          role: user.role || 'USER',
+          mobile: user.mobile,
+          org: user.org,
+          status: user.status || 'ACTIVE',
+          organizerStatus: user.organizerStatus,
+          rejectionCount: user.rejectionCount,
+          dateOfBirth: user.dateOfBirth,
+          gender: user.gender,
+          occupationType: user.occupationType,
+          institutionName: user.institutionName,
+          classLevel: user.classLevel,
+          position: user.position,
+          district: user.district,
+        },
+      });
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
     }
   }
 
-  /**
-   * Update profile information for authenticated user.
-   * PUT /api/v1/auth/profile
-   */
   static async updateProfile(req: Request, res: Response) {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthenticated' });
     }
 
     try {
-      const { 
-        name, firstName, lastName, email, mobile, avatar, bio, org, role, status,
-        dateOfBirth, gender, occupationType, institutionName, classLevel, position, district
+      const {
+        name, firstName, lastName, email, mobile, avatar, bio, org,
+        dateOfBirth, gender, occupationType, institutionName, classLevel, position, district,
       } = req.body;
       const username = req.user.username;
 
-      // Check if user exists
-      const userRes = await pool.query('SELECT role, email FROM users WHERE username = $1', [username]);
-      if (userRes.rowCount === 0) {
+      const user = await prisma.user.findUnique({ where: { username } });
+      if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      if (email !== undefined && email !== userRes.rows[0].email) {
+      if (email !== undefined && email !== user.email) {
         return res.status(400).json({ error: 'Email address cannot be changed.' });
       }
 
@@ -283,56 +308,53 @@ export class AuthController {
         }
       }
 
-      // Build dynamic update query
-      const setClauses: string[] = [];
-      const values: any[] = [];
-      let paramIndex = 1;
-
-      const addField = (field: string, value: any) => {
-        if (value !== undefined) {
-          setClauses.push(`${field} = $${paramIndex}`);
-          values.push(value === '' ? null : value);
-          paramIndex++;
-        }
-      };
-
+      const updateData: any = {};
       const derivedName = name || (firstName !== undefined ? `${firstName} ${lastName || ''}`.trim() : undefined);
 
-      addField('name', derivedName);
-      addField('first_name', firstName);
-      addField('last_name', lastName);
-      addField('email', email);
-      addField('mobile', mobile);
-      addField('avatar', avatar);
-      addField('bio', bio);
-      addField('org', org);
-      addField('date_of_birth', dateOfBirth);
-      addField('gender', gender);
-      addField('occupation_type', occupationType);
-      addField('institution_name', institutionName);
-      addField('class_level', classLevel);
-      addField('position', position);
-      addField('district', district);
+      if (derivedName !== undefined) updateData.name = derivedName;
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+      if (mobile !== undefined) updateData.mobile = mobile;
+      if (avatar !== undefined) updateData.avatar = avatar;
+      if (bio !== undefined) updateData.bio = bio;
+      if (org !== undefined) updateData.org = org;
+      if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth;
+      if (gender !== undefined) updateData.gender = gender;
+      if (occupationType !== undefined) updateData.occupationType = occupationType;
+      if (institutionName !== undefined) updateData.institutionName = institutionName;
+      if (classLevel !== undefined) updateData.classLevel = classLevel;
+      if (position !== undefined) updateData.position = position;
+      if (district !== undefined) updateData.district = district;
 
-      if (setClauses.length === 0) {
-        return res.status(200).json({ message: 'No changes', user: userRes.rows[0] });
-      }
-
-      setClauses.push(`updated_at = CURRENT_TIMESTAMP`);
-      values.push(username);
-
-      const query = `
-        UPDATE users
-        SET ${setClauses.join(', ')}
-        WHERE username = $${paramIndex}
-        RETURNING username, name, first_name as "firstName", last_name as "lastName", email, avatar, bio, mobile, org, role, status, organizer_status as "organizerStatus", rejection_count as "rejectionCount", date_of_birth as "dateOfBirth", gender, occupation_type as "occupationType", institution_name as "institutionName", class_level as "classLevel", position, district;
-      `;
-      
-      const updateRes = await pool.query(query, values);
+      const updatedUser = await prisma.user.update({
+        where: { username },
+        data: updateData,
+      });
 
       return res.status(200).json({
         message: 'Profile updated successfully',
-        user: updateRes.rows[0]
+        user: {
+          username: updatedUser.username,
+          name: updatedUser.name,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          email: updatedUser.email,
+          avatar: updatedUser.avatar,
+          bio: updatedUser.bio,
+          role: updatedUser.role || 'USER',
+          mobile: updatedUser.mobile,
+          org: updatedUser.org,
+          status: updatedUser.status || 'ACTIVE',
+          organizerStatus: updatedUser.organizerStatus,
+          rejectionCount: updatedUser.rejectionCount,
+          dateOfBirth: updatedUser.dateOfBirth,
+          gender: updatedUser.gender,
+          occupationType: updatedUser.occupationType,
+          institutionName: updatedUser.institutionName,
+          classLevel: updatedUser.classLevel,
+          position: updatedUser.position,
+          district: updatedUser.district,
+        },
       });
     } catch (error: any) {
       logger.error({ err: error }, 'Profile update error');
@@ -340,15 +362,11 @@ export class AuthController {
     }
   }
 
-  /**
-   * Upload user avatar.
-   * POST /api/v1/auth/upload-avatar
-   */
   static async uploadAvatar(req: Request, res: Response) {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthenticated' });
     }
-    
+
     try {
       const { imageBase64 } = req.body;
       if (!imageBase64) {
@@ -361,9 +379,8 @@ export class AuthController {
       }
 
       const buffer = Buffer.from(matches[2], 'base64');
-      const { StorageService } = await import('../services/storage.service');
       const url = await StorageService.uploadAvatar(req.user.username, buffer);
-      
+
       return res.status(200).json({ url });
     } catch (error: any) {
       logger.error({ err: error }, 'Error uploading avatar');
@@ -371,61 +388,52 @@ export class AuthController {
     }
   }
 
-  /**
-   * Apply as an organizer
-   * POST /api/v1/auth/apply-organizer
-   */
   static async applyOrganizer(req: Request, res: Response) {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthenticated' });
     }
 
     try {
-      const settingsRes = await pool.query("SELECT value FROM platform_settings WHERE key = 'features'");
-      const features = settingsRes.rows[0]?.value || {};
+      const settings = await prisma.platformSetting.findUnique({ where: { key: 'features' } });
+      const features = (settings?.value as any) || {};
       if (features.organizerApplication === false) {
         return res.status(403).json({ error: 'Organizer applications are currently disabled.' });
       }
 
-      const userRes = await pool.query('SELECT * FROM users WHERE username = $1', [req.user.username]);
-      if (userRes.rowCount === 0) {
+      const user = await prisma.user.findUnique({ where: { username: req.user.username } });
+      if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      const user = userRes.rows[0];
       if (user.role === 'ORGANIZER') {
         return res.status(400).json({ error: 'You are already an organizer.' });
       }
-      // if (user.rejection_count >= 3) {
-      //   return res.status(403).json({ error: 'Your organizer application has been rejected 3 times. You cannot re-apply.' });
-      // }
-      if (['PENDING', 'APPROVED'].includes(user.organizer_status)) {
-        return res.status(400).json({ error: `Your application is currently ${user.organizer_status}.` });
+      if (['PENDING', 'APPROVED'].includes(user.organizerStatus || '')) {
+        return res.status(400).json({ error: `Your application is currently ${user.organizerStatus}.` });
       }
 
-      // Check profile completion
-      const requiredFields = ['first_name', 'mobile', 'date_of_birth', 'gender', 'district', 'occupation_type', 'institution_name'];
+      const requiredFields = ['firstName', 'mobile', 'dateOfBirth', 'gender', 'district', 'occupationType', 'institutionName'];
       for (const field of requiredFields) {
-        if (!user[field]) {
-          return res.status(400).json({ error: `Please complete your profile. Missing: ${field.replace('_', ' ')}` });
+        if (!(user as any)[field]) {
+          return res.status(400).json({ error: `Please complete your profile. Missing: ${field}` });
         }
       }
-      
-      if (user.occupation_type === 'student' && !user.class_level) {
+
+      if (user.occupationType === 'student' && !user.classLevel) {
         return res.status(400).json({ error: 'Please specify your class level.' });
       }
-      if (user.occupation_type === 'job' && !user.position) {
+      if (user.occupationType === 'job' && !user.position) {
         return res.status(400).json({ error: 'Please specify your position.' });
       }
 
-      const updateRes = await pool.query(
-        `UPDATE users SET organizer_status = 'PENDING', updated_at = CURRENT_TIMESTAMP WHERE username = $1 RETURNING *`,
-        [req.user.username]
-      );
+      const updated = await prisma.user.update({
+        where: { username: req.user.username },
+        data: { organizerStatus: 'PENDING' },
+      });
 
       return res.status(200).json({
         message: 'Organizer application submitted successfully.',
-        user: { ...updateRes.rows[0], organizerStatus: updateRes.rows[0].organizer_status, rejectionCount: updateRes.rows[0].rejection_count }
+        user: { ...updated, organizerStatus: updated.organizerStatus, rejectionCount: updated.rejectionCount },
       });
     } catch (error: any) {
       logger.error({ err: error }, 'Apply organizer error');
@@ -433,10 +441,6 @@ export class AuthController {
     }
   }
 
-  /**
-   * Send Signup Verification Code
-   * POST /api/v1/auth/send-signup-code
-   */
   static async sendSignupCode(req: Request, res: Response) {
     try {
       const { email } = req.body;
@@ -445,17 +449,27 @@ export class AuthController {
       }
 
       const emailLower = email.toLowerCase().trim();
-      const checkUser = await pool.query('SELECT 1 FROM users WHERE email = $1', [emailLower]);
-      if ((checkUser.rowCount ?? 0) > 0) {
-        return res.status(400).json({ error: 'Email is already registered.' });
+      const existingUser = await prisma.user.findUnique({ where: { email: emailLower } });
+      if (existingUser) {
+        return res.status(400).json({ error: 'Email is already registered. Please sign in or reset your password.' });
       }
 
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      await pool.query(
-        `INSERT INTO verification_codes (email, code, purpose, expires_at) 
-         VALUES ($1, $2, 'SIGNUP', CURRENT_TIMESTAMP + INTERVAL '10 minutes')`,
-        [emailLower, code]
-      );
+      await prisma.verificationCode.deleteMany({
+        where: { email: emailLower, purpose: 'SIGNUP' },
+      });
+
+      const code = crypto.randomInt(100000, 1000000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+      await prisma.verificationCode.create({
+        data: {
+          email: emailLower,
+          code,
+          purpose: 'SIGNUP',
+          attempts: 0,
+          expiresAt,
+        },
+      });
 
       await EmailService.sendVerificationCode(emailLower, code, 'SIGNUP');
 
@@ -466,12 +480,6 @@ export class AuthController {
     }
   }
 
-  /**
-   * Reset Password Endpoint
-   * POST /api/v1/auth/reset-password
-   * If only 'email' is provided, it sends an OTP code.
-   * If 'email', 'code', and 'newPassword' are provided, it verifies the code and resets the password.
-   */
   static async resetPassword(req: Request, res: Response) {
     try {
       const { email, code, newPassword } = req.body;
@@ -481,27 +489,34 @@ export class AuthController {
 
       const emailLower = email.toLowerCase().trim();
 
-      // Step 1: Send OTP code if only email is provided
       if (!code && !newPassword) {
-        const checkUser = await pool.query('SELECT 1 FROM users WHERE email = $1', [emailLower]);
-        if (checkUser.rowCount === 0) {
-          // Return success even if user doesn't exist to prevent email enumeration
+        const user = await prisma.user.findUnique({ where: { email: emailLower } });
+        if (!user) {
           return res.status(200).json({ message: 'If your email is registered, a verification code has been sent.' });
         }
 
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        await pool.query(
-          `INSERT INTO verification_codes (email, code, purpose, expires_at) 
-           VALUES ($1, $2, 'PASSWORD_RESET', CURRENT_TIMESTAMP + INTERVAL '10 minutes')`,
-          [emailLower, otpCode]
-        );
+        await prisma.verificationCode.deleteMany({
+          where: { email: emailLower, purpose: 'PASSWORD_RESET' },
+        });
+
+        const otpCode = crypto.randomInt(100000, 1000000).toString();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+        await prisma.verificationCode.create({
+          data: {
+            email: emailLower,
+            code: otpCode,
+            purpose: 'PASSWORD_RESET',
+            attempts: 0,
+            expiresAt,
+          },
+        });
 
         await EmailService.sendVerificationCode(emailLower, otpCode, 'PASSWORD_RESET');
 
         return res.status(200).json({ message: 'If your email is registered, a verification code has been sent.' });
       }
 
-      // Step 2: Verify code and reset password
       if (!code || !newPassword) {
         return res.status(400).json({ error: 'Code and new password are required for reset' });
       }
@@ -510,29 +525,42 @@ export class AuthController {
         return res.status(400).json({ error: 'Password must be at least 8 characters long' });
       }
 
-      const codeCheck = await pool.query(
-        `SELECT * FROM verification_codes 
-         WHERE email = $1 AND code = $2 AND purpose = 'PASSWORD_RESET' AND expires_at > CURRENT_TIMESTAMP`,
-        [emailLower, code]
-      );
+      const activeCode = await prisma.verificationCode.findFirst({
+        where: {
+          email: emailLower,
+          purpose: 'PASSWORD_RESET',
+          expiresAt: { gt: new Date() },
+        },
+      });
 
-      if (codeCheck.rowCount === 0) {
-        return res.status(400).json({ error: 'Invalid or expired verification code.' });
+      if (!activeCode) {
+        return res.status(400).json({ error: 'Invalid or expired verification code. Please request a new code.' });
+      }
+
+      if (activeCode.code !== code) {
+        const newAttempts = activeCode.attempts + 1;
+        if (newAttempts >= 5) {
+          await prisma.verificationCode.delete({ where: { id: activeCode.id } });
+          return res.status(400).json({ error: 'Too many invalid code attempts. Please request a new verification code.' });
+        }
+        await prisma.verificationCode.update({
+          where: { id: activeCode.id },
+          data: { attempts: newAttempts },
+        });
+        return res.status(400).json({ error: 'Invalid verification code.' });
       }
 
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-      const updateRes = await pool.query(
-        'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE email = $2 RETURNING 1',
-        [hashedPassword, emailLower]
-      );
+      await prisma.user.update({
+        where: { email: emailLower },
+        data: { passwordHash: hashedPassword },
+      });
 
-      if (updateRes.rowCount === 0) {
-        return res.status(404).json({ error: 'User not found.' });
-      }
-
-      await pool.query('DELETE FROM verification_codes WHERE email = $1 AND purpose = $2', [emailLower, 'PASSWORD_RESET']);
+      await prisma.verificationCode.deleteMany({
+        where: { email: emailLower, purpose: 'PASSWORD_RESET' },
+      });
 
       return res.status(200).json({ message: 'Password reset successfully. You can now login.' });
     } catch (error: any) {

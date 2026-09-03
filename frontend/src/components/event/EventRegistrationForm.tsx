@@ -140,56 +140,39 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
     try {
       const activeUserId = user?.username || registeredData.fullName.replace(/\s+/g, '-').toLowerCase();
 
-      if (selectedTicket.isFree) {
-        // Free ticket — direct registration
-        const response = await fetch(`/api/v1/events/${event.slug}/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: registeredData.email,
-            userId: activeUserId,
-            ticketTypeId: selectedTicket.id,
-            fullName: registeredData.fullName,
-            phone: registeredData.phone,
-            jobTitle: registeredData.jobTitle,
-            organization: registeredData.organization,
-            tshirtSize: registeredData.tshirtSize,
-            reference: registeredData.reference,
-            transactionId: registeredData.transactionId,
-          }),
-        });
+      const isPaid = !selectedTicket.isFree;
+      if (isPaid && (!registeredData.transactionId || !registeredData.transactionId.trim())) {
+        message.error('Please enter your bKash / mobile banking transaction ID to complete registration.');
+        setLoading(false);
+        return;
+      }
 
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Failed to complete registration.');
-        }
-
-        const data = await response.json();
-        setOrderId(`#RP-2026-${data.registrationId}`);
-        setQrToken(data.qrToken);
-        setStep('success');
-        message.success('Registration successful! Ticket generated.');
-        form.resetFields();
-      } else {
-        // Paid ticket — initiate SSLCommerz payment
-        const result = await initiatePayment({
-          eventSlug: event.slug,
-          ticketTypeIds: [selectedTicket.id],
-          userId: activeUserId,
-          email: registeredData.email,
-          customerName: registeredData.fullName,
-          customerPhone: registeredData.phone,
+      const response = await fetch(`/api/v1/events/${event.slug}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticketTypeId: selectedTicket.id,
+          fullName: registeredData.fullName,
+          phone: registeredData.phone,
           jobTitle: registeredData.jobTitle,
           organization: registeredData.organization,
           tshirtSize: registeredData.tshirtSize,
           reference: registeredData.reference,
-          transactionId: registeredData.transactionId,
-        });
+          transactionId: registeredData.transactionId ? registeredData.transactionId.trim() : undefined,
+        }),
+      });
 
-        // Redirect to SSLCommerz gateway
-        message.info('Redirecting to payment gateway...');
-        window.location.href = result.gatewayUrl;
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to complete registration.');
       }
+
+      const data = await response.json();
+      setOrderId(`#RP-2026-${data.registrationId}`);
+      setQrToken(data.qrToken);
+      setStep('success');
+      message.success('Registration successful! Ticket generated.');
+      form.resetFields();
     } catch (err: any) {
       message.error(err.message || 'An unexpected error occurred.');
     } finally {
@@ -485,17 +468,37 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
           </Form.Item>
         )}
 
-        {(event.form_transaction_id === true) && (
-          <Form.Item
-            name="transactionId"
-            label={<span className="font-semibold text-slate-700 text-sm">Transaction ID</span>}
-            rules={[{ required: true, message: 'Transaction ID is required' }]}
-          >
-            <Input 
-              placeholder="e.g. TRX102938475" 
-              className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
-            />
-          </Form.Item>
+        {(event.form_transaction_id === true || (selectedTicket && !selectedTicket.isFree)) && (
+          <div className="space-y-4">
+            {(event.payment_instructions || event.bkash_number) && (
+              <div className="p-4 bg-[#4F46E5]/5 border border-[#4F46E5]/20 rounded-xl mb-4">
+                <h4 className="text-sm font-bold text-slate-800 mb-2">bKash / Mobile Payment Instructions</h4>
+                {event.payment_instructions && (
+                  <p className="text-xs text-slate-600 whitespace-pre-wrap mb-2 leading-relaxed">
+                    {event.payment_instructions}
+                  </p>
+                )}
+                {event.bkash_number && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-slate-600 font-medium">bKash Number:</span>
+                    <span className="font-mono font-bold text-sm bg-white px-2 py-1 border border-slate-200 rounded select-all text-[#4F46E5]">
+                      {event.bkash_number}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+            <Form.Item
+              name="transactionId"
+              label={<span className="font-semibold text-slate-700 text-sm">bKash / Mobile Banking Transaction ID</span>}
+              rules={[{ required: true, message: 'Transaction ID is required for paid registration' }]}
+            >
+              <Input 
+                placeholder="e.g. TRX102938475" 
+                className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
+              />
+            </Form.Item>
+          </div>
         )}
 
         <div className="flex gap-3 pt-2">

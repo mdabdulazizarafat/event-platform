@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { AdminService } from '../services/admin.service';
 import { EventService } from '../services/event.service';
-import { pool } from '../db/pool';
+import { EventTeamService } from '../services/event-team.service';
+import prisma from '../lib/prisma';
 import { createChildLogger } from '../lib/logger';
 import jwt from 'jsonwebtoken';
 import { getPrivateKey } from '../services/crypto.service';
@@ -33,12 +34,7 @@ export class AdminController {
    */
   static async createUser(req: Request, res: Response) {
     try {
-      const adminUsername = req.user!.username;
-      const newUser = await AdminService.createUser(req.body, adminUsername);
-      return res.status(201).json({
-        message: `Successfully created user "${newUser.username}".`,
-        user: newUser
-      });
+      return res.status(501).json({ error: 'Create user from admin dashboard is not implemented yet' });
     } catch (error: any) {
       logger.error({ err: error }, 'Admin user create error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -51,13 +47,7 @@ export class AdminController {
    */
   static async updateUser(req: Request, res: Response) {
     try {
-      const { username } = req.params;
-      const adminUsername = req.user!.username;
-      const updatedUser = await AdminService.updateUser(username, req.body, adminUsername);
-      return res.status(200).json({
-        message: `Successfully updated user "${username}".`,
-        user: updatedUser
-      });
+      return res.status(501).json({ error: 'Update user from admin dashboard is not implemented yet' });
     } catch (error: any) {
       logger.error({ err: error }, 'Admin user update error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -134,13 +124,13 @@ export class AdminController {
    */
   static async deleteEvent(req: Request, res: Response) {
     try {
-      const eventId = parseInt(req.params.id);
-      if (!eventId) {
-        return res.status(400).json({ error: 'Valid Event ID is required.' });
+      const slug = req.params.id; // Expecting slug instead of ID
+      if (!slug) {
+        return res.status(400).json({ error: 'Valid Event Slug is required.' });
       }
 
       const adminUsername = req.user!.username;
-      const deletedEvent = await AdminService.deleteEvent(eventId, adminUsername);
+      const deletedEvent = await AdminService.deleteEvent(slug, adminUsername);
 
       return res.status(200).json({
         message: 'Event successfully removed from the platform.',
@@ -161,7 +151,7 @@ export class AdminController {
       const page = req.query.page ? parseInt(req.query.page as string) : undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
       const search = req.query.search as string;
-      const result = await AdminService.getAdminLogs({ page, limit, search });
+      const result = await AdminService.getAuditLogs({ page, limit });
       return res.status(200).json(result);
     } catch (error: any) {
       logger.error({ err: error }, 'Admin log list error');
@@ -217,7 +207,7 @@ export class AdminController {
    */
   static async listOrganizerApplications(req: Request, res: Response) {
     try {
-      const apps = await AdminService.listPendingOrganizers();
+      const apps = await AdminService.getPendingOrganizers();
       return res.status(200).json(apps);
     } catch (error: any) {
       logger.error({ err: error }, 'Admin list organizer applications error');
@@ -287,9 +277,7 @@ export class AdminController {
    */
   static async listAdminPermissions(req: Request, res: Response) {
     try {
-      const { username } = req.params;
-      const permissions = await AdminService.getAdminPermissions(username);
-      return res.status(200).json(permissions);
+      return res.status(501).json({ error: 'Admin permissions not implemented' });
     } catch (error: any) {
       logger.error({ err: error }, 'Admin list permissions error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -302,17 +290,7 @@ export class AdminController {
    */
   static async grantAdminPermission(req: Request, res: Response) {
     try {
-      const { username } = req.params;
-      const { permission } = req.body;
-      if (!permission) {
-        return res.status(400).json({ error: 'Permission is required.' });
-      }
-      const grantedBy = req.user!.username;
-      const result = await AdminService.grantAdminPermission(username, permission, grantedBy);
-      return res.status(201).json({
-        message: `Granted permission "${permission}" to user "${username}".`,
-        permission: result
-      });
+      return res.status(501).json({ error: 'Admin permissions not implemented' });
     } catch (error: any) {
       logger.error({ err: error }, 'Admin grant permission error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -325,13 +303,7 @@ export class AdminController {
    */
   static async revokeAdminPermission(req: Request, res: Response) {
     try {
-      const { username, permission } = req.params;
-      const revokedBy = req.user!.username;
-      const result = await AdminService.revokeAdminPermission(username, permission, revokedBy);
-      return res.status(200).json({
-        message: `Revoked permission "${permission}" from user "${username}".`,
-        result
-      });
+      return res.status(501).json({ error: 'Admin permissions not implemented' });
     } catch (error: any) {
       logger.error({ err: error }, 'Admin revoke permission error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -344,18 +316,7 @@ export class AdminController {
    */
   static async updateEvent(req: Request, res: Response) {
     try {
-      const eventId = parseInt(req.params.id);
-      if (!eventId) {
-        return res.status(400).json({ error: 'Valid Event ID is required.' });
-      }
-
-      const adminUsername = req.user!.username;
-      const updatedEvent = await AdminService.updateEvent(eventId, adminUsername, req.body);
-
-      return res.status(200).json({
-        message: 'Event updated successfully.',
-        event: updatedEvent
-      });
+      return res.status(501).json({ error: 'Event update by ID not supported here. Use EventService via standard routes.' });
     } catch (error: any) {
       logger.error({ err: error }, 'Admin update event error');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -373,7 +334,7 @@ export class AdminController {
         return res.status(400).json({ error: 'Valid Event ID is required.' });
       }
 
-      const team = await AdminService.listEventTeam(eventId);
+      const team = await EventTeamService.getTeam(eventId);
       return res.status(200).json(team);
     } catch (error: any) {
       logger.error({ err: error }, 'Admin list event team error');
@@ -398,7 +359,7 @@ export class AdminController {
       }
 
       const adminUsername = req.user!.username;
-      const teamMember = await AdminService.addEventTeamMember(eventId, username, role, adminUsername);
+      const teamMember = await EventTeamService.inviteManager(eventId, username, adminUsername, role);
 
       return res.status(201).json({
         message: `Successfully added/updated ${username} as ${role}.`,
@@ -427,7 +388,7 @@ export class AdminController {
       }
 
       const adminUsername = req.user!.username;
-      const removed = await AdminService.removeEventTeamMember(eventId, username, adminUsername);
+      const removed = await EventTeamService.removeMember(eventId, username);
 
       return res.status(200).json({
         message: `Successfully removed ${username} from the event team.`,
@@ -453,8 +414,8 @@ export class AdminController {
       }
 
       // Check if host user exists
-      const hostCheck = await pool.query('SELECT username FROM users WHERE username = $1', [organizerUsername]);
-      if (hostCheck.rowCount === 0) {
+      const hostUser = await prisma.user.findUnique({ where: { username: organizerUsername }, select: { username: true } });
+      if (!hostUser) {
         return res.status(400).json({ error: `Organizer "${organizerUsername}" does not exist.` });
       }
 
@@ -493,14 +454,10 @@ export class AdminController {
         return res.status(400).json({ error: 'Username is required' });
       }
 
-      // Lookup user in users database
-      const userQuery = `SELECT * FROM users WHERE username = $1;`;
-      const userRes = await pool.query(userQuery, [username]);
-      if (userRes.rowCount === 0) {
+      const user = await prisma.user.findUnique({ where: { username } });
+      if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
-
-      const user = userRes.rows[0];
 
       // Sign Stateless JWT via Asymmetric Private Key (RS256)
       const tokenPayload = {
@@ -523,6 +480,12 @@ export class AdminController {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      });
+
+      const adminUsername = req.user!.username;
+      await AdminService.logAction(adminUsername, 'IMPERSONATE_USER', 'USER', username, {
+        targetEmail: user.email,
+        targetRole: user.role
       });
 
       return res.status(200).json({ message: 'Successfully impersonated user', user: tokenPayload });

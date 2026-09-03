@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { EventService } from '../services/event.service';
 import { RegistrationService } from '../services/registration.service';
 import { StorageService } from '../services/storage.service';
-import { pool } from '../db/pool';
+import prisma from '../lib/prisma';
 import { createChildLogger } from '../lib/logger';
 
 const logger = createChildLogger('event.controller');
@@ -23,13 +23,14 @@ export class EventController {
       const buffer = Buffer.from(matches[2], 'base64');
       const targetId = eventId || `temp-${Date.now()}`;
       const url = await StorageService.uploadEventBanner(targetId, buffer);
-      
+
       return res.status(200).json({ url });
     } catch (error: any) {
       logger.error({ err: error }, 'Error uploading image');
       return res.status(500).json({ error: error.message || 'Upload failed' });
     }
   }
+
   static async create(req: Request, res: Response) {
     try {
       if (!req.user) {
@@ -38,30 +39,31 @@ export class EventController {
       if (req.user.role === 'USER') {
         return res.status(403).json({ error: 'Users cannot create events. Please upgrade to Organizer.' });
       }
-      
+
       const organizerUsername = req.user.username;
-      const { 
+      const {
         slug, title, description, thumbnail, date, time, location, capacity, contactEmail, contactPhone, status,
         formPhone, formJobTitle, formOrganization, formTshirtSize, formReference, formTransactionId,
         isPrivate, eventFor, studentCategory,
-        startDate, endDate, registrationDeadline
+        startDate, endDate, registrationDeadline,
       } = req.body;
-      
+
       if (!slug || !title || !date || !time || !location || !capacity) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
       // Rate limit check: Max 3 event creations per host per hour
-      const rateLimitQuery = `
-        SELECT COUNT(*) FROM events 
-        WHERE organizer_username = $1 AND created_at > NOW() - INTERVAL '1 hour'
-      `;
-      const countRes = await pool.query(rateLimitQuery, [organizerUsername]);
-      const eventCount = parseInt(countRes.rows[0].count);
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const eventCount = await prisma.event.count({
+        where: {
+          organizerUsername,
+          createdAt: { gte: oneHourAgo },
+        },
+      });
 
       if (eventCount >= 3) {
-        return res.status(429).json({ 
-          error: 'Rate limit exceeded: Hosts can only create up to 3 events per hour.' 
+        return res.status(429).json({
+          error: 'Rate limit exceeded: Hosts can only create up to 3 events per hour.',
         });
       }
 
@@ -71,7 +73,7 @@ export class EventController {
         date,
         time,
         location,
-        capacity: parseInt(capacity),
+        capacity: parseInt(capacity, 10),
         contactEmail: contactEmail || undefined,
         contactPhone: contactPhone || undefined,
         organizerUsername,
@@ -95,7 +97,7 @@ export class EventController {
         rejectionReason: req.body.rejectionReason || undefined,
       });
 
-      return res.status(201).json({ message: 'Event created and partition created successfully', eventId });
+      return res.status(201).json({ message: 'Event created successfully', eventId });
     } catch (error: any) {
       logger.error({ err: error }, 'Error creating event');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -109,12 +111,12 @@ export class EventController {
       }
 
       const { slug } = req.params;
-      const { 
+      const {
         title, description, thumbnail, date, time, location, capacity, contactEmail, contactPhone, status,
         formPhone, formJobTitle, formOrganization, formTshirtSize, formReference, formTransactionId,
         isPrivate, eventFor, studentCategory,
         startDate, endDate, registrationDeadline,
-        paymentInstructions, bkashNumber, rejectionReason
+        paymentInstructions, bkashNumber, rejectionReason,
       } = req.body;
 
       const updated = await EventService.updateEvent(slug, req.user.username, {
@@ -122,7 +124,7 @@ export class EventController {
         date,
         time,
         location,
-        capacity: capacity ? parseInt(capacity) : undefined,
+        capacity: capacity ? parseInt(capacity, 10) : undefined,
         contactEmail,
         contactPhone,
         description,
@@ -154,20 +156,25 @@ export class EventController {
 
   static async list(req: Request, res: Response) {
     try {
-      const page = req.query.page ? parseInt(req.query.page as string) : undefined;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+      const cursor = req.query.cursor ? parseInt(req.query.cursor as string, 10) : undefined;
       const search = req.query.search as string;
       const status = req.query.status as string;
+      const category = req.query.category as string;
 
       const result = await EventService.getEvents({
         username: req.user?.username,
         role: req.user?.role,
         page,
         limit,
+        cursor,
         search,
         status,
+        category,
       });
-      if (page === undefined && limit === undefined) {
+
+      if (page === undefined && limit === undefined && cursor === undefined) {
         return res.status(200).json(result.data);
       }
       return res.status(200).json(result);
@@ -190,25 +197,27 @@ export class EventController {
 
   static async register(req: Request, res: Response) {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
       const { slug } = req.params;
-      const { 
-        email, userId, ticketTypeId, ticketTypeIds: incomingTicketTypeIds,
+      const {
+        ticketTypeId, ticketTypeIds: incomingTicketTypeIds,
         fullName, phone, jobTitle, organization, tshirtSize, reference, transactionId,
-        teamName, teamMembers
+        teamName, teamMembers,
       } = req.body;
 
-      // Enforce Service Controls
-      const settingsRes = await pool.query("SELECT value FROM platform_settings WHERE key = 'features'");
-      const features = settingsRes.rows[0]?.value || {};
+      const userId = req.user.username;
+      const email = req.user.email;
+
+      const settings = await prisma.platformSetting.findUnique({ where: { key: 'features' } });
+      const features = (settings?.value as any) || {};
       if (features.participantRegistration === false) {
         return res.status(403).json({ error: 'Participant registrations are currently disabled globally by the administrator.' });
       }
 
       const ticketTypeIds = incomingTicketTypeIds || (ticketTypeId ? [ticketTypeId] : []);
-
-      if (!email || !userId) {
-        return res.status(400).json({ error: 'Missing email or userId' });
-      }
 
       const event = await EventService.getEventBySlug(slug);
       if (!event) {
@@ -223,40 +232,42 @@ export class EventController {
         return res.status(400).json({ error: 'Registration deadline has passed' });
       }
 
-      // Validate ticket types and calculate total price
       if (ticketTypeIds.length > 0) {
-        const placeholders = ticketTypeIds.map((_: number, i: number) => `$${i + 2}`).join(',');
-        const ticketRes = await pool.query(
-          `SELECT * FROM ticket_types WHERE id IN (${placeholders}) AND event_id = $1 AND is_active = true`,
-          [event.id, ...ticketTypeIds]
-        );
-        
-        if (ticketRes.rowCount !== ticketTypeIds.length) {
+        const ticketTypes = await prisma.ticketType.findMany({
+          where: {
+            id: { in: ticketTypeIds },
+            eventId: event.id,
+            isActive: true,
+          },
+        });
+
+        if (ticketTypes.length !== ticketTypeIds.length) {
           return res.status(400).json({ error: 'One or more invalid or inactive ticket types' });
         }
 
         let totalPrice = 0;
         let currency = 'BDT';
-        for (const ticketType of ticketRes.rows) {
-          totalPrice += parseFloat(ticketType.price || '0');
-          currency = ticketType.currency || currency;
+        for (const tt of ticketTypes) {
+          totalPrice += Number(tt.price || 0);
+          currency = tt.currency || currency;
         }
 
-        if (totalPrice > 0 && !transactionId) {
-          // Paid ticket — registration must go through payment flow or manual transaction ID
-          return res.status(400).json({ 
-            error: 'This registration requires payment. Please use the payment endpoint to register.',
+        if (totalPrice > 0 && (!transactionId || !transactionId.trim())) {
+          return res.status(400).json({
+            error: 'Manual bKash / mobile banking transaction ID is required for paid tickets.',
             requiresPayment: true,
             price: totalPrice,
-            currency: currency,
+            currency,
           });
         }
       }
 
+      const cleanTransactionId = transactionId ? transactionId.trim() : undefined;
+
       const result = await RegistrationService.registerForEvent(
-        event.id, 
-        userId, 
-        email, 
+        event.id,
+        userId,
+        email,
         ticketTypeIds,
         {
           fullName,
@@ -265,7 +276,7 @@ export class EventController {
           organization,
           tshirtSize,
           reference,
-          transactionId,
+          transactionId: cleanTransactionId,
           teamName,
           teamMembers,
         }
@@ -292,12 +303,8 @@ export class EventController {
         return res.status(404).json({ error: 'Event not found' });
       }
 
-      if (event.organizer_username !== req.user.username) {
-        return res.status(403).json({ error: 'Unauthorized: Only the event host can retrieve registrations.' });
-      }
-
-      const page = req.query.page ? parseInt(req.query.page as string) : undefined;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
       const search = req.query.search as string;
       const status = req.query.status as string;
 
@@ -315,15 +322,20 @@ export class EventController {
         return res.status(401).json({ error: 'Authentication required' });
       }
       const username = req.user.username;
-      const query = `
-        SELECT e.* 
-        FROM events e
-        JOIN event_team et ON e.id = et.event_id
-        WHERE et.username = $1 AND et.role = 'MANAGER'
-        ORDER BY e.created_at DESC
-      `;
-      const result = await pool.query(query, [username]);
-      return res.status(200).json(result.rows);
+
+      const events = await prisma.event.findMany({
+        where: {
+          team: {
+            some: {
+              username,
+              role: 'MANAGER',
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return res.status(200).json(events);
     } catch (error: any) {
       logger.error({ err: error }, 'Error fetching my managed events');
       return res.status(500).json({ error: error.message || 'Internal server error' });
@@ -336,57 +348,63 @@ export class EventController {
         return res.status(401).json({ error: 'Authentication required' });
       }
       const username = req.user.username;
-      
-      // Get events the user hosts or manages
-      const eventsQuery = `
-        SELECT e.id 
-        FROM events e
-        LEFT JOIN event_team et ON e.id = et.event_id AND et.username = $1
-        WHERE e.organizer_username = $1 OR (et.username = $1 AND et.role = 'ORGANIZER')
-      `;
-      const eventsRes = await pool.query(eventsQuery, [username]);
-      const eventIds = eventsRes.rows.map(r => r.id);
+
+      const hostEvents = await prisma.event.findMany({
+        where: {
+          OR: [
+            { organizerUsername: username },
+            { team: { some: { username, role: 'ORGANIZER' } } },
+          ],
+        },
+        select: { id: true },
+      });
+
+      const eventIds = hostEvents.map((e: any) => e.id);
 
       if (eventIds.length === 0) {
         return res.status(200).json({
           totalRegistrations: 0,
           totalRevenue: 0,
           activeSessions: 0,
-          checkInRate: 0
+          checkInRate: 0,
         });
       }
 
-      const idsString = eventIds.join(',');
+      const [totalRegistrations, revenueAggregate, activeSessions, totalScans] = await Promise.all([
+        prisma.registration.count({
+          where: {
+            eventId: { in: eventIds },
+            status: { not: 'CANCELLED' },
+          },
+        }),
+        prisma.payment.aggregate({
+          _sum: { amount: true },
+          where: {
+            eventId: { in: eventIds },
+            status: { in: ['SUCCESS', 'COMPLETED', 'SETTLED'] },
+          },
+        }),
+        prisma.event.count({
+          where: {
+            id: { in: eventIds },
+            status: 'LIVE',
+          },
+        }),
+        prisma.activityScan.groupBy({
+          by: ['registrationId'],
+          where: { eventId: { in: eventIds } },
+        }),
+      ]);
 
-      // Total Registrations
-      const regQuery = `SELECT COUNT(*) as count FROM registrations WHERE event_id IN (${idsString}) AND status != 'CANCELLED'`;
-      const regRes = await pool.query(regQuery);
-      const totalRegistrations = parseInt(regRes.rows[0].count);
-
-      // Total Revenue
-      const revQuery = `SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE event_id IN (${idsString}) AND status = 'SUCCESS'`;
-      const revRes = await pool.query(revQuery);
-      const totalRevenue = parseFloat(revRes.rows[0].total);
-
-      // Active Sessions (Live Events)
-      const liveQuery = `SELECT COUNT(*) as count FROM events WHERE id IN (${idsString}) AND status = 'LIVE'`;
-      const liveRes = await pool.query(liveQuery);
-      const activeSessions = parseInt(liveRes.rows[0].count);
-
-      // Check-in rate (Scans vs Total Registrations)
-      let checkInRate = 0;
-      if (totalRegistrations > 0) {
-        const scansQuery = `SELECT COUNT(DISTINCT registration_id) as count FROM activity_scans WHERE event_id IN (${idsString})`;
-        const scansRes = await pool.query(scansQuery);
-        const totalScans = parseInt(scansRes.rows[0].count);
-        checkInRate = Math.round((totalScans / totalRegistrations) * 100);
-      }
+      const totalRevenue = Number(revenueAggregate._sum.amount || 0);
+      const uniqueScannedRegistrations = totalScans.length;
+      const checkInRate = totalRegistrations > 0 ? Math.round((uniqueScannedRegistrations / totalRegistrations) * 100) : 0;
 
       return res.status(200).json({
         totalRegistrations,
         totalRevenue,
         activeSessions,
-        checkInRate
+        checkInRate,
       });
     } catch (error: any) {
       logger.error({ err: error }, 'Error fetching dashboard stats');

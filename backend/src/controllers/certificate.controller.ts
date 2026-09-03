@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { pool } from '../db/pool';
+import prisma from '../lib/prisma';
 import { createChildLogger } from '../lib/logger';
 
 const logger = createChildLogger('certificate.controller');
@@ -11,19 +11,28 @@ export const getCertificateTemplate = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
 
-    // Get event ID
-    const evRes = await pool.query('SELECT id FROM events WHERE slug = $1', [slug]);
-    if (evRes.rowCount === 0) {
+    const event = await prisma.event.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (!event) {
       return res.status(404).json({ error: 'Event not found' });
     }
-    const eventId = evRes.rows[0].id;
 
-    const result = await pool.query('SELECT * FROM certificate_templates WHERE event_id = $1', [eventId]);
-    if (result.rowCount === 0) {
+    const template = await prisma.certificateTemplate.findUnique({
+      where: { eventId: event.id },
+    });
+
+    if (!template) {
       return res.status(404).json({ error: 'No template found' });
     }
-    
-    return res.json(result.rows[0]);
+
+    return res.json({
+      ...template,
+      event_id: template.eventId,
+      template_url: template.templateUrl,
+      sending_time: template.sendingTime,
+    });
   } catch (error) {
     logger.error({ err: error, slug: req.params.slug }, 'Failed to get certificate template');
     return res.status(500).json({ error: 'Failed to fetch certificate template' });
@@ -42,25 +51,30 @@ export const upsertCertificateTemplate = async (req: Request, res: Response) => 
       return res.status(400).json({ error: 'Template URL is required' });
     }
 
-    // Get event ID
-    const evRes = await pool.query('SELECT id FROM events WHERE slug = $1', [slug]);
-    if (evRes.rowCount === 0) {
+    const event = await prisma.event.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (!event) {
       return res.status(404).json({ error: 'Event not found' });
     }
-    const eventId = evRes.rows[0].id;
 
     const sendingTimeVal = sending_time ? new Date(sending_time) : null;
 
-    const result = await pool.query(`
-      INSERT INTO certificate_templates (event_id, template_url, sending_time)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (event_id) DO UPDATE 
-      SET template_url = EXCLUDED.template_url,
-          sending_time = EXCLUDED.sending_time
-      RETURNING *
-    `, [eventId, template_url, sendingTimeVal]);
+    const template = await prisma.certificateTemplate.upsert({
+      where: { eventId: event.id },
+      update: {
+        templateUrl: template_url,
+        sendingTime: sendingTimeVal,
+      },
+      create: {
+        eventId: event.id,
+        templateUrl: template_url,
+        sendingTime: sendingTimeVal,
+      },
+    });
 
-    return res.json({ message: 'Certificate template saved successfully', data: result.rows[0] });
+    return res.json({ message: 'Certificate template saved successfully', data: template });
   } catch (error) {
     logger.error({ err: error, slug: req.params.slug }, 'Failed to save certificate template');
     return res.status(500).json({ error: 'Failed to save certificate template' });
@@ -74,21 +88,33 @@ export const getEventCertificates = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
 
-    const evRes = await pool.query('SELECT id FROM events WHERE slug = $1', [slug]);
-    if (evRes.rowCount === 0) {
+    const event = await prisma.event.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (!event) {
       return res.status(404).json({ error: 'Event not found' });
     }
-    const eventId = evRes.rows[0].id;
 
-    const result = await pool.query(`
-      SELECT c.*, u.name as participant_name 
-      FROM certificates c
-      JOIN users u ON c.issued_to = u.username
-      WHERE c.event_id = $1
-      ORDER BY c.issued_at DESC
-    `, [eventId]);
+    const certificates = await prisma.certificate.findMany({
+      where: { eventId: event.id },
+      include: {
+        recipient: { select: { name: true } },
+      },
+      orderBy: { issuedAt: 'desc' },
+    });
 
-    return res.json(result.rows);
+    const formatted = certificates.map((c: any) => ({
+      ...c,
+      event_id: c.eventId,
+      issued_to: c.issuedTo,
+      certificate_url: c.certificateUrl,
+      issued_by: c.issuedBy,
+      issued_at: c.issuedAt,
+      participant_name: c.recipient?.name || null,
+    }));
+
+    return res.json(formatted);
   } catch (error) {
     logger.error({ err: error, slug: req.params.slug }, 'Failed to list event certificates');
     return res.status(500).json({ error: 'Failed to list certificates' });
@@ -101,40 +127,39 @@ export const getEventCertificates = async (req: Request, res: Response) => {
 export const issueCertificate = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
-    const { registration_id, title, description, certificate_url, certificate_type } = req.body;
+    const { registration_id, title, description, certificate_url } = req.body;
     const issued_by = req.user?.username;
 
     if (!registration_id || !title) {
       return res.status(400).json({ error: 'Registration ID and Title are required' });
     }
 
-    const evRes = await pool.query('SELECT id FROM events WHERE slug = $1', [slug]);
-    if (evRes.rowCount === 0) {
+    const event = await prisma.event.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (!event) {
       return res.status(404).json({ error: 'Event not found' });
     }
-    const eventId = evRes.rows[0].id;
 
-    const regRes = await pool.query('SELECT user_id FROM registrations WHERE id = $1 AND event_id = $2', [registration_id, eventId]);
-    if (regRes.rowCount === 0) {
+    const reg = await prisma.registration.findFirst({
+      where: { id: BigInt(registration_id), eventId: event.id },
+      select: { userId: true },
+    });
+    if (!reg) {
       return res.status(404).json({ error: 'Registration not found for this event' });
     }
-    const issued_to = regRes.rows[0].user_id;
 
-    const type = certificate_type || 'PARTICIPATION';
+    const cert = await prisma.certificate.create({
+      data: {
+        eventId: event.id,
+        issuedTo: reg.userId,
+        issuedBy: issued_by || null,
+        certificateUrl: certificate_url || '',
+      },
+    });
 
-    const result = await pool.query(`
-      INSERT INTO certificates (event_id, registration_id, issued_to, issued_by, certificate_type, title, description, certificate_url)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      ON CONFLICT (registration_id, certificate_type) DO UPDATE
-      SET title = EXCLUDED.title,
-          description = EXCLUDED.description,
-          certificate_url = EXCLUDED.certificate_url,
-          issued_by = EXCLUDED.issued_by,
-          issued_at = NOW()
-      RETURNING *
-    `, [eventId, registration_id, issued_to, issued_by, type, title, description, certificate_url]);
-
-    return res.json({ message: 'Certificate issued successfully', data: result.rows[0] });
+    return res.json({ message: 'Certificate issued successfully', data: cert });
   } catch (error) {
     logger.error({ err: error, slug: req.params.slug }, 'Failed to issue certificate');
     return res.status(500).json({ error: 'Failed to issue certificate' });
@@ -142,7 +167,7 @@ export const issueCertificate = async (req: Request, res: Response) => {
 };
 
 /**
- * Get all certificates issued to the current logged in user
+ * Get all certificates issued to the current logged-in user
  */
 export const getMyCertificates = async (req: Request, res: Response) => {
   try {
@@ -151,18 +176,31 @@ export const getMyCertificates = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const result = await pool.query(`
-      SELECT c.*, e.title as event_title, e.slug as event_slug, e.date as event_date
-      FROM certificates c
-      JOIN events e ON c.event_id = e.id
-      WHERE c.issued_to = $1
-      ORDER BY c.issued_at DESC
-    `, [username]);
+    const certificates = await prisma.certificate.findMany({
+      where: { issuedTo: username },
+      include: {
+        event: {
+          select: { title: true, slug: true, date: true },
+        },
+      },
+      orderBy: { issuedAt: 'desc' },
+    });
 
-    return res.json(result.rows);
+    const formatted = certificates.map((c: any) => ({
+      ...c,
+      event_id: c.eventId,
+      issued_to: c.issuedTo,
+      certificate_url: c.certificateUrl,
+      issued_by: c.issuedBy,
+      issued_at: c.issuedAt,
+      event_title: c.event.title,
+      event_slug: c.event.slug,
+      event_date: c.event.date,
+    }));
+
+    return res.json(formatted);
   } catch (error) {
     logger.error({ err: error, username: req.user?.username }, 'Failed to get user certificates');
     return res.status(500).json({ error: 'Failed to fetch certificates' });
   }
 };
-
