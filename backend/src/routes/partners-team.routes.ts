@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { PartnersTeamController } from '../controllers/partners-team.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, authMiddlewareOptional } from '../middleware/auth.middleware';
 import { requireGlobalRole } from '../middleware/rbac.middleware';
 
 const router = Router();
 
 // Public routes
-router.get('/partners', PartnersTeamController.listPartners);
-router.get('/team', PartnersTeamController.listTeam);
+router.get('/partners', authMiddlewareOptional, PartnersTeamController.listPartners);
+router.get('/team', authMiddlewareOptional, PartnersTeamController.listTeam);
 
 // Admin-only protected routes (requires authentication and SUPER_ADMIN role)
 router.post(

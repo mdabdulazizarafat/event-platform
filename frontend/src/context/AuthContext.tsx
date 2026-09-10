@@ -80,21 +80,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkSession = async () => {
     try {
-      const headers: Record<string, string> = {};
       const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`;
+      if (!storedToken) {
+        setUser(null);
+        setLoading(false);
+        return;
       }
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${storedToken}`
+      };
       const response = await fetch('/api/v1/auth/me', { headers });
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
       } else {
-        if (storedToken) localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_token');
         setUser(null);
       }
     } catch (error) {
-      console.error('Session validation error:', error);
       setUser(null);
     } finally {
       setLoading(false);

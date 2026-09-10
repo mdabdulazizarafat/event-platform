@@ -1,7 +1,8 @@
-﻿import React from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { Target, Users, Zap, Heart } from 'lucide-react';
+import { Target, Users, Zap, Heart, Sparkles } from 'lucide-react';
 import TeamSection from '@/components/marketing/TeamSection';
+import ScrollRow from '@/components/common/ScrollRow';
 
 export const metadata = {
   title: 'About Us | Somavesh',
@@ -10,7 +11,7 @@ export const metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-background pb-16">
+    <div className="min-h-screen bg-background pb-16 font-sans">
       {/* Hero Section */}
       <section className="relative overflow-hidden w-full min-h-fit flex flex-col items-center justify-start bg-[#fafafa] -mt-16 pt-24 pb-4 md:pt-36 md:pb-8">
         {/* Background layers */}
@@ -32,82 +33,127 @@ export default function AboutPage() {
               Create Unforgettable Events
             </span>
           </h1>
-          <p className="text-xl text-on-surface-variant max-w-2xl mb-10 leading-relaxed font-sans">
+          <p className="text-xl text-on-surface-variant max-w-2xl leading-relaxed font-sans">
             Somavesh was built with a simple goal: to make event management seamless, beautiful and accessible for everyone from solo organizers to large enterprises.
           </p>
         </div>
       </section>
 
-      {/* Mission & Vision */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="glass-card p-10 rounded-3xl">
-            <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
-              <Target className="text-primary" size={32} />
+      <main className="w-full space-y-20 py-12">
+        {/* All Foundation & Core Principles Cards in Single Row */}
+        <section id="our-purpose">
+          <div className="px-6 md:px-24 mb-6 text-left">
+            <h2 className="m-0 text-[28px] md:text-[36px] font-extrabold tracking-tight text-[#1d1d1f]">
+              Our Foundation.{' '}
+              <span className="text-[#6e6e73]">Mission, vision, goals and core principles driving Somavesh.</span>
+            </h2>
+          </div>
+
+          <ScrollRow className="px-6 md:px-24 gap-6 py-8">
+            {/* 1. Our Mission */}
+            <div className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white snap-start p-6 md:p-8 flex flex-col justify-start shadow-[0_4px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] scroll-ml-6 md:scroll-ml-24" style={{ transition: 'box-shadow 0.3s ease-in-out' }}>
+              <div className="w-16 h-16 rounded-full bg-[#f5f5f7] flex items-center justify-center mb-8 shrink-0">
+                <Target className="text-[#1d1d1f]" size={28} />
+              </div>
+              <h3 className="font-heading text-xl md:text-3xl font-extrabold text-[#1d1d1f] leading-tight tracking-tight m-0 mb-3">
+                Our Mission
+              </h3>
+              <p className="text-sm md:text-base text-[#6e6e73] font-medium leading-relaxed m-0">
+                We aim to provide the most intuitive, powerful, and scalable event management platform in the world. Technology should amplify human connection.
+              </p>
             </div>
-            <h2 className="text-headline-lg text-foreground mb-4">Our Mission</h2>
-            <p className="text-on-surface-variant text-lg leading-relaxed font-sans">
-              We aim to provide the most intuitive, powerful, and scalable event management platform in the world. We believe that technology should amplify human connection, not complicate it.
-            </p>
-          </div>
-          <div className="glass-card p-10 rounded-3xl">
-            <div className="w-14 h-14 bg-secondary/10 rounded-2xl flex items-center justify-center mb-6">
-              <Zap className="text-secondary" size={32} />
+
+            {/* 2. Our Vision */}
+            <div className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white snap-start p-6 md:p-8 flex flex-col justify-start shadow-[0_4px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] scroll-ml-6 md:scroll-ml-24" style={{ transition: 'box-shadow 0.3s ease-in-out' }}>
+              <div className="w-16 h-16 rounded-full bg-[#f5f5f7] flex items-center justify-center mb-8 shrink-0">
+                <Zap className="text-[#1d1d1f]" size={28} />
+              </div>
+              <h3 className="font-heading text-xl md:text-3xl font-extrabold text-[#1d1d1f] leading-tight tracking-tight m-0 mb-3">
+                Our Vision
+              </h3>
+              <p className="text-sm md:text-base text-[#6e6e73] font-medium leading-relaxed m-0">
+                To be the driving force behind every successful event worldwide, enabling creators to focus on delivering exceptional experiences to attendees.
+              </p>
             </div>
-            <h2 className="text-headline-lg text-foreground mb-4">Our Vision</h2>
-            <p className="text-on-surface-variant text-lg leading-relaxed font-sans">
-              To be the driving force behind every successful event, enabling creators to focus on what truly matters: delivering exceptional experiences to their attendees.
-            </p>
-          </div>
-        </div>
-      </section>
 
-      {/* Core Values */}
-      <section className="max-w-7xl mx-auto px-6 py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-headline-lg text-foreground mb-4">Our Core Values</h2>
-          <p className="text-lg text-on-surface-variant font-sans">The principles that guide everything we do.</p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="bento-card p-8 hover:shadow-[0_10px_40px_rgba(34,197,94,0.15)]">
-            <Heart className="text-primary mb-4" size={28} />
-            <h3 className="text-headline-md text-foreground mb-3">User First</h3>
-            <p className="text-on-surface-variant font-sans">Every feature we build starts with the user in mind. We prioritize simplicity without sacrificing power.</p>
-          </div>
-          <div className="bento-card p-8 hover:shadow-[0_10px_40px_rgba(34,197,94,0.15)]">
-            <Users className="text-primary mb-4" size={28} />
-            <h3 className="text-headline-md text-foreground mb-3">Community</h3>
-            <p className="text-on-surface-variant font-sans">We believe in the power of bringing people together and actively support the communities we serve.</p>
-          </div>
-          <div className="bento-card p-8 hover:shadow-[0_10px_40px_rgba(34,197,94,0.15)]">
-            <Zap className="text-primary mb-4" size={28} />
-            <h3 className="text-headline-md text-foreground mb-3">Innovation</h3>
-            <p className="text-on-surface-variant font-sans">We are constantly pushing the boundaries of what is possible in event technology to keep you ahead.</p>
-          </div>
-        </div>
-      </section>
+            {/* 3. Our Goal */}
+            <div className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white snap-start p-6 md:p-8 flex flex-col justify-start shadow-[0_4px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] scroll-ml-6 md:scroll-ml-24" style={{ transition: 'box-shadow 0.3s ease-in-out' }}>
+              <div className="w-16 h-16 rounded-full bg-[#f5f5f7] flex items-center justify-center mb-8 shrink-0">
+                <Sparkles className="text-[#1d1d1f]" size={28} />
+              </div>
+              <h3 className="font-heading text-xl md:text-3xl font-extrabold text-[#1d1d1f] leading-tight tracking-tight m-0 mb-3">
+                Our Goal
+              </h3>
+              <p className="text-sm md:text-base text-[#6e6e73] font-medium leading-relaxed m-0">
+                To simplify ticketing, scheduling, and attendee engagement into an effortlessly unified experience for every organizer globally.
+              </p>
+            </div>
 
-      {/* Team Section */}
-      <TeamSection />
+            {/* 4. User First */}
+            <div className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white snap-start p-6 md:p-8 flex flex-col justify-start shadow-[0_4px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] scroll-ml-6 md:scroll-ml-24" style={{ transition: 'box-shadow 0.3s ease-in-out' }}>
+              <div className="w-16 h-16 rounded-full bg-[#f5f5f7] flex items-center justify-center mb-8 shrink-0">
+                <Heart className="text-[#1d1d1f]" size={28} />
+              </div>
+              <h3 className="font-heading text-xl md:text-3xl font-extrabold text-[#1d1d1f] leading-tight tracking-tight m-0 mb-3">
+                User First
+              </h3>
+              <p className="text-sm md:text-base text-[#6e6e73] font-medium leading-relaxed m-0">
+                Every feature starts with the user in mind. We prioritize simplicity without sacrificing power.
+              </p>
+            </div>
 
-      {/* CTA */}
-      <section className="max-w-4xl mx-auto px-6 py-16 text-center">
-        <div className="bg-foreground rounded-[2rem] p-12 relative overflow-hidden shadow-2xl">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary opacity-20 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
-          <div className="relative z-10">
-            <h2 className="text-3xl md:text-4xl font-heading font-bold text-white mb-6">Ready to organize your next event?</h2>
-            <p className="text-surface-soft text-lg mb-8 max-w-xl mx-auto font-sans">
-              Join thousands of organizers who trust Somavesh to bring their visions to life.
-            </p>
-            <Link
-              href="/sign-up"
-              className="inline-flex items-center justify-center bg-gradient-to-br from-primary to-secondary hover:opacity-90 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg transition-all"
-            >
-              Get Started
-            </Link>
+            {/* 5. Community */}
+            <div className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white snap-start p-6 md:p-8 flex flex-col justify-start shadow-[0_4px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] scroll-ml-6 md:scroll-ml-24" style={{ transition: 'box-shadow 0.3s ease-in-out' }}>
+              <div className="w-16 h-16 rounded-full bg-[#f5f5f7] flex items-center justify-center mb-8 shrink-0">
+                <Users className="text-[#1d1d1f]" size={28} />
+              </div>
+              <h3 className="font-heading text-xl md:text-3xl font-extrabold text-[#1d1d1f] leading-tight tracking-tight m-0 mb-3">
+                Community
+              </h3>
+              <p className="text-sm md:text-base text-[#6e6e73] font-medium leading-relaxed m-0">
+                We believe in bringing people together and actively supporting the communities we serve.
+              </p>
+            </div>
+
+            {/* 6. Innovation */}
+            <div className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white snap-start p-6 md:p-8 flex flex-col justify-start shadow-[0_4px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] scroll-ml-6 md:scroll-ml-24" style={{ transition: 'box-shadow 0.3s ease-in-out' }}>
+              <div className="w-16 h-16 rounded-full bg-[#f5f5f7] flex items-center justify-center mb-8 shrink-0">
+                <Sparkles className="text-[#1d1d1f]" size={28} />
+              </div>
+              <h3 className="font-heading text-xl md:text-3xl font-extrabold text-[#1d1d1f] leading-tight tracking-tight m-0 mb-3">
+                Innovation
+              </h3>
+              <p className="text-sm md:text-base text-[#6e6e73] font-medium leading-relaxed m-0">
+                Constantly pushing the boundaries of event technology to keep your operations ahead.
+              </p>
+            </div>
+          </ScrollRow>
+        </section>
+
+        {/* Team Section */}
+        <TeamSection />
+
+        {/* Call to Action */}
+        {/* <section className="px-6 md:px-24 pt-8">
+          <div className="bg-foreground rounded-[24px] p-10 md:p-14 relative overflow-hidden shadow-2xl">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary opacity-20 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="relative z-10 text-left md:text-center">
+              <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-white mb-4">
+                Ready to organize your next event?
+              </h2>
+              <p className="text-surface-soft text-lg mb-8 max-w-xl mx-auto font-sans">
+                Join thousands of organizers who trust Somavesh to bring their visions to life.
+              </p>
+              <Link
+                href="/sign-up"
+                className="inline-flex items-center justify-center bg-gradient-to-br from-primary to-secondary hover:opacity-90 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg transition-all"
+              >
+                Get Started
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section> */}
+      </main>
     </div>
   );
 }

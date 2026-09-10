@@ -43,8 +43,8 @@ export class PartnersTeamController {
       });
       return res.status(200).json(items.map(PartnersTeamController.mapPartnerToFrontend));
     } catch (error: any) {
-      logger.error({ err: error }, 'Error listing partners');
-      return res.status(500).json({ error: error.message || 'Internal server error' });
+      logger.warn({ err: error }, 'Partners table not ready or error listing partners');
+      return res.status(200).json([]);
     }
   }
 
@@ -145,8 +145,8 @@ export class PartnersTeamController {
       });
       return res.status(200).json(items.map(PartnersTeamController.mapTeamToFrontend));
     } catch (error: any) {
-      logger.error({ err: error }, 'Error listing team members');
-      return res.status(500).json({ error: error.message || 'Internal server error' });
+      logger.warn({ err: error }, 'Team table not ready or error listing team members');
+      return res.status(200).json([]);
     }
   }
 
