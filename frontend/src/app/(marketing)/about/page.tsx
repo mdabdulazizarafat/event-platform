@@ -1,18 +1,18 @@
-import React from 'react';
+﻿import React from 'react';
 import Link from 'next/link';
 import { Target, Users, Zap, Heart } from 'lucide-react';
 import TeamSection from '@/components/marketing/TeamSection';
 
 export const metadata = {
-  title: 'About Us | Ayojok',
-  description: 'Ayojok was built with a simple goal: to make event management seamless, beautiful and accessible for everyone',
+  title: 'About Us | Somavesh',
+  description: 'Somavesh was built with a simple goal: to make event management seamless, beautiful and accessible for everyone',
 };
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background pb-16">
       {/* Hero Section */}
-      <section className="relative overflow-hidden w-full min-h-fit flex flex-col items-center justify-start bg-[#fafafa] -mt-16 pt-32 pb-8 md:pt-36">
+      <section className="relative overflow-hidden w-full min-h-fit flex flex-col items-center justify-start bg-[#fafafa] -mt-16 pt-24 pb-4 md:pt-36 md:pb-8">
         {/* Background layers */}
         <div className="absolute inset-0 bg-hero-gradient dark:bg-hero-gradient-dark pointer-events-none z-0" />
         <div className="absolute inset-0 hero-grid opacity-60 dark:opacity-30 pointer-events-none z-0" />
@@ -25,15 +25,15 @@ export default function AboutPage() {
         {/* Bottom gradient fade to blend hero bg with main page bg */}
         <div className="absolute bottom-0 left-0 right-0 h-24 md:h-36 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
 
-        <div className="max-w-7xl mx-auto px-6 py-16 text-center z-10 relative">
+        <div className="w-full px-6 md:px-24 py-8 md:py-16 text-left z-10 relative">
           <h1 className="text-display-ticket text-foreground mb-6">
             Empowering Organizers to <br className="hidden md:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
               Create Unforgettable Events
             </span>
           </h1>
-          <p className="text-xl text-on-surface-variant max-w-2xl mx-auto mb-10 leading-relaxed font-sans">
-            Ayojok was built with a simple goal: to make event management seamless, beautiful and accessible for everyone from solo organizers to large enterprises.
+          <p className="text-xl text-on-surface-variant max-w-2xl mb-10 leading-relaxed font-sans">
+            Somavesh was built with a simple goal: to make event management seamless, beautiful and accessible for everyone from solo organizers to large enterprises.
           </p>
         </div>
       </section>
@@ -97,7 +97,7 @@ export default function AboutPage() {
           <div className="relative z-10">
             <h2 className="text-3xl md:text-4xl font-heading font-bold text-white mb-6">Ready to organize your next event?</h2>
             <p className="text-surface-soft text-lg mb-8 max-w-xl mx-auto font-sans">
-              Join thousands of organizers who trust Ayojok to bring their visions to life.
+              Join thousands of organizers who trust Somavesh to bring their visions to life.
             </p>
             <Link
               href="/sign-up"

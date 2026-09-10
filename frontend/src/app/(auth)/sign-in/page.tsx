@@ -62,17 +62,17 @@ export default function SignInPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail }),
       });
-      
+
       let data;
       const contentType = res.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         data = await res.json();
       }
-      
+
       if (!res.ok) {
         throw new Error((data && data.error) ? data.error : `Server error: ${res.status}. Please try again later.`);
       }
-      
+
       setForgotSuccess('If your email is registered, a verification code has been sent.');
       setForgotStep(2);
     } catch (err: any) {
@@ -96,17 +96,17 @@ export default function SignInPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail, code: forgotCode, newPassword }),
       });
-      
+
       let data;
       const contentType = res.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         data = await res.json();
       }
-      
+
       if (!res.ok) {
         throw new Error((data && data.error) ? data.error : `Server error: ${res.status}. Please try again later.`);
       }
-      
+
       setForgotSuccess('Password reset successfully. You can now log in.');
       setTimeout(() => {
         setIsForgotModalVisible(false);
@@ -124,7 +124,7 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="flex-1 bg-background flex flex-col font-sans">
+    <div className="min-h-screen bg-background flex flex-col font-sans">
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center pt-8 pb-16 px-4">
         <div className="w-full max-w-md text-center mb-8">
@@ -132,7 +132,7 @@ export default function SignInPage() {
             Welcome <span className="text-primary">Back</span>
           </h1>
           <p className="text-sm text-on-surface-variant max-w-sm mx-auto">
-            Access your Rong Plan account, manage registrations and update your profile.
+            Access your Somavesh account, manage registrations and update your profile.
           </p>
         </div>
 
@@ -193,8 +193,8 @@ export default function SignInPage() {
 
             <div className="mt-4 text-center space-y-3">
               <div>
-                <a 
-                  href="#" 
+                <a
+                  href="#"
                   onClick={(e) => {
                     e.preventDefault();
                     setIsForgotModalVisible(true);
@@ -208,7 +208,7 @@ export default function SignInPage() {
                 </a>
               </div>
               <div className="text-sm text-on-surface-variant">
-                New to Rong Plan? <Link href="/sign-up" className="font-bold text-primary hover:underline">Open account</Link>
+                New to Somavesh? <Link href="/sign-up" className="font-bold text-primary hover:underline">Open account</Link>
               </div>
             </div>
           </Form>
@@ -225,23 +225,23 @@ export default function SignInPage() {
           <div className="py-4">
             {forgotError && <Alert type="error" title={forgotError} className="mb-4 text-xs rounded-lg" showIcon />}
             {forgotSuccess && <Alert type="success" title={forgotSuccess} className="mb-4 text-xs rounded-lg" showIcon />}
-            
+
             {forgotStep === 1 ? (
               <div className="space-y-4">
                 <p className="text-sm text-on-surface-variant">Enter your email address and we'll send you a 6-digit verification code to reset your password.</p>
                 <div>
                   <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">Email Address</label>
-                  <Input 
-                    value={forgotEmail} 
-                    onChange={(e) => setForgotEmail(e.target.value)} 
+                  <Input
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
                     placeholder="hello@email.com"
                     className="h-11 rounded-xl"
                   />
                 </div>
-                <Button 
-                  variant="primary" 
-                  className="w-full mt-2" 
-                  onClick={handleSendForgotCode} 
+                <Button
+                  variant="primary"
+                  className="w-full mt-2"
+                  onClick={handleSendForgotCode}
                   loading={forgotLoading}
                 >
                   SEND VERIFICATION CODE
@@ -252,9 +252,9 @@ export default function SignInPage() {
                 <p className="text-sm text-on-surface-variant">Enter the 6-digit code sent to <span className="font-semibold">{forgotEmail}</span>.</p>
                 <div>
                   <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">Verification Code</label>
-                  <Input 
-                    value={forgotCode} 
-                    onChange={(e) => setForgotCode(e.target.value)} 
+                  <Input
+                    value={forgotCode}
+                    onChange={(e) => setForgotCode(e.target.value)}
                     placeholder="123456"
                     maxLength={6}
                     className="h-11 rounded-xl tracking-widest text-center text-lg font-mono"
@@ -262,17 +262,17 @@ export default function SignInPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">New Password</label>
-                  <Input.Password 
-                    value={newPassword} 
-                    onChange={(e) => setNewPassword(e.target.value)} 
+                  <Input.Password
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="••••••••"
                     className="h-11 rounded-xl"
                   />
                 </div>
-                <Button 
-                  variant="primary" 
-                  className="w-full mt-2" 
-                  onClick={handleResetPassword} 
+                <Button
+                  variant="primary"
+                  className="w-full mt-2"
+                  onClick={handleResetPassword}
                   loading={forgotLoading}
                 >
                   RESET PASSWORD

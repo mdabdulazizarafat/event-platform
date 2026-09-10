@@ -2,16 +2,16 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Form, Input, Button, Modal, Typography, message, Select } from 'antd';
-import { 
-  ClipboardList, 
-  QrCode, 
-  Calendar, 
-  MapPin, 
-  User, 
-  Mail, 
-  Building2, 
-  Wallet, 
-  Download, 
+import {
+  ClipboardList,
+  QrCode,
+  Calendar,
+  MapPin,
+  User,
+  Mail,
+  Building2,
+  Wallet,
+  Download,
   CheckCircle,
   Ticket,
   ChevronRight,
@@ -108,10 +108,10 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
     const rect = ticket.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
-    
+
     const rotateX = (y / rect.height) * 8;
     const rotateY = -(x / rect.width) * 8;
-    
+
     ticket.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
     ticket.style.transition = 'transform 0.05s ease-out';
   };
@@ -185,7 +185,7 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
     setLoading(true);
     try {
       const activeUserId = user?.username || values.fullName.replace(/\s+/g, '-').toLowerCase();
-      
+
       const response = await fetch(`/api/v1/events/${event.slug}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -232,11 +232,11 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
 
   const triggerElement = React.isValidElement(trigger)
     ? React.cloneElement(trigger as React.ReactElement<any>, {
-        onClick: (e: React.MouseEvent) => {
-          e.preventDefault();
-          setIsOpen(true);
-        }
-      })
+      onClick: (e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsOpen(true);
+      }
+    })
     : <span onClick={() => setIsOpen(true)}>{trigger}</span>;
 
   const formatPrice = (price: string, currency: string) => {
@@ -276,13 +276,12 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
                 key={ticket.id}
                 onClick={() => handleTicketSelect(ticket)}
                 disabled={isSoldOut}
-                className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 cursor-pointer group ${
-                  isSoldOut
+                className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 cursor-pointer group ${isSoldOut
                     ? 'border-slate-200 bg-slate-50 cursor-not-allowed opacity-60'
                     : selectedTicket?.id === ticket.id
-                    ? 'border-[#4F46E5] bg-[#4F46E5]/5 shadow-md'
-                    : 'border-slate-200 bg-white hover:border-[#4F46E5]/50 hover:shadow-sm'
-                }`}
+                      ? 'border-[#4F46E5] bg-[#4F46E5]/5 shadow-md'
+                      : 'border-slate-200 bg-white hover:border-[#4F46E5]/50 hover:shadow-sm'
+                  }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-grow min-w-0">
@@ -382,9 +381,9 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
           label={<span className="font-semibold text-slate-700 text-sm">Full Name</span>}
           rules={[{ required: true, message: 'Please enter your full name' }]}
         >
-          <Input 
-            prefix={<User className="text-slate-400 mr-2" size={16} />} 
-            placeholder="e.g. Alex Johnson" 
+          <Input
+            prefix={<User className="text-slate-400 mr-2" size={16} />}
+            placeholder="e.g. Alex Johnson"
             className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
           />
         </Form.Item>
@@ -397,9 +396,9 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
             { type: 'email', message: 'Please enter a valid email address' }
           ]}
         >
-          <Input 
-            prefix={<Mail className="text-slate-400 mr-2" size={16} />} 
-            placeholder="e.g. alex@example.com" 
+          <Input
+            prefix={<Mail className="text-slate-400 mr-2" size={16} />}
+            placeholder="e.g. alex@example.com"
             className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
           />
         </Form.Item>
@@ -409,9 +408,9 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
           label={<span className="font-semibold text-slate-700 text-sm">Phone Number</span>}
           rules={[{ required: true, message: 'Phone number is required' }]}
         >
-          <Input 
-            prefix={<Phone className="text-slate-400 mr-2" size={16} />} 
-            placeholder="e.g. 01711-000000" 
+          <Input
+            prefix={<Phone className="text-slate-400 mr-2" size={16} />}
+            placeholder="e.g. 01711-000000"
             className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
           />
         </Form.Item>
@@ -421,8 +420,8 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
           label={<span className="font-semibold text-slate-700 text-sm">Job Title / Class</span>}
           rules={[{ required: true, message: 'Job title / Class is required' }]}
         >
-          <Input 
-            placeholder="e.g. Software Engineer / Student" 
+          <Input
+            placeholder="e.g. Software Engineer / Student"
             className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
           />
         </Form.Item>
@@ -432,9 +431,9 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
           label={<span className="font-semibold text-slate-700 text-sm">Organization / Company / Institution Name</span>}
           rules={[{ required: true, message: 'Organization name is required' }]}
         >
-          <Input 
-            prefix={<Building2 className="text-slate-400 mr-2" size={16} />} 
-            placeholder="e.g. Acme Corp / Dhaka University" 
+          <Input
+            prefix={<Building2 className="text-slate-400 mr-2" size={16} />}
+            placeholder="e.g. Acme Corp / Dhaka University"
             className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
           />
         </Form.Item>
@@ -461,8 +460,8 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
             name="reference"
             label={<span className="font-semibold text-slate-700 text-sm">Reference <span className="text-slate-400 font-normal">(Optional)</span></span>}
           >
-            <Input 
-              placeholder="e.g. Friend, Facebook ad, Website" 
+            <Input
+              placeholder="e.g. Friend, Facebook ad, Website"
               className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
             />
           </Form.Item>
@@ -493,8 +492,8 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
               label={<span className="font-semibold text-slate-700 text-sm">bKash / Mobile Banking Transaction ID</span>}
               rules={[{ required: true, message: 'Transaction ID is required for paid registration' }]}
             >
-              <Input 
-                placeholder="e.g. TRX102938475" 
+              <Input
+                placeholder="e.g. TRX102938475"
                 className="rounded-lg h-11 hover:border-[#4F46E5] focus:border-[#4F46E5] text-slate-800 transition-colors"
               />
             </Form.Item>
@@ -624,7 +623,7 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
   // ===== RENDER STEP: SUCCESS TICKET =====
   const renderSuccess = () => (
     <div className="pt-8 pb-4 px-4 max-w-[380px] mx-auto">
-      <div 
+      <div
         ref={ticketRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
@@ -644,14 +643,14 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
             </div>
             <div className="text-right">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none m-0">Platform</p>
-              <p className="font-heading text-[#4F46E5] text-base font-bold m-0 mt-1">Rong Plan</p>
+              <p className="font-heading text-[#4F46E5] text-base font-bold m-0 mt-1">Somavesh</p>
             </div>
           </div>
-          
+
           <h2 className="font-heading text-slate-800 text-2xl font-extrabold leading-tight mb-4 tracking-tight">
             {event.title}
           </h2>
-          
+
           <div className="space-y-3 pt-3 border-t border-slate-100">
             <div className="flex items-center gap-3">
               <Calendar className="text-slate-400" size={18} />
@@ -677,9 +676,9 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
         <div className="bg-white px-6 py-4 border-x-2 border-[#c7c4d8]/40 flex flex-col items-center">
           <div className="p-3 bg-white border-4 border-[#4F46E5] rounded-xl shadow-inner relative overflow-hidden w-40 h-40 flex items-center justify-center">
             {qrToken ? (
-              <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrToken)}`} 
-                alt="Check-in QR Code" 
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrToken)}`}
+                alt="Check-in QR Code"
                 className="w-32 h-32 object-contain"
               />
             ) : (
@@ -714,7 +713,7 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
               </div>
             </div>
           </div>
-          
+
           <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
             <div>
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider m-0">Order ID</p>
@@ -804,8 +803,8 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
           {authMode === 'login' ? 'Welcome Back' : 'Create an Account'}
         </Title>
         <Paragraph className="text-slate-500 text-sm leading-relaxed max-w-sm mx-auto m-0">
-          {authMode === 'login' 
-            ? 'Log in to claim your ticket and track door check-ins.' 
+          {authMode === 'login'
+            ? 'Log in to claim your ticket and track door check-ins.'
             : 'Register a participant account to manage your tickets.'}
         </Paragraph>
       </div>
@@ -910,14 +909,12 @@ export default function EventRegistrationForm({ event, trigger, initialTicketId 
         {steps.map((s, i) => (
           <React.Fragment key={s}>
             <div
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                i <= currentIndex ? 'bg-[#4F46E5] scale-110' : 'bg-slate-200'
-              }`}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${i <= currentIndex ? 'bg-[#4F46E5] scale-110' : 'bg-slate-200'
+                }`}
             />
             {i < steps.length - 1 && (
-              <div className={`w-8 h-0.5 transition-all duration-300 ${
-                i < currentIndex ? 'bg-[#4F46E5]' : 'bg-slate-200'
-              }`} />
+              <div className={`w-8 h-0.5 transition-all duration-300 ${i < currentIndex ? 'bg-[#4F46E5]' : 'bg-slate-200'
+                }`} />
             )}
           </React.Fragment>
         ))}

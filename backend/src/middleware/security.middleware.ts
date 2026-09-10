@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 
 /**
  * Production Security Headers Middleware (Helmet equivalent)
@@ -18,7 +18,7 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
  * Production CORS Middleware
  */
 export function corsMiddleware(req: Request, res: Response, next: NextFunction) {
-  const allowedOriginsEnv = process.env.CORS_ORIGIN || 'https://ayojok.rongplan.com,http://localhost:5173,http://localhost:3000';
+  const allowedOriginsEnv = process.env.CORS_ORIGIN || 'https://Somavesh.rongplan.com,http://localhost:5173,http://localhost:3000';
   const allowedOrigins = allowedOriginsEnv.split(',').map((o) => o.trim());
   const origin = req.headers.origin;
 

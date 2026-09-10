@@ -1,10 +1,11 @@
 import React from 'react';
+import { Mail, Phone, MapPin, Share2 } from 'lucide-react';
 
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Hero Section */}
-      <section className="relative overflow-hidden w-full min-h-fit flex flex-col items-center justify-start bg-[#fafafa] -mt-16 pt-32 pb-8 md:pt-36">
+      <section className="relative overflow-hidden w-full min-h-fit flex flex-col items-center justify-start bg-[#fafafa] -mt-16 pt-24 pb-4 md:pt-36 md:pb-8">
         {/* Background layers */}
         <div className="absolute inset-0 bg-hero-gradient dark:bg-hero-gradient-dark pointer-events-none z-0" />
         <div className="absolute inset-0 hero-grid opacity-60 dark:opacity-30 pointer-events-none z-0" />
@@ -17,33 +18,50 @@ export default function ContactPage() {
         {/* Bottom gradient fade to blend hero bg with main page bg */}
         <div className="absolute bottom-0 left-0 right-0 h-24 md:h-36 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
 
-        <div className="max-w-7xl mx-auto px-6 py-16 text-center z-10 relative">
+        <div className="w-full px-6 md:px-24 py-8 md:py-16 text-left z-10 relative">
           <h1 className="text-display-ticket text-foreground mb-6">
             Get in <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Touch</span>
           </h1>
-          <p className="text-xl text-on-surface-variant max-w-2xl mx-auto mb-10 leading-relaxed font-sans">
+          <p className="text-xl text-on-surface-variant max-w-2xl leading-relaxed font-sans">
             Reach out to us anytime. Whether you have questions, feedback or just want to say hello.
           </p>
         </div>
       </section>
 
-      <div className="max-w-4xl mx-auto px-6 pt-10">
+      <div className="w-full px-6 md:px-24 pt-6 md:pt-12 pb-16 md:pb-24">
 
-        <div className="flex flex-col">
+        <div className="flex flex-col max-w-4xl">
 
           {/* Email */}
           <div className="flex flex-col sm:flex-row py-6 border-b border-primary/10">
-            <div className="sm:w-1/3 mb-2 sm:mb-0">
+            <div className="sm:w-1/3 mb-2 sm:mb-0 flex items-center gap-2">
               <span className="font-bold text-foreground font-sans">Email</span>
             </div>
+            <div className="sm:w-2/3 text-on-surface-variant font-sans flex flex-col gap-2">
+              <div>
+                <span className="font-semibold mr-2">Contact:</span>
+                <a href="mailto:hello@somavesh.com" className="!text-slate-700 hover:!text-primary transition-colors">hello@somavesh.com</a>
+              </div>
+              <div>
+                <span className="font-semibold mr-2">Support:</span>
+                <a href="mailto:support@somavesh.com" className="!text-slate-700 hover:!text-primary transition-colors">support@somavesh.com</a>
+              </div>
+            </div>
+          </div>
+
+          {/* Phone */}
+          <div className="flex flex-col sm:flex-row py-6 border-b border-primary/10">
+            <div className="sm:w-1/3 mb-2 sm:mb-0 flex items-center gap-2">
+              <span className="font-bold text-foreground font-sans">Phone</span>
+            </div>
             <div className="sm:w-2/3 text-on-surface-variant font-sans">
-              ayojok@rongplan.com
+              <a href="tel:+8801783503006" className="!text-slate-700 hover:!text-primary transition-colors">+880 1783503006</a>
             </div>
           </div>
 
           {/* Address */}
           <div className="flex flex-col sm:flex-row py-6 border-b border-primary/10">
-            <div className="sm:w-1/3 mb-2 sm:mb-0">
+            <div className="sm:w-1/3 mb-2 sm:mb-0 flex items-center gap-2">
               <span className="font-bold text-foreground font-sans">Corporate address</span>
             </div>
             <div className="sm:w-2/3 text-on-surface-variant font-sans">
@@ -51,37 +69,23 @@ export default function ContactPage() {
             </div>
           </div>
 
-          {/* Phone */}
-          <div className="flex flex-col sm:flex-row py-6 border-b border-primary/10">
-            <div className="sm:w-1/3 mb-2 sm:mb-0">
-              <span className="font-bold text-foreground font-sans">Phone</span>
-            </div>
-            <div className="sm:w-2/3 text-on-surface-variant font-sans">
-              +880 1783503006
-            </div>
-          </div>
-
           {/* Follow Us */}
           <div className="flex flex-col sm:flex-row py-6 border-b border-primary/10">
-            <div className="sm:w-1/3 mb-2 sm:mb-0">
+            <div className="sm:w-1/3 mb-2 sm:mb-0 flex items-center gap-2">
               <span className="font-bold text-foreground font-sans">Follow Us</span>
             </div>
             <div className="sm:w-2/3 text-on-surface-variant flex items-center gap-6 font-medium text-sm font-sans">
-              <a href="https://facebook.com/rongplan" className="hover:text-primary transition-colors" aria-label="Facebook">
-                f
+              <a href="https://facebook.com/rongplan" className="!text-on-surface-variant hover:!text-primary transition-colors" aria-label="Facebook">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
               </a>
-              <a href="https://linkedin.com/company/rongplan" className="hover:text-primary transition-colors" aria-label="LinkedIn">
-                in
+              <a href="https://linkedin.com/company/rongplan" className="!text-on-surface-variant hover:!text-primary transition-colors" aria-label="LinkedIn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg>
               </a>
-              <a href="https://facebook.com/rongplan" className="hover:text-primary transition-colors" aria-label="Instagram">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block relative -top-0.5">
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                </svg>
+              <a href="https://instagram.com/rongplan" className="!text-on-surface-variant hover:!text-primary transition-colors" aria-label="Instagram">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
               </a>
-              <a href="https://facebook.com/rongplan" className="hover:text-primary transition-colors" aria-label="X (Twitter)">
-                X
+              <a href="https://twitter.com/rongplan" className="!text-on-surface-variant hover:!text-primary transition-colors" aria-label="X (Twitter)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" /></svg>
               </a>
             </div>
           </div>

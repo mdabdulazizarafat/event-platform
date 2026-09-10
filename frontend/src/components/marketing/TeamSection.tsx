@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useState } from 'react';
 
@@ -26,9 +26,9 @@ export default function TeamSection() {
   return (
     <section id="team" className="max-w-7xl mx-auto px-6 py-20 relative z-20">
       <div className="text-center mb-16">
-        <h2 className="text-headline-lg text-foreground mb-4">The people behind Ayojok</h2>
+        <h2 className="text-headline-lg text-foreground mb-4">The people behind Somavesh</h2>
         <p className="text-lg text-on-surface-variant font-sans">
-          Meet the people behind Ayojok, working to make an easy, efficient and reliable event management platform for everyone.
+          Meet the people behind Somavesh, working to make an easy, efficient and reliable event management platform for everyone.
         </p>
       </div>
 

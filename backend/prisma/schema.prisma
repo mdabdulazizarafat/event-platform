@@ -1,4 +1,4 @@
-// Ayojok Event Platform - Prisma Schema
+// Somavesh Event Platform - Prisma Schema
 // Optimized for high concurrency, type safety, and fast index lookups.
 
 generator client {
@@ -64,9 +64,9 @@ model Event {
   contactPhone         String?   @map("contact_phone") @db.VarChar(50)
   organizerUsername    String    @map("organizer_username") @db.VarChar(100)
   status               String    @default("DRAFT") @db.VarChar(50)
-  startDate            String?   @map("start_date") @db.VarChar(100)
-  endDate              String?   @map("end_date") @db.VarChar(100)
-  registrationDeadline String?   @map("registration_deadline") @db.VarChar(100)
+  startDate            DateTime? @map("start_date") @db.Timestamptz(6)
+  endDate              DateTime? @map("end_date") @db.Timestamptz(6)
+  registrationDeadline DateTime? @map("registration_deadline") @db.Timestamptz(6)
   formPhone            Boolean   @default(true) @map("form_phone")
   formJobTitle         Boolean   @default(true) @map("form_job_title")
   formOrganization     Boolean   @default(true) @map("form_organization")
@@ -389,4 +389,5 @@ model VerificationCode {
   @@index([email], map: "idx_verification_codes_email")
   @@map("verification_codes")
 }
+
 

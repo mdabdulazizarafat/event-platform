@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -176,7 +176,7 @@ export class AuthController {
       }
 
       if (user.status === 'SUSPENDED') {
-        return res.status(403).json({ error: 'Your account has been suspended. Please contact Ayojok support.' });
+        return res.status(403).json({ error: 'Your account has been suspended. Please contact Somavesh support.' });
       }
 
       const tokenPayload = {

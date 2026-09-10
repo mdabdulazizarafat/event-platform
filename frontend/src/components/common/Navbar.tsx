@@ -27,7 +27,7 @@ export default function Navbar() {
 
   const isDark = false;
   const settings = {
-    platformName: "Ayojok",
+    platformName: "Somavesh",
     whiteLogoUrl: null,
     blackLogoUrl: null
   };
@@ -109,17 +109,17 @@ export default function Navbar() {
         <Link
           href="/"
           className="flex items-center gap-2.5 group"
-          aria-label={settings?.platformName || "Ayojok Home"}
+          aria-label={settings?.platformName || "Somavesh Home"}
         >
           {settings?.blackLogoUrl || settings?.whiteLogoUrl ? (
             isDark ? (
-              <img src={settings.whiteLogoUrl || settings.blackLogoUrl || ""} alt={settings.platformName || "Ayojok"} className="h-9 w-auto object-contain" />
+              <img src={settings.whiteLogoUrl || settings.blackLogoUrl || ""} alt={settings.platformName || "Somavesh"} className="h-9 w-auto object-contain" />
             ) : (
-              <img src={settings.blackLogoUrl || settings.whiteLogoUrl || ""} alt={settings.platformName || "Ayojok"} className="h-9 w-auto object-contain" />
+              <img src={settings.blackLogoUrl || settings.whiteLogoUrl || ""} alt={settings.platformName || "Somavesh"} className="h-9 w-auto object-contain" />
             )
           ) : (
             <div className="flex items-center gap-2">
-              <img src="/ayojokLogo.png" alt="Logo" className="h-8 w-auto" />
+              <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Logo" className="h-8 w-auto" />
             </div>
           )}
         </Link>
@@ -183,17 +183,17 @@ export default function Navbar() {
                 href="/"
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-2.5"
-                aria-label={settings?.platformName || "Ayojok Home"}
+                aria-label={settings?.platformName || "Somavesh Home"}
               >
                 {settings?.blackLogoUrl || settings?.whiteLogoUrl ? (
                   isDark ? (
-                    <img src={settings.whiteLogoUrl || settings.blackLogoUrl || ""} alt={settings.platformName || "Ayojok"} className="h-8 w-auto object-contain" />
+                    <img src={settings.whiteLogoUrl || settings.blackLogoUrl || ""} alt={settings.platformName || "Somavesh"} className="h-8 w-auto object-contain" />
                   ) : (
-                    <img src={settings.blackLogoUrl || settings.whiteLogoUrl || ""} alt={settings.platformName || "Ayojok"} className="h-8 w-auto object-contain" />
+                    <img src={settings.blackLogoUrl || settings.whiteLogoUrl || ""} alt={settings.platformName || "Somavesh"} className="h-8 w-auto object-contain" />
                   )
                 ) : (
                   <div className="flex items-center gap-2">
-                    <img src="/ayojokLogo.png" alt="Logo" className="h-8 w-auto" />
+                    <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Logo" className="h-8 w-auto" />
                   </div>
                 )}
               </Link>

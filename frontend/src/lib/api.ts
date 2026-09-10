@@ -1,3 +1,10 @@
+const API_BASE = typeof window !== 'undefined' ? '' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
+const apiFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  if (typeof input === 'string' && input.startsWith('/api')) {
+    return fetch(API_BASE + input, init);
+  }
+  return fetch(input, init);
+};
 export interface Speaker {
   name: string;
   role: string;
@@ -152,8 +159,12 @@ export async function fetchEventsPaginated(params: {
     if (params.category && params.category !== 'All') query.set('category', params.category);
     if (params.status && params.status !== 'All') query.set('status', params.status);
 
-    const response = await fetch(`/api/v1/events?${query.toString()}`);
-    if (!response.ok) throw new Error('Backend response not ok');
+    const response = await apiFetch(`/api/v1/events?${query.toString()}`);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('Backend response not ok:', response.status, errText);
+      throw new Error(`Backend response not ok: ${response.status} ${errText}`);
+    }
     const res = await response.json();
 
     const eventsArray = Array.isArray(res) ? res : (res.data || []);
@@ -178,7 +189,7 @@ export async function getUpcomingEvents(): Promise<Event[]> {
 
 export async function getEventBySlug(slug: string): Promise<Event | null> {
   try {
-    const response = await fetch(`/api/v1/events/${slug}`);
+    const response = await apiFetch(`/api/v1/events/${slug}`);
     if (response.ok) {
       const data = await response.json();
       if (data && data.slug) {
@@ -193,7 +204,7 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
 
 export async function getEventsByOrganizer(organizerUsername: string): Promise<Event[]> {
   try {
-    const response = await fetch(`/api/v1/events?search=${encodeURIComponent(organizerUsername)}`);
+    const response = await apiFetch(`/api/v1/events?search=${encodeURIComponent(organizerUsername)}`);
     if (response.ok) {
       const data = await response.json();
       const eventsArray = Array.isArray(data) ? data : (data.data || []);
@@ -212,7 +223,7 @@ export async function getEventsByOrganizer(organizerUsername: string): Promise<E
  */
 export async function fetchTicketTypes(slug: string): Promise<TicketType[]> {
   try {
-    const response = await fetch(`/api/v1/events/${slug}/ticket-types`);
+    const response = await apiFetch(`/api/v1/events/${slug}/ticket-types`);
     if (!response.ok) {
       return [];
     }
@@ -227,7 +238,7 @@ export async function fetchTicketTypes(slug: string): Promise<TicketType[]> {
  */
 export async function fetchMyRegistrations() {
   try {
-    const response = await fetch(`/api/v1/tickets/my-registrations`);
+    const response = await apiFetch(`/api/v1/tickets/my-registrations`);
     if (!response.ok) {
       return [];
     }
@@ -257,7 +268,7 @@ export async function initiatePayment(data: {
   teamName?: string;
   teamMembers?: string[];
 }): Promise<{ gatewayUrl: string; tranId: string }> {
-  const response = await fetch('/api/v1/payments/initiate', {
+  const response = await apiFetch('/api/v1/payments/initiate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -275,7 +286,7 @@ export async function initiatePayment(data: {
  * Check payment status by transaction ID.
  */
 export async function checkPaymentStatus(tranId: string) {
-  const response = await fetch(`/api/v1/payments/status/${tranId}`);
+  const response = await apiFetch(`/api/v1/payments/status/${tranId}`);
   if (!response.ok) {
     throw new Error('Failed to fetch payment status');
   }
@@ -296,7 +307,7 @@ export interface EventActivity {
 }
 
 export async function fetchEventActivities(slug: string): Promise<EventActivity[]> {
-  const response = await fetch(`/api/v1/events/${slug}/activities`);
+  const response = await apiFetch(`/api/v1/events/${slug}/activities`);
   if (!response.ok) {
     throw new Error('Failed to load event activities');
   }
@@ -304,7 +315,7 @@ export async function fetchEventActivities(slug: string): Promise<EventActivity[
 }
 
 export async function createEventActivity(slug: string, name: string, scanLimit: number | null): Promise<EventActivity> {
-  const response = await fetch(`/api/v1/events/${slug}/activities`, {
+  const response = await apiFetch(`/api/v1/events/${slug}/activities`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, scanLimit })
@@ -317,7 +328,7 @@ export async function createEventActivity(slug: string, name: string, scanLimit:
 }
 
 export async function updateEventActivity(slug: string, id: number, data: { name?: string; scanLimit?: number | null; isActive?: boolean }): Promise<EventActivity> {
-  const response = await fetch(`/api/v1/events/${slug}/activities/${id}`, {
+  const response = await apiFetch(`/api/v1/events/${slug}/activities/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
@@ -330,7 +341,7 @@ export async function updateEventActivity(slug: string, id: number, data: { name
 }
 
 export async function deactivateEventActivity(slug: string, id: number): Promise<void> {
-  const response = await fetch(`/api/v1/events/${slug}/activities/${id}`, {
+  const response = await apiFetch(`/api/v1/events/${slug}/activities/${id}`, {
     method: 'DELETE'
   });
   if (!response.ok) {
@@ -355,7 +366,7 @@ export interface ScanResult {
 }
 
 export async function scanTicket(slug: string, activityId: number, qrToken: string): Promise<ScanResult> {
-  const response = await fetch(`/api/v1/events/${slug}/scan`, {
+  const response = await apiFetch(`/api/v1/events/${slug}/scan`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ activityId, qrToken })
@@ -368,7 +379,7 @@ export async function scanTicket(slug: string, activityId: number, qrToken: stri
 }
 
 export async function fetchScanLogs(slug: string) {
-  const response = await fetch(`/api/v1/events/${slug}/scan/logs`);
+  const response = await apiFetch(`/api/v1/events/${slug}/scan/logs`);
   if (!response.ok) {
     throw new Error('Failed to load scan history logs');
   }
@@ -376,7 +387,7 @@ export async function fetchScanLogs(slug: string) {
 }
 
 export async function fetchScanStats(slug: string) {
-  const response = await fetch(`/api/v1/events/${slug}/scan/stats`);
+  const response = await apiFetch(`/api/v1/events/${slug}/scan/stats`);
   if (!response.ok) {
     throw new Error('Failed to load scanning statistics');
   }
@@ -400,7 +411,7 @@ export interface TeamMember {
 }
 
 export async function fetchEventTeam(slug: string): Promise<TeamMember[]> {
-  const response = await fetch(`/api/v1/events/${slug}/team`);
+  const response = await apiFetch(`/api/v1/events/${slug}/team`);
   if (!response.ok) {
     throw new Error('Failed to load event team members');
   }
@@ -408,7 +419,7 @@ export async function fetchEventTeam(slug: string): Promise<TeamMember[]> {
 }
 
 export async function inviteTeamMember(slug: string, username: string, role: string): Promise<TeamMember> {
-  const response = await fetch(`/api/v1/events/${slug}/team`, {
+  const response = await apiFetch(`/api/v1/events/${slug}/team`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, role })
@@ -422,7 +433,7 @@ export async function inviteTeamMember(slug: string, username: string, role: str
 }
 
 export async function removeTeamMember(slug: string, username: string): Promise<void> {
-  const response = await fetch(`/api/v1/events/${slug}/team/${username}`, {
+  const response = await apiFetch(`/api/v1/events/${slug}/team/${username}`, {
     method: 'DELETE'
   });
   if (!response.ok) {
@@ -443,7 +454,7 @@ export async function registerAccount(data: {
   mobile?: string;
   org?: string;
 }) {
-  const response = await fetch('/api/v1/auth/register', {
+  const response = await apiFetch('/api/v1/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -463,7 +474,7 @@ export async function updateProfile(data: {
   bio?: string;
   org?: string;
 }) {
-  const response = await fetch('/api/v1/auth/profile', {
+  const response = await apiFetch('/api/v1/auth/profile', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -475,7 +486,7 @@ export async function updateProfile(data: {
   return resData;
 }
 export async function applyAsOrganizer() {
-  const response = await fetch('/api/v1/auth/apply-organizer', {
+  const response = await apiFetch('/api/v1/auth/apply-organizer', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
   });
@@ -486,7 +497,7 @@ export async function applyAsOrganizer() {
   return resData;
 }
 export async function fetchPendingOrganizers() {
-  const response = await fetch('/api/v1/admin/organizers/pending');
+  const response = await apiFetch('/api/v1/admin/organizers/pending');
   if (!response.ok) {
     throw new Error('Failed to load organizer applications');
   }
@@ -494,7 +505,7 @@ export async function fetchPendingOrganizers() {
 }
 
 export async function approveOrganizerApplication(username: string) {
-  const response = await fetch(`/api/v1/admin/organizers/${username}/approve`, {
+  const response = await apiFetch(`/api/v1/admin/organizers/${username}/approve`, {
     method: 'POST',
   });
   const resData = await response.json();
@@ -505,7 +516,7 @@ export async function approveOrganizerApplication(username: string) {
 }
 
 export async function rejectOrganizerApplication(username: string) {
-  const response = await fetch(`/api/v1/admin/organizers/${username}/reject`, {
+  const response = await apiFetch(`/api/v1/admin/organizers/${username}/reject`, {
     method: 'POST',
   });
   const resData = await response.json();
@@ -516,7 +527,7 @@ export async function rejectOrganizerApplication(username: string) {
 }
 
 export async function suspendOrganizerApplication(username: string) {
-  const response = await fetch(`/api/v1/admin/organizers/${username}/suspend`, {
+  const response = await apiFetch(`/api/v1/admin/organizers/${username}/suspend`, {
     method: 'POST',
   });
   const resData = await response.json();
@@ -527,7 +538,7 @@ export async function suspendOrganizerApplication(username: string) {
 }
 
 export async function fetchMyManagedEvents() {
-  const response = await fetch('/api/v1/events/my-managed');
+  const response = await apiFetch('/api/v1/events/my-managed');
   if (!response.ok) {
     throw new Error('Failed to load managed events');
   }
@@ -550,7 +561,7 @@ export interface ScheduleItem {
 }
 
 export async function fetchSchedules(slug: string): Promise<ScheduleItem[]> {
-  const response = await fetch(`/api/v1/events/${slug}/schedules`);
+  const response = await apiFetch(`/api/v1/events/${slug}/schedules`);
   if (!response.ok) {
     return [];
   }
@@ -558,7 +569,7 @@ export async function fetchSchedules(slug: string): Promise<ScheduleItem[]> {
 }
 
 export async function createSchedule(slug: string, data: Omit<ScheduleItem, 'id' | 'event_slug' | 'status'>): Promise<ScheduleItem> {
-  const response = await fetch(`/api/v1/events/${slug}/schedules`, {
+  const response = await apiFetch(`/api/v1/events/${slug}/schedules`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
@@ -571,7 +582,7 @@ export async function createSchedule(slug: string, data: Omit<ScheduleItem, 'id'
 }
 
 export async function deleteSchedule(slug: string, id: number): Promise<void> {
-  const response = await fetch(`/api/v1/events/${slug}/schedules/${id}`, {
+  const response = await apiFetch(`/api/v1/events/${slug}/schedules/${id}`, {
     method: 'DELETE'
   });
   if (!response.ok) {
@@ -583,7 +594,7 @@ export async function deleteSchedule(slug: string, id: number): Promise<void> {
 // --- Certificate API ---
 
 export async function fetchCertificateTemplate(slug: string) {
-  const response = await fetch(`/api/v1/certificates/${slug}/template`);
+  const response = await apiFetch(`/api/v1/certificates/${slug}/template`);
   if (!response.ok) {
     if (response.status === 404) return null;
     const err = await response.json();
@@ -593,7 +604,7 @@ export async function fetchCertificateTemplate(slug: string) {
 }
 
 export async function upsertCertificateTemplate(slug: string, data: { template_url: string, sending_time?: string }) {
-  const response = await fetch(`/api/v1/certificates/${slug}/template`, {
+  const response = await apiFetch(`/api/v1/certificates/${slug}/template`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
@@ -606,7 +617,7 @@ export async function upsertCertificateTemplate(slug: string, data: { template_u
 }
 
 export async function fetchEventCertificates(slug: string) {
-  const response = await fetch(`/api/v1/certificates/${slug}`);
+  const response = await apiFetch(`/api/v1/certificates/${slug}`);
   if (!response.ok) {
     const err = await response.json();
     throw new Error(err.error || 'Failed to fetch event certificates');
@@ -615,7 +626,7 @@ export async function fetchEventCertificates(slug: string) {
 }
 
 export async function issueCertificate(slug: string, data: any) {
-  const response = await fetch(`/api/v1/certificates/${slug}/issue`, {
+  const response = await apiFetch(`/api/v1/certificates/${slug}/issue`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
@@ -626,3 +637,5 @@ export async function issueCertificate(slug: string, data: any) {
   }
   return await response.json();
 }
+
+

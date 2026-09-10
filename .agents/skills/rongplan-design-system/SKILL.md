@@ -189,6 +189,7 @@ body {
 
 When referencing the brand logo and favicon, strictly use the following files:
 
-- **Primary Logo (SVG):** `ayojokLogo.svg`
-- **Email / Fallback Logo (PNG):** `public/ayojokLogo.png`
-- **Favicon:** `ayojokFavicon.svg`
+- **Primary Logo (SVG):** `SomaveshLogo.svg`
+- **Email / Fallback Logo (PNG):** `public/SomaveshLogo.png`
+- **Favicon:** `SomaveshFavicon.svg`
+

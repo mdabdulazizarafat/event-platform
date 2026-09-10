@@ -1,4 +1,4 @@
-name: Docker Image CI/CD
+﻿name: Docker Image CI/CD
 
 on:
   push:
@@ -8,8 +8,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME_BACKEND: mdabdulazizarafat/ayojok-backend
-  IMAGE_NAME_FRONTEND: mdabdulazizarafat/ayojok-frontend
+  IMAGE_NAME_BACKEND: mdabdulazizarafat/Somavesh-backend
+  IMAGE_NAME_FRONTEND: mdabdulazizarafat/Somavesh-frontend
 
 jobs:
   build-and-push:

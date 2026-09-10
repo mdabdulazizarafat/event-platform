@@ -1,4 +1,4 @@
-import { Resend } from 'resend';
+﻿import { Resend } from 'resend';
 import { createChildLogger } from '../lib/logger';
 import { getParticipantEmailHtml, getCancelEmailHtml, getOtpVerificationHtml, getWelcomeEmailHtml } from '../templates/emails';
 const logger = createChildLogger('email.service');
@@ -54,12 +54,12 @@ export class EmailService {
       venue_name: payload.venueName || 'TBA',
       venue_address: payload.venueAddress || 'TBA',
       calendar_url: 'https://calendar.google.com/',
-      organizer_name: 'Ayojok',
+      organizer_name: 'Somavesh',
       organizer_address: 'Dhaka, Bangladesh',
-      unsubscribe_url: 'https://ayojok.com/unsubscribe',
-      facebook_url: 'https://facebook.com/ayojok',
-      instagram_url: 'https://instagram.com/ayojok',
-      linkedin_url: 'https://linkedin.com/ayojok',
+      unsubscribe_url: 'https://Somavesh.com/unsubscribe',
+      facebook_url: 'https://facebook.com/Somavesh',
+      instagram_url: 'https://instagram.com/Somavesh',
+      linkedin_url: 'https://linkedin.com/Somavesh',
       support_email: process.env.SUPPORT_EMAIL || process.env.RESEND_FROM_EMAIL || 'support@rongplan.com'
     });
 
@@ -93,12 +93,12 @@ export class EmailService {
   static async sendTicketCancellation(payload: CancellationEmailPayload): Promise<void> {
     const htmlContent = getCancelEmailHtml({
       event_name: payload.eventTitle,
-      organizer_name: 'Ayojok',
+      organizer_name: 'Somavesh',
       organizer_address: 'Dhaka, Bangladesh',
-      unsubscribe_url: 'https://ayojok.com/unsubscribe',
-      facebook_url: 'https://facebook.com/ayojok',
-      instagram_url: 'https://instagram.com/ayojok',
-      linkedin_url: 'https://linkedin.com/ayojok',
+      unsubscribe_url: 'https://Somavesh.com/unsubscribe',
+      facebook_url: 'https://facebook.com/Somavesh',
+      instagram_url: 'https://instagram.com/Somavesh',
+      linkedin_url: 'https://linkedin.com/Somavesh',
       support_email: process.env.SUPPORT_EMAIL || process.env.RESEND_FROM_EMAIL || 'support@rongplan.com'
     });
 
@@ -138,7 +138,7 @@ export class EmailService {
     });
 
     const client = getResendClient();
-    const subject = purpose === 'SIGNUP' ? 'Verify your Ayojok email' : 'Reset your Ayojok Password';
+    const subject = purpose === 'SIGNUP' ? 'Verify your Somavesh email' : 'Reset your Somavesh Password';
 
     if (!client) {
       logger.info({ to: email, subject, code }, 'Mock OTP email sent (no Resend key)');
@@ -170,11 +170,11 @@ export class EmailService {
     const htmlContent = getWelcomeEmailHtml({
       email,
       username,
-      login_url: 'https://ayojok.com/login'
+      login_url: 'https://Somavesh.com/login'
     });
 
     const client = getResendClient();
-    const subject = 'Welcome to Ayojok';
+    const subject = 'Welcome to Somavesh';
 
     if (!client) {
       logger.info({ to: email, subject }, 'Mock Welcome email sent (no Resend key)');

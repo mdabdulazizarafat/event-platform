@@ -1,30 +1,30 @@
-version: '3.8'
+﻿version: '3.8'
 
 services:
   # Isolated PostgreSQL Database
-  ayojok-postgres:
+  Somavesh-postgres:
     image: postgres:15-alpine
-    container_name: ayojok-postgres
+    container_name: Somavesh-postgres
     restart: always
     environment:
-      POSTGRES_DB: ${DB_NAME:-ayojok_db}
-      POSTGRES_USER: ${DB_USER:-ayojok_user}
+      POSTGRES_DB: ${DB_NAME:-Somavesh_db}
+      POSTGRES_USER: ${DB_USER:-Somavesh_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-db_d579e08879c368fa3c4f71ab67788df6}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ayojok_user} -d ${DB_NAME:-ayojok_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-Somavesh_user} -d ${DB_NAME:-Somavesh_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - ayojok-network
+      - Somavesh-network
 
   # Isolated Redis Cache and Worker Queue
-  ayojok-redis:
+  Somavesh-redis:
     image: redis:7-alpine
-    container_name: ayojok-redis
+    container_name: Somavesh-redis
     restart: always
     command: redis-server --requirepass ${REDIS_PASSWORD:-redis_a84e6713b656f5088871d9c28f17a8c9}
     volumes:
@@ -35,20 +35,20 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - ayojok-network
+      - Somavesh-network
 
   # Express Backend API
-  ayojok-backend:
+  Somavesh-backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    image: ghcr.io/mdabdulazizarafat/ayojok-backend:main
-    container_name: ayojok-backend
+    image: ghcr.io/mdabdulazizarafat/Somavesh-backend:main
+    container_name: Somavesh-backend
     restart: always
     depends_on:
-      ayojok-postgres:
+      Somavesh-postgres:
         condition: service_healthy
-      ayojok-redis:
+      Somavesh-redis:
         condition: service_healthy
     ports:
       # Bound to 127.0.0.1 to prevent public internet access to this port
@@ -56,14 +56,14 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - DATABASE_URL=postgresql://${DB_USER:-ayojok_user}:${DB_PASSWORD:-db_d579e08879c368fa3c4f71ab67788df6}@ayojok-postgres:5432/${DB_NAME:-ayojok_db}?sslmode=disable
-      - REDIS_HOST=ayojok-redis
+      - DATABASE_URL=postgresql://${DB_USER:-Somavesh_user}:${DB_PASSWORD:-db_d579e08879c368fa3c4f71ab67788df6}@Somavesh-postgres:5432/${DB_NAME:-Somavesh_db}?sslmode=disable
+      - REDIS_HOST=Somavesh-redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_a84e6713b656f5088871d9c28f17a8c9}
       - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
-      - FRONTEND_URL=${FRONTEND_URL:-https://ayojok.rongplan.com}
-      - CORS_ORIGIN=${CORS_ORIGIN:-https://ayojok.rongplan.com}
+      - FRONTEND_URL=${FRONTEND_URL:-https://Somavesh.com}
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://Somavesh.com}
       - RESEND_API_KEY=${RESEND_API_KEY}
       - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}
       - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
@@ -75,15 +75,15 @@ services:
       - SSLCOMMERZ_STORE_PASSWORD=${SSLCOMMERZ_STORE_PASSWORD}
       - SSLCOMMERZ_IS_LIVE=${SSLCOMMERZ_IS_LIVE:-false}
     networks:
-      - ayojok-network
+      - Somavesh-network
 
   # Next.js Frontend
-  ayojok-frontend:
+  Somavesh-frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-    image: ghcr.io/mdabdulazizarafat/ayojok-frontend:main
-    container_name: ayojok-frontend
+    image: ghcr.io/mdabdulazizarafat/Somavesh-frontend:main
+    container_name: Somavesh-frontend
     restart: always
     ports:
       # Bound to 127.0.0.1 to prevent public internet access to this port
@@ -91,12 +91,12 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://ayojok.rongplan.com}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://Somavesh.com}
     networks:
-      - ayojok-network
+      - Somavesh-network
 
 networks:
-  ayojok-network:
+  Somavesh-network:
     driver: bridge
 
 volumes:

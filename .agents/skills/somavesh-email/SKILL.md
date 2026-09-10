@@ -1,20 +1,20 @@
 ---
-name: ayojok-email
+name: somavesh-email
 description: >
-  Generate production-ready Ayojok transactional HTML email templates that
-  strictly conform to the Ayojok design system (Luminous Precision). Use this skill whenever the
-  user asks to create, write, build, or update any Ayojok email — including
+  Generate production-ready somavesh transactional HTML email templates that
+  strictly conform to the somavesh design system (Luminous Precision). Use this skill whenever the
+  user asks to create, write, build, or update any somavesh email — including
   welcome, password reset, account deletion, profile approval, notification,
-  or any other transactional email for the Ayojok platform. Also trigger
+  or any other transactional email for the somavesh platform. Also trigger
   when the user says "email template", "transactional email", or references
-  Ayojok emails in any context. Do NOT generate Ayojok emails without
+  somavesh emails in any context. Do NOT generate somavesh emails without
   consulting this skill first — the brand specs are precise and must be
   followed exactly.
 ---
 
-# Ayojok Email Template Skill
+# somavesh Email Template Skill
 
-You are generating HTML email templates for **Ayojok** — a premium event management platform powered by Rong Plan. Every template must be pixel-perfect against
+You are generating HTML email templates for **somavesh** — a premium event management platform powered by Rong Plan. Every template must be pixel-perfect against
 the canonical design system below. No deviation is allowed.
 
 ---
@@ -31,15 +31,15 @@ the canonical design system below. No deviation is allowed.
 
 | Asset | Value |
 |---|---|
-| Logo URL | `https://ayojok.com/ayojokLogo.png` |
-| Header logo width | `130px` |
-| Footer logo width | `90px` |
-| Support email | `ayojok@rongplan.com` |
+| Logo URL | `https://somavesh.com/SomaveshLogo.png` |
+| Header logo height | `80px` |
+| Footer logo height | `60px` |
+| Support email | `support@somavesh.com` |
 | Office address | `Dhaka, Bangladesh` |
-| Social — Facebook | `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/facebook.svg` · link: `https://facebook.com/ayojok` |
-| Social — LinkedIn | `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/linkedin.svg` · link: `https://linkedin.com/company/ayojok` |
-| Social — Instagram | `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/instagram.svg` · link: `https://instagram.com/ayojok` |
-| Social — Gmail | `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/gmail.svg` · link: `mailto:ayojok@rongplan.com` |
+| Social — Facebook | `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/facebook.svg` · link: `https://facebook.com/somavesh` |
+| Social — LinkedIn | `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/linkedin.svg` · link: `https://linkedin.com/company/somavesh` |
+| Social — Instagram | `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/instagram.svg` · link: `https://instagram.com/somavesh` |
+| Social — Gmail | `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/gmail.svg` · link: `mailto:support@somavesh.com` |
 | Fonts | Plus Jakarta Sans (headlines) + Inter (body/labels) via Google Fonts |
 
 ---
@@ -193,7 +193,7 @@ font-family: 'Plus Jakarta Sans', 'Inter', Arial, Helvetica, sans-serif; font-si
 color: rgba(13,31,21,0.30); line-height: 1.7; margin-bottom: 20px;
 ```
 ```
-© 2026 **Ayojok**. All rights reserved.
+© 2026 **somavesh**. All rights reserved.
 Dhaka, Bangladesh.
 
 [template-specific reason line — see below]
@@ -202,11 +202,11 @@ Dhaka, Bangladesh.
 **Reason line per template:**
 | Template | Reason line |
 |---|---|
-| Welcome | You received this because you registered on **Ayojok**. |
-| Password Reset | You received this because a password reset was requested for your **Ayojok** account. |
-| Account Deleted | You received this because an account deletion was requested for your **Ayojok** account. |
-| Profile Approved | You received this because your **Ayojok** profile was reviewed and approved. |
-| *(new template)* | You received this because *(relevant reason)* for your **Ayojok** account. |
+| Welcome | You received this because you registered on **somavesh**. |
+| Password Reset | You received this because a password reset was requested for your **somavesh** account. |
+| Account Deleted | You received this because an account deletion was requested for your **somavesh** account. |
+| Profile Approved | You received this because your **somavesh** profile was reviewed and approved. |
+| *(new template)* | You received this because *(relevant reason)* for your **somavesh** account. |
 
 **Social icons row:**
 ```
@@ -245,7 +245,7 @@ Add class `email-card` to the card table, `header-pad` to header TD,
 ## Template Catalogue
 
 ### 1. Welcome
-- Subject: `Welcome to Ayojok`
+- Subject: `Welcome to somavesh`
 - H1: `Welcome <span>Aboard</span>`
 - Body padding: `24px 32px 8px 32px`
 - InfoCard label: `Profile Information`
@@ -253,7 +253,7 @@ Add class `email-card` to the card table, `header-pad` to header TD,
 - CTA: `Log In` → `{login_url}` · padding `20px 32px 32px 32px`
 
 ### 2. Password Reset
-- Subject: `Reset your Ayojok password`
+- Subject: `Reset your somavesh password`
 - H1: `Reset Your <span>Password</span>`
 - Body padding: `32px 32px 8px 32px`
 - Body copy: `Click the button below to set a new password. This link expires in **30 minutes**.`
@@ -262,7 +262,7 @@ Add class `email-card` to the card table, `header-pad` to header TD,
 - CTA: `Reset Password` → `{password_reset_link}` · padding `20px 32px 36px 32px`
 
 ### 3. Account Deleted
-- Subject: `Your Ayojok account has been deleted`
+- Subject: `Your somavesh account has been deleted`
 - H1: `Account <span>Deleted</span>`
 - Body padding: `24px 32px 8px 32px`
 - InfoCard label: `Deletion Summary`
@@ -270,7 +270,7 @@ Add class `email-card` to the card table, `header-pad` to header TD,
   - Data row value uses `rgba(13,31,21,0.70)` color and weight 500 (long warning text)
 - No CTA button
 - Security note (in place of CTA section): Inter 14px `rgba(13,31,21,0.50)`, padding `20px 32px 20px 32px`
-  - `Didn't request this? Contact our security team immediately at <a href="mailto:ayojok@rongplan.com">ayojok@rongplan.com</a>`
+  - `Didn't request this? Contact our security team immediately at <a href="mailto:support@somavesh.com">support@somavesh.com</a>`
 
 ---
 
@@ -288,7 +288,7 @@ Use this shell for every new template. Replace `{TITLE}`, `{BODY_PAD}`,
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="x-apple-disable-message-reformatting">
-  <title>{TITLE} - Ayojok</title>
+  <title>{TITLE} - somavesh</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     @media only screen and (max-width: 600px) {
@@ -313,7 +313,7 @@ Use this shell for every new template. Replace `{TITLE}`, `{BODY_PAD}`,
     <!-- HEADER -->
     <tr>
       <td align="center" class="header-pad" style="padding:32px 40px 20px 40px;background-color:#FAFAFA;border-bottom:1px solid rgba(43,163,97,0.09);">
-        <img src="https://ayojok.com/ayojokLogo.svg" alt="Ayojok" width="130" style="height:auto;max-width:130px;display:block;margin:0 auto;">
+        <img src="https://somavesh.com/SomaveshLogo.svg" alt="somavesh" width="130" style="height:auto;max-width:130px;display:block;margin:0 auto;">
       </td>
     </tr>
 
@@ -335,31 +335,31 @@ Use this shell for every new template. Replace `{TITLE}`, `{BODY_PAD}`,
     <!-- FOOTER -->
     <tr>
       <td class="footer-pad" style="padding:32px;background-color:#FAFAFA;border-top:1px solid rgba(43,163,97,0.09);">
-        <img src="https://ayojok.com/ayojokLogo.svg" alt="Ayojok" width="90" style="height:auto;max-width:90px;display:block;margin-bottom:14px;">
+        <img src="https://somavesh.com/SomaveshLogo.svg" alt="somavesh" width="90" style="height:auto;max-width:90px;display:block;margin-bottom:14px;">
         <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:12px;color:rgba(13,31,21,0.30);line-height:1.7;margin-bottom:20px;">
-          &copy; 2026 <strong style="color:rgba(13,31,21,0.42);">Ayojok</strong>. All rights reserved.<br>
+          &copy; 2026 <strong style="color:rgba(13,31,21,0.42);">somavesh</strong>. All rights reserved.<br>
           Dhaka, Bangladesh.<br><br>
           {FOOTER_REASON}
         </div>
         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="padding-right:18px;vertical-align:middle;">
-              <a href="https://facebook.com/ayojok" style="text-decoration:none;display:inline-block;line-height:0;">
+              <a href="https://facebook.com/somavesh" style="text-decoration:none;display:inline-block;line-height:0;">
                 <img src="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/facebook.svg" width="20" height="20" alt="Facebook" style="display:block;filter:invert(0%) sepia(0%) saturate(0%) brightness(30%) contrast(100%);opacity:0.45;">
               </a>
             </td>
             <td style="padding-right:18px;vertical-align:middle;">
-              <a href="https://linkedin.com/company/ayojok" style="text-decoration:none;display:inline-block;line-height:0;">
+              <a href="https://linkedin.com/company/somavesh" style="text-decoration:none;display:inline-block;line-height:0;">
                 <img src="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/linkedin.svg" width="20" height="20" alt="LinkedIn" style="display:block;filter:invert(0%) sepia(0%) saturate(0%) brightness(30%) contrast(100%);opacity:0.45;">
               </a>
             </td>
             <td style="padding-right:18px;vertical-align:middle;">
-              <a href="https://instagram.com/ayojok" style="text-decoration:none;display:inline-block;line-height:0;">
+              <a href="https://instagram.com/somavesh" style="text-decoration:none;display:inline-block;line-height:0;">
                 <img src="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/instagram.svg" width="20" height="20" alt="Instagram" style="display:block;filter:invert(0%) sepia(0%) saturate(0%) brightness(30%) contrast(100%);opacity:0.45;">
               </a>
             </td>
             <td style="vertical-align:middle;">
-              <a href="mailto:ayojok@rongplan.com" style="text-decoration:none;display:inline-block;line-height:0;">
+              <a href="mailto:support@somavesh.com" style="text-decoration:none;display:inline-block;line-height:0;">
                 <img src="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/gmail.svg" width="20" height="20" alt="Email" style="display:block;filter:invert(0%) sepia(0%) saturate(0%) brightness(30%) contrast(100%);opacity:0.45;">
               </a>
             </td>
@@ -403,7 +403,7 @@ Use this shell for every new template. Replace `{TITLE}`, `{BODY_PAD}`,
   <td style="padding:20px 32px 20px 32px;background-color:#ffffff;">
     <p style="margin:0 0 20px 0;font-family:'Inter',Arial,Helvetica,sans-serif;font-size:14px;color:rgba(13,31,21,0.50);line-height:1.7;">
       Didn't request this? Contact our security team immediately at
-      <a href="mailto:ayojok@rongplan.com" style="color:#2BA361;text-decoration:none;font-weight:600;">ayojok@rongplan.com</a>
+      <a href="mailto:support@somavesh.com" style="color:#2BA361;text-decoration:none;font-weight:600;">support@somavesh.com</a>
     </p>
   </td>
 </tr>
@@ -450,3 +450,4 @@ Before finalising any template, verify:
 - [ ] Footer reason line matches template type
 - [ ] No placeholder tokens left unreplaced in final output
 - [ ] `word-break:break-all` on email value cells
+

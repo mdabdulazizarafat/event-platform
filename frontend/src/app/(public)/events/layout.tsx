@@ -1,1 +1,1 @@
-export const metadata = { title: 'Events | Ayojok', description: 'Discover conferences, seminars, workshops and competitions.' }; export default function Layout({ children }: { children: React.ReactNode }) { return children; }
+﻿export const metadata = { title: 'Events | Somavesh', description: 'Discover conferences, seminars, workshops and competitions.' }; export default function Layout({ children }: { children: React.ReactNode }) { return children; }

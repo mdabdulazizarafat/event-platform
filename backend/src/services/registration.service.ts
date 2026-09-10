@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma';
+﻿import prisma from '../lib/prisma';
 import { Queue } from 'bullmq';
 import { createChildLogger } from '../lib/logger';
 import { generateSecureQrToken } from '../lib/crypto';
@@ -109,7 +109,7 @@ export class RegistrationService {
         for (const email of rawMembers) {
           const lower = email.toLowerCase();
           if (!foundEmailsMap.has(lower)) {
-            throw new Error(`User with email "${email}" does not exist on Ayojok.`);
+            throw new Error(`User with email "${email}" does not exist on Somavesh.`);
           }
           const memberUsername = foundEmailsMap.get(lower)!;
           if (memberUsername.toLowerCase() === userId.toLowerCase()) {

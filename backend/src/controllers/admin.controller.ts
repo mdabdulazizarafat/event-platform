@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { AdminService } from '../services/admin.service';
 import { EventService } from '../services/event.service';
 import { EventTeamService } from '../services/event-team.service';
@@ -241,7 +241,7 @@ export class AdminController {
       const adminUsername = req.user!.username;
       const user = await AdminService.approveOrganizer(username, adminUsername);
       return res.status(200).json({
-        message: 'you became an organizer in the ayojok, please follow the  event rules when creat the event.',
+        message: 'you became an organizer in the Somavesh, please follow the  event rules when creat the event.',
         user
       });
     } catch (error: any) {

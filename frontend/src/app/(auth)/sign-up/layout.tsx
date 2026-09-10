@@ -1,1 +1,1 @@
-export const metadata = { title: 'Sign Up | Ayojok', description: 'Create a new Ayojok account.' }; export default function Layout({ children }: { children: React.ReactNode }) { return children; }
+﻿export const metadata = { title: 'Sign Up | Somavesh', description: 'Create a new Somavesh account.' }; export default function Layout({ children }: { children: React.ReactNode }) { return children; }

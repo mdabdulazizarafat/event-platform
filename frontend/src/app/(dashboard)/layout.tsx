@@ -1,5 +1,5 @@
-export const metadata = {
-  title: 'Dashboard | Ayojok',
+﻿export const metadata = {
+  title: 'Dashboard | Somavesh',
   description: 'Manage your events and attendees.'
 };
 

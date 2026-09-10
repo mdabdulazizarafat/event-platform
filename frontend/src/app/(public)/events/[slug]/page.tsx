@@ -3,21 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ConfigProvider, message } from 'antd';
 import {
-  Calendar as CalendarIcon,
-  MapPin,
-  Clock,
-  Share2,
-  ChevronDown,
-  Mail,
-  Link2,
-  CalendarDays,
-  Ticket,
-  AlertCircle,
-  FileText,
-  CalendarPlus,
-  ClockIcon,
-  Phone
+  Calendar as CalendarIcon, MapPin, Clock, Share2, ChevronDown, Mail, Link2, CalendarDays, Ticket, AlertCircle, FileText, CalendarPlus, ClockIcon, Phone
 } from 'lucide-react';
+
 import { FacebookOutlined, TwitterOutlined } from '@ant-design/icons';
 import { theme } from '../../../../theme/theme';
 import type { Event, TicketType, ScheduleItem } from '@/lib/api';
@@ -184,34 +172,61 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
           {/* Event Header Section exactly like Wireframe */}
           <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-8 relative z-20">
             <div className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
-              <div className="space-y-2">
-                <h1 className="font-heading text-2xl md:text-3xl font-bold text-slate-900 m-0">
-                  {event.title}
-                </h1>
-                <div className="mt-2 flex flex-wrap items-center gap-y-1 gap-x-4 text-xs font-semibold text-slate-500">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <h1 className="font-heading text-2xl md:text-3xl font-bold text-slate-900 m-0">
+                    {event.title}
+                  </h1>
                   {event.category && (
-                    <span className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-wider text-[10px] font-bold border border-primary/20">
+                    <span className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-wider text-[10px] font-bold border border-primary/20 mt-1">
                       {event.category.split(',')[0]}
                     </span>
                   )}
-                  {event.location && (
-                    <span className="flex items-center gap-1">
-                      <MapPin size={14} className="text-slate-400" />
-                      {event.location}
-                    </span>
+                </div>
+                <div className="flex flex-col gap-2 text-xs font-semibold text-slate-500">
+                  {/* Registration Date/Time */}
+                  {((event as any).registrationDeadline || (event as any).registration_deadline) && (
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="text-slate-700 font-bold uppercase tracking-wide text-[10px]">Registration:</span>
+                      <span className="flex items-center gap-1 group transition-colors cursor-default hover:text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 group-hover:text-primary transition-colors"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
+                        <span className="group-hover:text-primary transition-colors">{new Date((event as any).registrationDeadline || (event as any).registration_deadline).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                      </span>
+                      <span className="text-slate-300"></span>
+                      <span className="flex items-center gap-1 group transition-colors cursor-default hover:text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 group-hover:text-primary transition-colors"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                        <span className="group-hover:text-primary transition-colors">{new Date((event as any).registrationDeadline || (event as any).registration_deadline).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </span>
+                    </div>
                   )}
-                  {event.date && (
-                    <span className="flex items-center gap-1">
-                      <CalendarIcon size={14} className="text-slate-400" />
-                      {event.date}
-                    </span>
-                  )}
-                  {event.date && (
-                    <span className="flex items-center gap-1">
-                      <ClockIcon size={14} className="text-slate-400" />
-                      {event.time ? ` ${event.time}` : ''}
-                    </span>
-                  )}
+                  {/* Event Date/Time/Location */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                    <span className="text-slate-700 font-bold uppercase tracking-wide text-[12px]">Event:</span>
+                    {event.date && (
+                      <span className="flex items-center gap-1 group transition-colors cursor-default hover:text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 group-hover:text-primary transition-colors"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
+                        <span className="group-hover:text-primary transition-colors">{new Date(event.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                      </span>
+                    )}
+                    {event.time && (
+                      <>
+                        {event.date && <span className="text-slate-300"></span>}
+                        <span className="flex items-center gap-1 group transition-colors cursor-default hover:text-primary">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 group-hover:text-primary transition-colors"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                          <span className="group-hover:text-primary transition-colors">{event.time}</span>
+                        </span>
+                      </>
+                    )}
+                    {event.location && (
+                      <>
+                        {(event.date || event.time) && <span className="text-slate-300"></span>}
+                        <span className="flex items-center gap-1 group transition-colors cursor-default hover:text-primary">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 group-hover:text-primary transition-colors"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+                          <span className="group-hover:text-primary transition-colors">{event.location}</span>
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -309,27 +324,27 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                 <div className="mt-2 grid grid-cols-2 gap-3">
                   <button
                     onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`, '_blank')}
-                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors hover:bg-slate-300 border-none cursor-pointer"
+                    className="py-2 px-3 gap-2 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors hover:bg-slate-300 border-none cursor-pointer"
                   >
-                    Facebook
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg> Facebook
                   </button>
                   <button
-                    onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(event.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`, '_blank')}
-                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors hover:bg-slate-300 border-none cursor-pointer"
+                    onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`, '_blank')}
+                    className="py-2 px-3 gap-2 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors hover:bg-slate-300 border-none cursor-pointer"
                   >
-                    X
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></svg> LinkedIn
                   </button>
                   <button
                     onClick={() => window.open(`mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`, '_self')}
-                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors hover:bg-slate-300 border-none cursor-pointer"
+                    className="py-2 px-3 gap-2 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors hover:bg-slate-300 border-none cursor-pointer"
                   >
-                    Email
+                    <Mail size={16} strokeWidth={2} /> Email
                   </button>
                   <button
                     onClick={copyPageLink}
-                    className="py-2 px-3 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors cursor-pointer hover:bg-slate-300 border-none"
+                    className="py-2 px-3 gap-2 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors cursor-pointer hover:bg-slate-300 border-none"
                   >
-                    Copy link
+                    <Link2 size={16} strokeWidth={2} /> Copy Link
                   </button>
                 </div>
 
@@ -337,7 +352,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                   onClick={() => window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}`, '_blank')}
                   className="w-full mt-3 py-2 bg-slate-200 rounded-lg text-slate-700 text-sm flex items-center justify-center transition-colors hover:bg-slate-300 border-none cursor-pointer"
                 >
-                  Add to Calendar
+                  <CalendarPlus size={16} strokeWidth={2} className="mr-2" /> Add to Calendar
                 </button>
               </div>
 
@@ -352,16 +367,16 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                     </h3>
                     <div className="mt-1 bg-slate-50 border border-slate-100 p-3.5 rounded-lg text-sm space-y-2.5">
                       {event.contactEmail && (
-                        <div className="flex items-center gap-3 text-slate-700">
-                          <Mail size={16} className="text-slate-400 shrink-0" />
-                          <a href={`mailto:${event.contactEmail}`} className="hover:text-primary transition-colors break-all">{event.contactEmail}</a>
-                        </div>
+                        <a href={`mailto:${event.contactEmail}`} className="flex items-center gap-3 !text-slate-700 hover:!text-primary transition-colors group break-all">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 group-hover:text-primary transition-colors shrink-0"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+                          <span>{event.contactEmail}</span>
+                        </a>
                       )}
                       {event.contactPhone && (
-                        <div className="flex items-center gap-3 text-slate-700">
-                          <Phone size={16} className="text-slate-400 shrink-0" />
-                          <a href={`tel:${event.contactPhone}`} className="hover:text-primary transition-colors">{event.contactPhone}</a>
-                        </div>
+                        <a href={`tel:${event.contactPhone}`} className="flex items-center gap-3 !text-slate-700 hover:!text-primary transition-colors group">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 group-hover:text-primary transition-colors shrink-0"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                          <span>{event.contactPhone}</span>
+                        </a>
                       )}
                     </div>
                   </div>
@@ -384,16 +399,16 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                         }</span>
                       </div>
                       {(event.organizer?.email || event.contactEmail) && (
-                        <div className="text-sm text-slate-700 flex items-center gap-3 mt-2">
-                          <Mail size={16} className="text-slate-500 shrink-0" />
-                          <a href={`mailto:${event.organizer?.email || event.contactEmail}`} className="hover:text-primary transition-colors break-all">{event.organizer?.email || event.contactEmail}</a>
-                        </div>
+                        <a href={`mailto:${event.organizer?.email || event.contactEmail}`} className="flex items-center gap-3 mt-2 !text-slate-700 hover:!text-primary transition-colors group break-all text-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 group-hover:text-primary transition-colors shrink-0"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+                          <span>{event.organizer?.email || event.contactEmail}</span>
+                        </a>
                       )}
                       {(event.organizer?.phone || event.contactPhone) && (
-                        <div className="text-sm md:text-base text-slate-700 flex items-center gap-3">
-                          <Phone size={16} className="text-slate-500 shrink-0" />
-                          <a href={`tel:${event.organizer?.phone || event.contactPhone}`} className="hover:text-primary transition-colors">{event.organizer?.phone || event.contactPhone}</a>
-                        </div>
+                        <a href={`tel:${event.organizer?.phone || event.contactPhone}`} className="flex items-center gap-3 mt-1 !text-slate-700 hover:!text-primary transition-colors group text-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 group-hover:text-primary transition-colors shrink-0"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                          <span>{event.organizer?.phone || event.contactPhone}</span>
+                        </a>
                       )}
                     </div>
                   )}
@@ -408,16 +423,16 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                             <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 bg-slate-200 px-2 py-0.5 rounded border border-slate-200">{org.role || 'Co-Organizer'}</span>
                           </div>
                           {org.email && (
-                            <div className="text-xs md:text-sm text-slate-700 flex items-center gap-3 mt-1.5">
-                              <Mail size={14} className="text-slate-400 shrink-0" />
-                              <a href={`mailto:${org.email}`} className="hover:text-primary transition-colors break-all">{org.email}</a>
-                            </div>
+                            <a href={`mailto:${org.email}`} className="flex items-center gap-3 mt-1.5 !text-slate-700 hover:!text-primary transition-colors group break-all text-xs md:text-sm">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 group-hover:text-primary transition-colors shrink-0"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+                              <span>{org.email}</span>
+                            </a>
                           )}
                           {org.phone && (
-                            <div className="text-xs md:text-sm text-slate-700 flex items-center gap-3">
-                              <Phone size={14} className="text-slate-400 shrink-0" />
-                              <a href={`tel:${org.phone}`} className="hover:text-primary transition-colors">{org.phone}</a>
-                            </div>
+                            <a href={`tel:${org.phone}`} className="flex items-center gap-3 mt-1 !text-slate-700 hover:!text-primary transition-colors group text-xs md:text-sm">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 group-hover:text-primary transition-colors shrink-0"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                              <span>{org.phone}</span>
+                            </a>
                           )}
                         </div>
                       ))}
@@ -432,7 +447,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
           <div ref={ticketsSectionRef} className="max-w-6xl mx-auto px-6 mt-16">
             <div className="text-center mb-10">
               <h2 className="font-heading text-2xl md:text-3xl font-black text-slate-900 tracking-tight m-0">
-                Select your preferred Option
+                Select Ticket / Category
               </h2>
             </div>
 
@@ -454,7 +469,7 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                     const isFree = parseFloat(ticket.price) === 0 || ticket.isFree;
                     const priceDisplay = isFree ? '৳ 0' : `৳ ${parseFloat(ticket.price).toLocaleString('en-BD')}`;
                     const isSelected = selectedTicketIds.includes(ticket.id);
-                    const isAlreadyRegistered = myRegistrations.some((r: any) => 
+                    const isAlreadyRegistered = myRegistrations.some((r: any) =>
                       r.event_id === (event as any).id && r.tickets?.some((t: any) => t.id === ticket.id)
                     );
 
@@ -462,11 +477,10 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                       <div
                         key={ticket.id}
                         onClick={() => { if (!isAlreadyRegistered) toggleTicket(ticket.id); }}
-                        className={`p-4 transition-all flex flex-col justify-between min-h-[120px] border rounded-xl bg-white shadow-sm ${
-                          isAlreadyRegistered ? 'opacity-70 cursor-not-allowed border-slate-100 bg-slate-50' 
-                          : isSelected ? 'border-primary ring-2 ring-primary/20 cursor-pointer' 
-                          : 'border-slate-100 hover:border-slate-200 cursor-pointer'
-                        }`}
+                        className={`p-4 transition-all flex flex-col justify-between min-h-[120px] border rounded-xl bg-white shadow-sm ${isAlreadyRegistered ? 'opacity-70 cursor-not-allowed border-slate-100 bg-slate-50'
+                          : isSelected ? 'border-primary ring-2 ring-primary/20 cursor-pointer'
+                            : 'border-slate-100 hover:border-slate-200 cursor-pointer'
+                          }`}
                       >
                         {/* Card Top: Title on left, Price Badge on right */}
                         <div className="flex items-start justify-between gap-3">
@@ -489,12 +503,11 @@ export default function EventRegistrationPage({ params }: { params: Promise<{ sl
                           <div className="w-full flex">
                             <Button
                               size="md"
-                              className={`w-full rounded-md text-[11px] font-bold py-2 shadow-none flex justify-center items-center pointer-events-none transition-colors border-none ${
-                                isAlreadyRegistered ? 'bg-slate-200 text-slate-500' :
+                              className={`w-full rounded-md text-[11px] font-bold py-2 shadow-none flex justify-center items-center pointer-events-none transition-colors border-none ${isAlreadyRegistered ? 'bg-slate-200 text-slate-500' :
                                 isSelected ? 'bg-[#22c55e] text-white' : 'bg-[#4ade80] hover:bg-[#22c55e] text-white'
-                              }`}
+                                }`}
                             >
-                              <span>{isAlreadyRegistered ? 'Already Registered' : isSelected ? 'Selected' : '+ Click to Select'}</span>
+                              <span>{isAlreadyRegistered ? 'Already Registered' : isSelected ? 'Selected' : 'Click to Select'}</span>
                             </Button>
                           </div>
                         </div>

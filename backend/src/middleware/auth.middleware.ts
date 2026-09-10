@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { getPublicKey } from '../services/crypto.service';
 import { UserPayload } from '../types';
@@ -66,7 +66,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     }
 
     if (dbUser.status === 'SUSPENDED') {
-      return res.status(403).json({ error: 'Your account has been suspended. Please contact Ayojok support.' });
+      return res.status(403).json({ error: 'Your account has been suspended. Please contact Somavesh support.' });
     }
 
     // 5. Inject payload context into Express request

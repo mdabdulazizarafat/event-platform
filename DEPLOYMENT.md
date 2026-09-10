@@ -1,6 +1,6 @@
-# Ayojok Platform Production Deployment Guide
+﻿# Somavesh Platform Production Deployment Guide
 
-This guide provides step-by-step instructions for deploying the **Ayojok Event Platform** on the shared KVM VPS (2 vCPUs, 8 GB RAM) alongside existing applications (like `taphex-platform`) using Docker Compose and Cloudflare.
+This guide provides step-by-step instructions for deploying the **Somavesh Event Platform** on the shared KVM VPS (2 vCPUs, 8 GB RAM) alongside existing applications (like `taphex-platform`) using Docker Compose and Cloudflare.
 
 ---
 
@@ -12,11 +12,11 @@ This guide provides step-by-step instructions for deploying the **Ayojok Event P
                                  │
                                  ▼ (Port 80 / 443)
                          [ Host Nginx ]
-             (Routes traffic for ayojok.rongplan.com)
+             (Routes traffic for Somavesh.rongplan.com)
                                  │
              ┌───────────────────┴───────────────────┐
              ▼ (Port 8080)                           ▼ (Port 8081)
-    [ ayojok-frontend ]                     [ ayojok-backend ]
+    [ Somavesh-frontend ]                     [ Somavesh-backend ]
      (Next.js Standalone)                  (Express REST Server)
              │                                       │
              └───────────────┬───────────────────────┘
@@ -24,7 +24,7 @@ This guide provides step-by-step instructions for deploying the **Ayojok Event P
                  [ Postgres & Redis Containers ]
 ```
 
-- **Isolation**: Every service runs inside a private Docker bridge network (`ayojok-network`).
+- **Isolation**: Every service runs inside a private Docker bridge network (`Somavesh-network`).
 - **Security**: PostgreSQL and Redis ports are *never* exposed to the host system or the public internet. The Frontend and Backend are bound to loopback IP `127.0.0.1` so they cannot be accessed directly on raw ports.
 - **SSL/TLS**: SSL termination is fully managed by Cloudflare at the edge.
 
@@ -53,7 +53,7 @@ Ensure the VPS has the following installed:
 1. Log in to your Cloudflare Dashboard.
 2. Go to **DNS settings** for `rongplan.com`.
 3. Add a new **A Record**:
-   - **Name**: `ayojok` (resolving to `ayojok.rongplan.com`)
+   - **Name**: `Somavesh` (resolving to `Somavesh.rongplan.com`)
    - **IPv4 Address**: `187.127.102.17`
    - **Proxy status**: Proxied (Orange cloud enabled)
 
@@ -77,8 +77,8 @@ Convert both keys into single-line strings replacing newlines with `\n` to pass 
 2. Populate the parameters based on `backend/.env.production` and `frontend/.env.production`.
 3. Ensure you set strong, unique credentials:
    ```bash
-   DB_NAME=ayojok_db
-   DB_USER=ayojok_prod_user
+   DB_NAME=Somavesh_db
+   DB_USER=Somavesh_prod_user
    DB_PASSWORD=YOUR_SECURE_PASSWORD
    REDIS_PASSWORD=YOUR_REDIS_PASSWORD
    JWT_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n..."
@@ -105,13 +105,13 @@ Convert both keys into single-line strings replacing newlines with `\n` to pass 
 ---
 
 ### Step E: Configure Host Nginx
-1. Copy the provided [nginx.ayojok.conf](file:///d:/rong-plan/event-platform/nginx.ayojok.conf) to the Nginx configurations directory on the host VPS:
+1. Copy the provided [nginx.Somavesh.conf](file:///d:/rong-plan/event-platform/nginx.Somavesh.conf) to the Nginx configurations directory on the host VPS:
    ```bash
-   sudo cp nginx.ayojok.conf /etc/nginx/sites-available/ayojok.conf
+   sudo cp nginx.Somavesh.conf /etc/nginx/sites-available/Somavesh.conf
    ```
 2. Enable the site configuration:
    ```bash
-   sudo ln -s /etc/nginx/sites-available/ayojok.conf /etc/nginx/sites-enabled/
+   sudo ln -s /etc/nginx/sites-available/Somavesh.conf /etc/nginx/sites-enabled/
    ```
 3. Test Nginx syntax and reload the service:
    ```bash
@@ -124,7 +124,7 @@ Convert both keys into single-line strings replacing newlines with `\n` to pass 
 ## 4. Cloudflare SSL Mode Selection
 Under **SSL/TLS** tab in Cloudflare:
 - **Flexible Mode**: If Nginx is configured to listen only on Port 80 (HTTP). Cloudflare encrypts traffic between user and Cloudflare, while Cloudflare connects to Nginx over Port 80.
-- **Full / Full Strict Mode (Recommended)**: Enable the HTTPS block in [nginx.ayojok.conf](file:///d:/rong-plan/event-platform/nginx.ayojok.conf) and load a free Cloudflare Origin Certificate. Cloudflare will then encrypt traffic all the way to your origin VPS over port 443.
+- **Full / Full Strict Mode (Recommended)**: Enable the HTTPS block in [nginx.Somavesh.conf](file:///d:/rong-plan/event-platform/nginx.Somavesh.conf) and load a free Cloudflare Origin Certificate. Cloudflare will then encrypt traffic all the way to your origin VPS over port 443.
 
 ---
 
@@ -136,10 +136,10 @@ Under **SSL/TLS** tab in Cloudflare:
 docker compose logs -f
 
 # View backend logs only
-docker compose logs -f ayojok-backend
+docker compose logs -f Somavesh-backend
 
 # View frontend logs only
-docker compose logs -f ayojok-frontend
+docker compose logs -f Somavesh-frontend
 ```
 
 ### Restart Services
@@ -155,10 +155,10 @@ docker compose up -d --force-recreate
 Since Postgres runs inside Docker, use the following commands to back up the schema and data:
 ```bash
 # Backup database to host
-docker exec -t ayojok-postgres pg_dump -U ayojok_user ayojok_db > db_backup_$(date +%F).sql
+docker exec -t Somavesh-postgres pg_dump -U Somavesh_user Somavesh_db > db_backup_$(date +%F).sql
 
 # Restore database from host file
-cat db_backup_xxx.sql | docker exec -i ayojok-postgres psql -U ayojok_user -d ayojok_db
+cat db_backup_xxx.sql | docker exec -i Somavesh-postgres psql -U Somavesh_user -d Somavesh_db
 ```
 
 ### Updating the Application (Pre-built Images from GHCR)
@@ -175,7 +175,7 @@ docker compose up -d
 
 # 3. Important: Apply any new database schema changes to the production DB
 # (Must be run after containers are up, especially important after Prisma migration)
-docker exec -it ayojok-backend npx prisma db push
+docker exec -it Somavesh-backend npx prisma db push
 ```
 
 > [!NOTE]

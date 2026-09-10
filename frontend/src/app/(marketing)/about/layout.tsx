@@ -1,1 +1,1 @@
-export const metadata = { title: 'About Us | Ayojok', description: 'Learn about Ayojok and our mission to simplify event management.' }; export default function Layout({ children }: { children: React.ReactNode }) { return children; }
+﻿export const metadata = { title: 'About Us | Somavesh', description: 'Learn about Somavesh and our mission to simplify event management.' }; export default function Layout({ children }: { children: React.ReactNode }) { return children; }

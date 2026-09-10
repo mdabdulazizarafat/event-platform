@@ -49,12 +49,13 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
   // Registration Form Options
   const [formTshirtSize, setFormTshirtSize] = useState(false);
   const [formReference, setFormReference] = useState(false);
-  const [formTransactionId, setFormTransactionId] = useState(false);
   const [paymentInstructions, setPaymentInstructions] = useState('');
   const [bkashNumber, setBkashNumber] = useState('');
   
   // Ticket State
   const [tickets, setTickets] = useState<EditableTicketType[]>([]);
+
+  const isPaid = tickets.some(t => parseFloat(t.price || '0') > 0);
 
   // Helper to parse 12h time string to 24h format for the picker
   const parseTo24h = (t: string): string => {
@@ -115,7 +116,6 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
 
           setFormTshirtSize(data.form_tshirt_size !== undefined ? data.form_tshirt_size : false);
           setFormReference(data.form_reference !== undefined ? data.form_reference : false);
-          setFormTransactionId(data.form_transaction_id !== undefined ? data.form_transaction_id : false);
           setPaymentInstructions(data.payment_instructions || '');
           setBkashNumber(data.bkash_number || '');
           
@@ -247,7 +247,7 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
           registrationDeadline: new Date(`${registrationDeadlineDate}T${registrationDeadlineTime}:00`).toISOString(),
           location,
           capacity: parseInt(capacity), contactEmail, contactPhone, status,
-          formPhone: true, formJobTitle: true, formOrganization: true, formTshirtSize, formReference, formTransactionId,
+          formPhone: true, formJobTitle: true, formOrganization: true, formTshirtSize, formReference, formTransactionId: isPaid,
           paymentInstructions, bkashNumber,
           eventFor, studentCategory: eventFor === 'STUDENT' ? studentCategory : null,
           category
@@ -557,21 +557,9 @@ export default function EditEventPage({ params }: { params: Promise<{ slug: stri
                 className="w-4 h-4 text-primary rounded border-outline-variant focus:ring-primary cursor-pointer"
               />
             </div>
-            <div className="flex items-center justify-between p-2 hover:bg-surface-container-high rounded-lg transition-colors">
-              <div>
-                <span className="text-xs font-bold text-foreground block">Transaction ID</span>
-                <span className="text-[10px] text-on-surface-variant">For manual payment references</span>
-              </div>
-              <input 
-                type="checkbox" 
-                checked={formTransactionId} 
-                onChange={(e) => setFormTransactionId(e.target.checked)} 
-                className="w-4 h-4 text-primary rounded border-outline-variant focus:ring-primary cursor-pointer"
-              />
-            </div>
           </div>
 
-          {formTransactionId && (
+          {isPaid && (
             <div className="mt-4 p-4 border border-outline-variant/60 rounded-xl bg-surface-container-low/30 space-y-4">
               <FormField label="Payment Instructions" textarea value={paymentInstructions} onChange={(e) => setPaymentInstructions(e.target.value)} placeholder="Enter instructions for manual payment..." />
               <FormField label="bKash Number" value={bkashNumber} onChange={(e) => setBkashNumber(e.target.value)} placeholder="e.g. 01700000000" />

@@ -183,7 +183,7 @@ export default function MarketingPage() {
       <main className="flex-grow">
 
         {/* ═══════ Hero Banner ═══════ */}
-        <section className="relative overflow-hidden w-full min-h-fit md:min-h-[100dvh] flex flex-col items-center justify-start md:justify-center bg-[#fafafa] -mt-16 pt-32 pb-16 md:pt-36 md:pb-16 md:py-16">
+        <section className="relative overflow-hidden w-full min-h-[100dvh] flex flex-col items-center justify-center bg-[#fafafa] -mt-16 pt-24 pb-4 md:pt-16 md:pb-16">
           <style dangerouslySetInnerHTML={{ __html: floatAnimations }} />
 
           {/* Background layers */}
@@ -219,22 +219,20 @@ export default function MarketingPage() {
           </div>
 
           {/* Centered Hero Content (Z-Index 10) */}
-          <div className="max-w-3xl mx-auto text-center z-10 relative px-6 flex flex-col items-center pointer-events-auto w-full">
-            {/* ayojok branding */}
-            {/* <div className="flex items-center gap-1.5 mb-6 opacity-85 hover:scale-105 transition-transform duration-300 select-none">
-              <span className="text-xl font-black text-slate-800 tracking-tight font-heading">ayojok</span>
-            </div> */}
+          <div className="max-w-3xl mx-auto text-center z-10 relative px-6 flex flex-col items-center justify-evenly pointer-events-auto w-full flex-1 py-4 md:py-0 md:justify-center">
+            
+            <div className="flex flex-col items-center md:mb-8">
+              <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl font-extrabold text-[#1d1d1f] tracking-tight leading-[1.08] m-0 max-w-2xl select-none">
+                Make your events <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2BA361] to-[#F7BB16] font-black">easy & simple.</span>
+              </h1>
 
-            <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl font-extrabold text-[#1d1d1f] tracking-tight leading-[1.08] m-0 max-w-2xl select-none">
-              Make your events <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2BA361] to-[#F7BB16] font-black">easy & simple.</span>
-            </h1>
+              <p className="text-base md:text-lg lg:text-xl text-[#6e6e73] mt-6 max-w-xl font-medium leading-relaxed m-0 select-none">
+                From run clubs to launch parties and tech fests, Somavesh makes every event feel effortless.
+              </p>
+            </div>
 
-            <p className="text-base md:text-lg lg:text-xl text-[#6e6e73] mt-6 max-w-xl font-medium leading-relaxed m-0 select-none">
-              From run clubs to launch parties and tech fests, Ayojok makes every event feel effortless.
-            </p>
-
-            <div className="mt-8 flex flex-col sm:flex-row gap-4 items-center">
+            <div className="flex flex-col sm:flex-row gap-4 items-center md:mb-12">
               <Link
                 href="/sign-in"
                 className="bg-gradient-to-r from-[#2BA361] to-[#F7BB16] !text-white transition-all px-8 py-3.5 rounded-full font-bold shadow-[0_4px_20px_rgba(0,0,0,0.1)] inline-block text-[15px]"
@@ -250,7 +248,7 @@ export default function MarketingPage() {
             </div>
 
             {/* Scattered Floating Cards (Mobile Cluster - bottom overlapping, luma style, full-width bleed) */}
-            <div className="md:hidden relative w-[calc(100%+3rem)] -mx-6 h-[260px] mt-6 pointer-events-none z-0">
+            <div className="md:hidden relative w-[calc(100%+3rem)] -mx-6 h-[260px] pointer-events-none z-0">
               {[
                 { posClass: "left-[-15px] bottom-[110px]", sizeClass: "w-24 h-24 rounded-[16px]", anim: "animate-float-rnd-1" },
                 { posClass: "left-[50%] -translate-x-1/2 bottom-[130px] z-0", sizeClass: "w-[130px] h-[130px] rounded-[16px]", anim: "animate-float-rnd-2" },
@@ -319,8 +317,8 @@ export default function MarketingPage() {
         <section className="pt-8 pb-16 overflow-hidden">
           <div className="px-6 md:px-24 mb-6">
             <h2 className="m-0 text-[28px] md:text-[36px] font-extrabold tracking-tight" style={{ color: '#1d1d1f' }}>
-              Ayojok Features.{' '}
-              <span style={{ color: '#6e6e73' }}> That make ayojok the perfect choice.</span>
+              Somavesh Features.{' '}
+              <span style={{ color: '#6e6e73' }}> That make Somavesh the perfect choice.</span>
             </h2>
           </div>
 

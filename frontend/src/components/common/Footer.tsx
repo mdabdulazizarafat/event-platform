@@ -24,7 +24,6 @@ export default function Footer() {
               <ul className="space-y-3 text-sm font-medium">
                 <li><Link prefetch={false} href="/events" className="!text-black/70 hover:!text-black transition-colors">Events</Link></li>
                 <li><Link prefetch={false} href="/about" className="!text-black/70 hover:!text-black transition-colors">About</Link></li>
-                <li><Link prefetch={false} href="/about#team" className="!text-black/70 hover:!text-black transition-colors">Team</Link></li>
                 <li><Link prefetch={false} href="/contact" className="!text-black/70 hover:!text-black transition-colors">Contact</Link></li>
               </ul>
             </div>
@@ -50,6 +49,7 @@ export default function Footer() {
               <ul className="space-y-3 text-sm font-medium">
                 <li><Link prefetch={false} href="/event-guidelines" className="!text-black/70 hover:!text-black transition-colors">Events Guidelines</Link></li>
                 <li><Link prefetch={false} href="/organizer-guidelines" className="!text-black/70 hover:!text-black transition-colors">Organizer Guidelines</Link></li>
+                <li><Link prefetch={false} href="/brand" className="!text-black/70 hover:!text-black transition-colors">Brand Assets</Link></li>
               </ul>
             </div>
           </div>
@@ -75,10 +75,10 @@ export default function Footer() {
         {/* Bottom row */}
         <div className="mt-16 pt-8 border-t border-outline-variant flex flex-col sm:flex-row justify-between items-center gap-4 text-sm font-medium">
           <div>
-            <span>© {new Date().getFullYear()} Ayojok. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} Somavesh. All rights reserved.</span>
           </div>
-          <Link href="https://rongplan.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 !text-black/70 hover:!text-black transition-colors cursor-pointer">
-            Powered by Rong Plan
+          <Link href="https://somavesh.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 !text-black/70 hover:!text-black transition-colors cursor-pointer">
+            Powered by Somavesh
           </Link>
         </div>
       </div>

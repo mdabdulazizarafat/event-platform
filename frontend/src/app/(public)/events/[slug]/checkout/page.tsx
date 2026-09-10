@@ -188,7 +188,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
             </div>
             <p className="text-[11px] text-amber-600 mt-4 bg-amber-50 p-2.5 rounded-lg border border-amber-100">
               <AlertCircle size={14} className="inline mr-1.5 -mt-0.5" />
-              If you need to update contact details, please update them in your profile.
+              If you need to update contact details, please update in your profile.
             </p>
           </div>
 
@@ -232,7 +232,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                   </div>
                 )}
 
-                {event.form_transaction_id && (
+                {requiresPayment && event.form_transaction_id && (
                   <div className="space-y-1.5 md:col-span-2">
                     {(event.payment_instructions || event.bkash_number) && (
                       <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl mb-4">
@@ -263,7 +263,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                         )}
                       </div>
                     )}
-                    <label className="text-xs font-bold text-slate-700">Transaction ID (Required for paid tickets)</label>
+                    <label className="text-xs font-bold text-slate-700">Transaction ID</label>
                     <input
                       type="text"
                       name="transactionId"
@@ -283,7 +283,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
         <div className="lg:col-span-5">
           <div className="bento-card p-6 bg-white border-2 border-primary/20 rounded-xl shadow-lg sticky top-6">
             <h3 className="font-heading text-lg font-bold text-slate-900 border-b border-slate-100 pb-3 m-0">
-              Order Summary
+              Summary
             </h3>
 
             <div className="mt-5 space-y-4">
@@ -301,7 +301,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
 
               <div className="border-t-2 border-dashed border-slate-200 pt-4 mt-2">
                 <div className="flex justify-between items-center text-lg font-black text-slate-900">
-                  <span>Total Due</span>
+                  <span>Total Amount</span>
                   <span className="text-primary">
                     {requiresPayment ? `৳ ${totalPrice.toLocaleString('en-BD')}` : 'Free'}
                   </span>
@@ -327,7 +327,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
             </Button>
 
             <p className="text-[10px] text-center text-slate-400 mt-4 flex items-center justify-center gap-1">
-              <Ticket size={12} /> Secure Checkout process by Ayojok
+              <Ticket size={12} /> Secure Checkout process by Somavesh
             </p>
           </div>
         </div>

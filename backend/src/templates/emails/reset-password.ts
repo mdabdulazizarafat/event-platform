@@ -14,7 +14,7 @@ export const ResetPasswordEmail = ({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="x-apple-disable-message-reformatting">
-  <title>Reset Your Password — Ayojok</title>
+  <title>Reset Your Password � Somavesh</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     @media only screen and (max-width: 600px) {
@@ -38,7 +38,7 @@ export const ResetPasswordEmail = ({
     <!-- HEADER -->
     <tr>
       <td align="center" class="header-pad" style="padding:32px 40px 20px 40px;background-color:#FAFAFA;">
-        <img src="https://ayojok.rongplan.com/ayojokLogo.png" alt="Ayojok" width="130" style="height:auto;max-width:130px;display:block;margin:0 auto;">
+        <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Somavesh" height="80" style="width:auto;max-height:80px;display:block;margin:0 auto;">
       </td>
     </tr>
 
@@ -78,9 +78,9 @@ export const ResetPasswordEmail = ({
     <!-- FOOTER -->
     <tr>
       <td class="footer-pad" style="padding:32px;background-color:#FAFAFA;border-top:1px solid rgba(43,163,97,0.15);">
-        <img src="https://ayojok.rongplan.com/ayojokLogo.png" alt="Ayojok" width="90" style="height:auto;max-width:90px;display:block;margin-bottom:14px;">
+        <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Somavesh" height="60" style="width:auto;max-height:60px;display:block;margin-bottom:14px;">
         <div style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:12px;color:rgba(13,14,19,0.30);line-height:1.7;margin-bottom:20px;">
-          &copy; 2026 <strong style="color:rgba(13,14,19,0.42);">Ayojok</strong>. All rights reserved.<br>
+          &copy; 2026 <strong style="color:rgba(13,14,19,0.42);">Somavesh</strong>. All rights reserved.<br>
           Dhaka, Bangladesh.<br><br>
           You received this email because a password reset was requested for your account.
         </div>

@@ -338,7 +338,7 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-outline-variant/60">
                   <div>
                     <h3 className="font-heading text-lg font-bold text-foreground m-0">Team Details</h3>
-                    <p className="text-xs text-on-surface-variant m-0">Enter your team name and add other team members by email (they must have accounts on Ayojok).</p>
+                    <p className="text-xs text-on-surface-variant m-0">Enter your team name and add other team members by email (they must have accounts on Somavesh).</p>
                   </div>
                 </div>
                 <div className="space-y-4">

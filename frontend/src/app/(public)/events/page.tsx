@@ -89,11 +89,8 @@ export default function EventsDiscoveryPage() {
   }, [observerTarget, hasMore, loadingMore, loadMoreEvents]);
 
   const getEventCategory = (e: Event) => {
-    if (e.category) return e.category.split(',')[0];
-    if (e.slug.includes('tech')) return 'Tech';
-    if (e.slug.includes('knowledge') || e.slug.includes('fiesta')) return 'Education';
-    if (e.slug.includes('design') || e.slug.includes('ui-ux')) return 'Design & Architecture';
-    return 'Business';
+    if (e.category) return e.category.split(',')[0].trim();
+    return 'Tech'; // Default fallback
   };
 
   const categoryOrder = [
@@ -162,7 +159,7 @@ export default function EventsDiscoveryPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <main className="flex-1 w-full mx-auto">
         {/* Hero Section */}
-        <section className="relative overflow-hidden w-full min-h-fit flex flex-col items-center justify-start bg-[#fafafa] -mt-16 pt-32 pb-8 md:pt-36">
+        <section className="relative overflow-hidden w-full min-h-fit flex flex-col items-center justify-start bg-[#fafafa] -mt-16 pt-24 pb-4 md:pt-36 md:pb-8">
           <div className="absolute inset-0 bg-hero-gradient dark:bg-hero-gradient-dark pointer-events-none z-0" />
           <div className="absolute inset-0 hero-grid opacity-60 dark:opacity-30 pointer-events-none z-0" />
 
@@ -172,11 +169,11 @@ export default function EventsDiscoveryPage() {
 
           <div className="absolute bottom-0 left-0 right-0 h-24 md:h-36 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
 
-          <div className="max-w-7xl mx-auto px-6 py-16 text-center z-10 relative">
+          <div className="w-full px-6 md:px-24 py-8 md:py-16 text-left z-10 relative">
             <h1 className="text-display-ticket text-foreground mb-6">
-              Explore <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Upcoming Events</span>
+              Upcoming <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Events</span>
             </h1>
-            <p className="text-xl text-on-surface-variant max-w-2xl mx-auto mb-10 leading-relaxed font-sans">
+            <p className="text-xl text-on-surface-variant max-w-2xl mb-10 leading-relaxed font-sans">
               Discover conferences, seminars, workshops and competitions organized by community organizers.
             </p>
           </div>
@@ -194,7 +191,7 @@ export default function EventsDiscoveryPage() {
               {activeCategories.map((category) => {
                 const categoryEvents = filteredEvents
                   .filter((e) => getEventCategory(e) === category)
-                  .sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
                 if (categoryEvents.length === 0) return null;
 

@@ -1,23 +1,35 @@
-import React from 'react';
+﻿import React from 'react';
 import Link from 'next/link';
 import { CheckCircle2, Shield, Calendar, Users, Megaphone } from 'lucide-react';
 
 export const metadata = {
-  title: 'Organizer Guidelines | Ayojok',
-  description: 'Best practices, rules, and guidelines for organizing events on Ayojok.',
+  title: 'Organizer Guidelines | Somavesh',
+  description: 'Best practices, rules, and guidelines for organizing events on Somavesh.',
 };
 
 export default function OrganizerGuidelinePage() {
   return (
-    <div className="min-h-screen bg-background pt-24 pb-16">
-      {/* Header */}
-      <section className="bg-foreground text-surface py-20 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-heading font-extrabold mb-6">
-            Organizer Guidelines
+    <div className="min-h-screen bg-background pb-16">
+            {/* Hero Section */}
+      <section className="relative overflow-hidden w-full min-h-fit flex flex-col items-center justify-start bg-[#fafafa] -mt-16 pt-24 pb-4 md:pt-36 md:pb-8">
+        {/* Background layers */}
+        <div className="absolute inset-0 bg-hero-gradient dark:bg-hero-gradient-dark pointer-events-none z-0" />
+        <div className="absolute inset-0 hero-grid opacity-60 dark:opacity-30 pointer-events-none z-0" />
+
+        {/* Ambient glow orbs */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full bg-[#2BA361]/[0.05] blur-[100px] pointer-events-none z-0" />
+        <div className="absolute top-1/4 -left-40 w-80 h-80 rounded-full bg-[#2BA361]/[0.04] blur-3xl pointer-events-none z-0" />
+        <div className="absolute bottom-1/4 -right-40 w-80 h-80 rounded-full bg-[#F7BB16]/[0.05] blur-3xl pointer-events-none z-0" />
+
+        {/* Bottom gradient fade to blend hero bg with main page bg */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 md:h-36 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
+
+        <div className="w-full px-6 md:px-24 py-8 md:py-16 text-left z-10 relative">
+          <h1 className="text-display-ticket text-foreground mb-6">
+            Organizer <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Guidelines</span>
           </h1>
-          <p className="text-xl text-surface-dim font-sans">
-            Everything you need to know to organize successful, safe, and engaging events on the Ayojok platform.
+          <p className="text-xl text-on-surface-variant max-w-2xl leading-relaxed font-sans">
+            Everything you need to know to organize successful, safe, and engaging events on the Somavesh platform.
           </p>
         </div>
       </section>

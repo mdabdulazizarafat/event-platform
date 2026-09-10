@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -357,7 +357,7 @@ export default function PartnersTeamDashboard() {
     <div className="space-y-6">
       <PageHeader
         title="Partners & Team Directory"
-        description="Manage the brands that collaborate with us, and the team behind the Ayojok platform."
+        description="Manage the brands that collaborate with us, and the team behind the Somavesh platform."
       />
 
       <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 sm:p-6 shadow-xs w-full">
@@ -470,7 +470,7 @@ export default function PartnersTeamDashboard() {
           </Form.Item>
 
           <Form.Item name="website" label="Website URL">
-            <Input placeholder="e.g. https://ayojok.rongplan.com" prefix={<LinkIcon size={14} className="text-gray-400" />} />
+            <Input placeholder="e.g. https://Somavesh.rongplan.com" prefix={<LinkIcon size={14} className="text-gray-400" />} />
           </Form.Item>
 
           <Form.Item name="category" label="Partner Category" rules={[{ required: true, message: 'Please select a category' }]}>

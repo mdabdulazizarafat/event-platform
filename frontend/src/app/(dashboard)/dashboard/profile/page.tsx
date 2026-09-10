@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Typography, Card, Form, Input, Switch, Avatar, Select, Tag, Modal, Spin, Badge, App } from 'antd';
@@ -720,7 +720,7 @@ export default function ProfilePage() {
                       <p className="text-xs text-red-500 font-bold m-0 mt-4">you can not apply for organzier anymore</p>
                     )}
                     {user.organizerStatus === 'APPROVED' && (
-                      <p className="text-xs text-green-600 m-0 mt-4">you became an organizer in the ayojok, please follow the  event rules when creat the event.</p>
+                      <p className="text-xs text-green-600 m-0 mt-4">you became an organizer in the Somavesh, please follow the  event rules when creat the event.</p>
                     )}
                   </div>
                 ) : (

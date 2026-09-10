@@ -18,10 +18,10 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Rong Plan - Event Platform",
-  description: "Seamless event management and dynamic ticket registration.",
+  title: "Somavesh",
+  description: "Make your event organizing and participant experience effortless and memorable with Somavesh.",
   icons: {
-    icon: "/ayojokFavicon.png",
+    icon: "https://image.somavesh.com/SomaveshFavicon.png",
   },
 };
 

@@ -228,8 +228,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all duration-200 active:scale-95 ${isActive
-                    ? 'bg-gradient-to-r from-primary/10 to-transparent text-primary border-l-2 border-primary shadow-[inset_2px_0_10px_rgba(123,85,250,0.05)]'
-                    : 'text-on-surface-variant hover:bg-surface-container-high hover:text-foreground'
+                  ? 'bg-gradient-to-r from-primary/10 to-transparent text-primary border-l-2 border-primary shadow-[inset_2px_0_10px_rgba(123,85,250,0.05)]'
+                  : 'text-on-surface-variant hover:bg-surface-container-high hover:text-foreground'
                   }`}
               >
                 <Icon size={18} />
@@ -251,10 +251,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
           )}
 
-          <Link href="#" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high hover:text-foreground rounded-lg px-4 py-2 text-sm font-bold transition-colors">
+          {/* <Link href="/dashboard/support" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high hover:text-foreground rounded-lg px-4 py-2 text-sm font-bold transition-colors">
             <HelpCircle size={18} />
             <span>Support</span>
-          </Link>
+          </Link> */}
 
           <button
             onClick={async () => { setSidebarOpen(false); await logout(); router.push('/sign-in'); }}
@@ -265,7 +265,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
 
           {/* User Profile */}
-          <div className="mt-4 pt-4 border-t border-outline-variant flex items-center gap-3 px-2">
+          {/* <div className="mt-4 pt-4 border-t border-outline-variant flex items-center gap-3 px-2">
             <Avatar size={40} className="bg-primary flex-shrink-0 flex items-center justify-center font-bold text-white">
               {user?.name?.charAt(0)?.toUpperCase() || 'U'}
             </Avatar>
@@ -277,7 +277,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {getRoleLabel()}
               </Text>
             </div>
-          </div>
+          </div> */}
         </div>
       </aside>
 
