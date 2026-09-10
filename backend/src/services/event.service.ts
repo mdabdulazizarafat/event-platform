@@ -181,8 +181,10 @@ export class EventService {
         const isPaid =
           event.paymentInstructions ||
           event.bkashNumber ||
+          event.formTransactionId ||
           input.paymentInstructions ||
-          input.bkashNumber;
+          input.bkashNumber ||
+          input.formTransactionId;
         
         let hasPaidTickets = false;
         const tickets = await prisma.ticketType.findMany({ where: { eventId: event.id } });

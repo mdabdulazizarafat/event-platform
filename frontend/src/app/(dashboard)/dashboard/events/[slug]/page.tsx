@@ -872,6 +872,7 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
               {event.title}
             </span>
             {event.status === 'DRAFT' && <Tag color="default">DRAFT</Tag>}
+            {event.status === 'UNDER_REVIEW' && <Tag color="gold" icon={<Clock size={12} className="mr-1 inline" />}>PENDING ADMIN REVIEW</Tag>}
             {event.status === 'PUBLISHED' && <Tag color="blue">PUBLISHED (REGISTRATION OPEN)</Tag>}
             {event.status === 'REGISTRATION_CLOSED' && <Tag color="orange">REGISTRATION CLOSED</Tag>}
             {event.status === 'LIVE' && <Tag color="green" icon={<Activity size={12} className="mr-1 inline" />}>LIVE</Tag>}
@@ -903,8 +904,18 @@ export default function EventControlCenterPage({ params }: { params: Promise<{ s
                 </>
               ) : (
                 (event.status === 'DRAFT' || event.status === 'REJECTED') && (
-                  <Button variant="primary" size="sm" icon={<Power className="w-4 h-4" />} onClick={() => updateStatus((tickets.some(t => parseFloat(t.price) > 0) || rejectionReason || event.status === 'REJECTED') ? 'UNDER_REVIEW' : 'PUBLISHED')}>
-                    {(tickets.some(t => parseFloat(t.price) > 0) || rejectionReason || event.status === 'REJECTED') ? 'Submit for Admin Review' : 'Publish Event'}
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Power className="w-4 h-4" />}
+                    onClick={() => {
+                      const isPaidEvent = tickets.some(t => parseFloat(t.price) > 0) || !!event.payment_instructions || !!event.bkash_number || !!event.form_transaction_id;
+                      updateStatus((isPaidEvent || rejectionReason || event.status === 'REJECTED') ? 'UNDER_REVIEW' : 'PUBLISHED');
+                    }}
+                  >
+                    {(tickets.some(t => parseFloat(t.price) > 0) || event.payment_instructions || event.bkash_number || event.form_transaction_id || rejectionReason || event.status === 'REJECTED')
+                      ? 'Apply for Admin Review & Publish'
+                      : 'Publish Event'}
                   </Button>
                 )
               )}

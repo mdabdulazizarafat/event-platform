@@ -334,6 +334,33 @@ export default function CreateEventWizardPage() {
   const totalTicketCapacity = tickets.reduce((acc, t) => acc + (parseInt(t.capacity) || 0), 0);
   const totalTicketPriceBDT = tickets.reduce((acc, t) => acc + (parseFloat(t.price) || 0), 0);
 
+  if (user?.role === 'USER') {
+    return (
+      <div className="space-y-6 w-full">
+        <PageHeader
+          title="Create New Event"
+          description="Event creation is restricted to approved organizers."
+          action={
+            <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/events')} icon={<ArrowLeft className="w-4 h-4" />}>
+              Back to Directory
+            </Button>
+          }
+        />
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-8 text-center space-y-4">
+          <h3 className="font-heading text-lg font-bold text-amber-600 m-0">Organizer Privileges Required</h3>
+          <p className="text-body-sm text-on-surface-variant max-w-lg mx-auto m-0">
+            Your account currently has regular User status. Demoted or standard users cannot create new events, but you can still access and manage any of your previously created events from your events directory.
+          </p>
+          <div className="pt-2">
+            <Button variant="primary" onClick={() => router.push('/dashboard/events')}>
+              Go to My Events Directory
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 w-full">
       <PageHeader
@@ -798,7 +825,7 @@ export default function CreateEventWizardPage() {
                   onClick={() => handleSubmit(true)}
                   icon={<CheckCircle className="w-4 h-4" />}
                 >
-                  {totalTicketPriceBDT > 0 ? 'Admin Review & Publish' : 'Publish & Go Live'}
+                  {(totalTicketPriceBDT > 0 || paymentInstructions || bkashNumber) ? 'Apply for Admin Review & Publish' : 'Publish & Go Live'}
                 </Button>
               </div>
             )}

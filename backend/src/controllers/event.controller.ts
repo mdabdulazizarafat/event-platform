@@ -36,6 +36,10 @@ export class EventController {
       if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
+      if (req.user.role === 'USER') {
+        return res.status(403).json({ error: 'Only approved organizers and admins can create new events. Please apply for organizer privileges.' });
+      }
+
       const settings = await prisma.platformSetting.findUnique({ where: { key: 'features' } });
       const features = (settings?.value as any) || {};
       if (features.eventCreation === false && req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
@@ -74,6 +78,14 @@ export class EventController {
         return res.status(400).json({ error: `Event URL Slug "${slug}" is already taken. Please choose another unique slug.` });
       }
 
+      let initialStatus = status || 'DRAFT';
+      if (initialStatus === 'PUBLISHED' && req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
+        const isPaid = req.body.paymentInstructions || req.body.bkashNumber || req.body.formTransactionId;
+        if (isPaid) {
+          initialStatus = 'UNDER_REVIEW';
+        }
+      }
+
       const eventId = await EventService.createEvent({
         slug,
         title,
@@ -86,7 +98,7 @@ export class EventController {
         organizerUsername,
         description: description || undefined,
         thumbnail: thumbnail || undefined,
-        status: status || 'DRAFT',
+        status: initialStatus,
         formPhone: formPhone !== undefined ? !!formPhone : undefined,
         formJobTitle: formJobTitle !== undefined ? !!formJobTitle : undefined,
         formOrganization: formOrganization !== undefined ? !!formOrganization : undefined,
