@@ -69,6 +69,11 @@ export class EventController {
         });
       }
 
+      const existingSlug = await prisma.event.findUnique({ where: { slug } });
+      if (existingSlug) {
+        return res.status(400).json({ error: `Event URL Slug "${slug}" is already taken. Please choose another unique slug.` });
+      }
+
       const eventId = await EventService.createEvent({
         slug,
         title,

@@ -444,12 +444,23 @@ export class EventService {
       };
     });
 
-    const nextCursor = items.length === limitNum ? items[items.length - 1].id : null;
+    // Filter computed items: Public visitors or non-organizer/non-team users should not see ENDED events on public listing
+    const filteredItems = items.filter((item: any) => {
+      if (item.status === 'ENDED') {
+        const canSeeEnded = role === 'SUPER_ADMIN' || role === 'ADMIN' || item.is_organizer || item.is_team_member;
+        if (!canSeeEnded) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    const nextCursor = filteredItems.length === limitNum ? filteredItems[filteredItems.length - 1].id : null;
     const hasMore = nextCursor !== null;
     const totalPages = Math.ceil(total / limitNum);
 
     const result = {
-      data: items,
+      data: filteredItems,
       nextCursor,
       hasMore,
       pagination: {

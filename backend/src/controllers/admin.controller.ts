@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { AdminService } from '../services/admin.service';
 import { EventService } from '../services/event.service';
 import { EventTeamService } from '../services/event-team.service';
@@ -140,13 +140,13 @@ export class AdminController {
    */
   static async deleteEvent(req: Request, res: Response) {
     try {
-      const slug = req.params.id; // Expecting slug instead of ID
-      if (!slug) {
-        return res.status(400).json({ error: 'Valid Event Slug is required.' });
+      const identifier = req.params.id; // Accepts numeric ID or slug
+      if (!identifier) {
+        return res.status(400).json({ error: 'Valid Event ID or Slug is required.' });
       }
 
       const adminUsername = req.user!.username;
-      const deletedEvent = await AdminService.deleteEvent(slug, adminUsername);
+      const deletedEvent = await AdminService.deleteEvent(identifier, adminUsername);
 
       return res.status(200).json({
         message: 'Event successfully removed from the platform.',

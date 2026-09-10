@@ -10,7 +10,7 @@ export function getOtpVerificationHtml(data: {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="x-apple-disable-message-reformatting" />
-    <title>Verify your Somavesh email � Somavesh</title>
+    <title>Verify your Somavesh email - Somavesh</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"

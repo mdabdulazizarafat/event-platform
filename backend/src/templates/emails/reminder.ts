@@ -62,7 +62,7 @@ export function getReminderEmailHtml(data: {
     <tr>
       <td class="body-pad" style="padding:28px 24px 8px 24px;background-color:#ffffff;">
         <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#f7bb16;margin:0 0 10px 0;">
-          ${data.countdown_label} � ${data.countdown_days} days to go
+          ${data.countdown_label} - ${data.countdown_days} days to go
         </div>
         <div style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;color:#0D1F15;line-height:1.3;letter-spacing:-0.3px;margin:0 0 10px 0;">
           Almost <span style="color:#2BA361;">Time</span>, ${data.participant_name}.
@@ -82,7 +82,7 @@ export function getReminderEmailHtml(data: {
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
                   <td width="60" style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#6B7F75;font-weight:500;vertical-align:top;padding-bottom:10px;">When:</td>
-                  <td style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#0D1F15;font-weight:600;vertical-align:top;padding-bottom:10px;">${data.event_date} � ${data.event_time}</td>
+                  <td style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#0D1F15;font-weight:600;vertical-align:top;padding-bottom:10px;">${data.event_date} - ${data.event_time}</td>
                 </tr>
                 <tr>
                   <td width="60" style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#6B7F75;font-weight:500;vertical-align:top;padding-bottom:10px;">Gates:</td>
@@ -92,7 +92,7 @@ export function getReminderEmailHtml(data: {
                   <td width="60" style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#6B7F75;font-weight:500;vertical-align:top;padding-bottom:6px;">Where:</td>
                   <td style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#0D1F15;font-weight:600;vertical-align:top;padding-bottom:6px;">
                     ${data.venue_name}, ${data.venue_address}<br>
-                    <a href="${data.directions_url}" style="color:#2BA361;font-weight:700;text-decoration:none;">Get directions ?</a>
+                    <a href="${data.directions_url}" style="color:#2BA361;font-weight:700;text-decoration:none;">Get directions →</a>
                   </td>
                 </tr>
               </table>
@@ -106,8 +106,8 @@ export function getReminderEmailHtml(data: {
           <tr>
             <td style="padding:16px 18px;">
               <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;color:#0D1F15;">Your entry QR code</div>
-              <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:12px;color:#6B7F75;margin:2px 0 10px 0;">Ticket #${data.ticket_id} � have it ready at the door</div>
-              <a href="${data.ticket_url}" style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;color:#2BA361;text-decoration:none;">View Ticket ?</a>
+              <div style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:12px;color:#6B7F75;margin:2px 0 10px 0;">Ticket #${data.ticket_id} • have it ready at the door</div>
+              <a href="${data.ticket_url}" style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;color:#2BA361;text-decoration:none;">View Ticket →</a>
             </td>
           </tr>
         </table>
@@ -116,7 +116,7 @@ export function getReminderEmailHtml(data: {
           What to bring
         </div>
         <p style="margin:0 0 4px 0;font-family:'Inter',Arial,Helvetica,sans-serif;font-size:14px;color:#3D5647;line-height:1.6;">
-          Photo ID � QR ticket � charged phone
+          Photo ID • QR ticket • charged phone
         </p>
       </td>
     </tr>

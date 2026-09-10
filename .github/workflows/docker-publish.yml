@@ -1,4 +1,4 @@
-﻿name: Docker Image CI/CD
+name: Docker Image CI/CD
 
 on:
   push:
@@ -34,6 +34,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=long
+            type=ref,event=branch
 
       - name: Build and push Backend image
         uses: docker/build-push-action@v5
@@ -49,6 +53,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=long
+            type=ref,event=branch
 
       - name: Build and push Frontend image
         uses: docker/build-push-action@v5

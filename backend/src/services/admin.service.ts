@@ -247,17 +247,21 @@ export class AdminService {
   }
 
   /**
-   * Delete an event permanently from the platform.
+   * Delete an event permanently from the platform (by numeric id or slug).
    */
-  static async deleteEvent(slug: string, adminUsername: string) {
-    const event = await prisma.event.findUnique({ where: { slug } });
+  static async deleteEvent(identifier: string, adminUsername: string) {
+    const isNumeric = /^\d+$/.test(identifier.trim());
+    const event = isNumeric
+      ? await prisma.event.findUnique({ where: { id: parseInt(identifier.trim(), 10) } })
+      : await prisma.event.findUnique({ where: { slug: identifier.trim() } });
+
     if (!event) {
-      throw new Error(`Event with slug "${slug}" not found.`);
+      throw new Error(`Event "${identifier}" not found.`);
     }
 
-    await prisma.event.delete({ where: { slug } });
+    await prisma.event.delete({ where: { id: event.id } });
 
-    await this.logAction(adminUsername, 'DELETE_EVENT', 'EVENT', slug, { title: event.title });
+    await this.logAction(adminUsername, 'DELETE_EVENT', 'EVENT', String(event.id), { title: event.title, slug: event.slug });
     return { message: `Event "${event.title}" deleted successfully.` };
   }
 

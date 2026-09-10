@@ -17,11 +17,12 @@ import {
   UserPlus,
   CalendarDays,
   Clock,
-  Inbox
+  Inbox,
+  Trash2
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
-import { fetchMyManagedEvents, fetchSchedules, createSchedule, ScheduleItem } from '@/lib/api';
+import { fetchMyManagedEvents, fetchSchedules, createSchedule, deleteSchedule, ScheduleItem } from '@/lib/api';
 
 const { Title, Paragraph } = Typography;
 
@@ -230,155 +231,150 @@ function OrganizerSchedule() {
     );
   }
 
+  const handleDeleteSchedule = async (id: number) => {
+    if (!selectedEventSlug) return;
+    try {
+      await deleteSchedule(selectedEventSlug, id);
+      setSchedules(schedules.filter(s => s.id !== id));
+      message.success('Session deleted successfully');
+    } catch (err: any) {
+      message.error(err.message || 'Failed to delete session');
+    }
+  };
+
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-140px)] overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-[calc(100vh-140px)] space-y-4">
       {/* Builder Header Options */}
-      <div className="pb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-container-lowest p-6 border border-outline-variant rounded-2xl shadow-xs">
         <div>
           <button 
             onClick={() => setViewMode('LIST')}
             className="flex items-center gap-1.5 text-xs font-bold text-primary mb-2 hover:underline cursor-pointer border-none bg-transparent p-0"
           >
-            ← Back to Events
+            ← Back to Events List
           </button>
-          <h2 className="font-heading text-3xl font-extrabold text-foreground leading-none mb-1">Schedule Builder</h2>
+          <h2 className="font-heading text-2xl font-extrabold text-foreground leading-none mb-1">Schedule Builder</h2>
           <div className="mt-1">
-             <span className="text-on-surface-variant font-medium text-sm">Managing: </span>
-             <span className="font-bold text-foreground text-sm">{events.find(e => e.slug === selectedEventSlug)?.title}</span>
+             <span className="text-on-surface-variant font-medium text-xs">Event: </span>
+             <span className="font-bold text-foreground text-xs">{events.find(e => e.slug === selectedEventSlug)?.title}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-surface-container-low p-1 rounded-lg border border-outline-variant/30">
-          {days.map((day) => (
-            <button
-              key={day.key}
-              onClick={() => setActiveDay(day.key)}
-              className={`px-4 py-2 text-xs font-bold rounded-md transition-all cursor-pointer border-none bg-transparent ${
-                activeDay === day.key
-                  ? 'bg-white text-primary border border-outline-variant/30 shadow-sm font-extrabold'
-                  : 'text-on-surface-variant hover:text-foreground'
-              }`}
-            >
-              {day.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="primary"
+            size="md"
+            icon={<PlusCircle size={16} />}
+            onClick={() => setIsModalOpen(true)}
+          >
+            Add Session Segment
+          </Button>
         </div>
-
-        <Button 
-          variant="primary"
-          size="md"
-          icon={<PlusCircle size={16} />}
-          onClick={() => setIsModalOpen(true)}
-        >
-          Add Session
-        </Button>
       </div>
 
-      {/* Workspace Grid Area */}
-      <div className="flex-grow flex overflow-hidden border border-outline-variant rounded-xl bg-surface-container-lowest shadow-sm">
-        {/* Timeline main viewport */}
-        <div className="flex-1 overflow-auto p-4 custom-scrollbar">
-          <div className="min-w-[700px] border border-outline-variant/50 rounded-xl overflow-hidden bg-white">
-            {/* Tracks Header */}
-            <div className="grid grid-cols-4 bg-surface-container-low border-b border-outline-variant/80">
-              <div className="h-12 flex items-center justify-center border-r border-outline-variant/50">
-                <span className="font-bold text-[11px] uppercase tracking-wider text-on-surface-variant/80">Time</span>
-              </div>
-              <div className="h-12 flex items-center px-4 border-r border-outline-variant/50">
-                <span className="font-bold text-xs text-primary flex items-center gap-2">
-                  <Tv size={14} />
-                  <span>Main Stage</span>
-                </span>
-              </div>
-              <div className="h-12 flex items-center px-4 border-r border-outline-variant/50">
-                <span className="font-bold text-xs text-primary flex items-center gap-2">
-                  <Compass size={14} />
-                  <span>Workshop Room A</span>
-                </span>
-              </div>
-              <div className="h-12 flex items-center px-4">
-                <span className="font-bold text-xs text-primary flex items-center gap-2">
-                  <Users size={14} />
-                  <span>Networking Hub</span>
-                </span>
-              </div>
-            </div>
+      {/* Workspace Agenda List & Timetable */}
+      <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-outline-variant/60 pb-3">
+          <h3 className="font-heading text-base font-bold text-foreground m-0">Event Itinerary & Agenda</h3>
+          <span className="text-xs font-bold text-on-surface-variant bg-surface-container-low px-3 py-1 rounded-full">
+            {schedules.length} {schedules.length === 1 ? 'Session' : 'Sessions'} Programmed
+          </span>
+        </div>
 
-            {/* Time Slot Rows */}
-            {/* Real DB Schedule Items */}
-            {schedules.length === 0 && (
-              <div className="p-8 text-center text-on-surface-variant font-medium">
-                No schedules found. Click "Add Session" or the Plus icon to add one.
-              </div>
-            )}
-            {schedules.map((item, idx) => (
-              <div key={idx} className="grid grid-cols-4 border-b border-outline-variant/40">
-                <div className="h-32 bg-surface-container-lowest/30 flex items-start justify-center pt-4 border-r border-outline-variant/50 font-bold text-xs text-on-surface-variant/70">
-                  {item.start_time}
-                </div>
-                <div className="h-32 border-r border-outline-variant/50 p-2 relative bg-surface-container-lowest/10">
-                  <div className="absolute inset-2 bg-primary-container/5 border-l-4 border-primary rounded-lg p-3 flex flex-col justify-between hover:shadow-md transition-shadow group cursor-pointer">
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-bold text-xs text-foreground leading-tight m-0">{item.title}</h4>
-                      <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase">{item.status}</span>
+        {schedules.length === 0 ? (
+          <div className="text-center py-16 bg-surface-container-low/40 border border-dashed border-outline-variant rounded-xl">
+            <CalendarDays className="w-10 h-10 text-on-surface-variant/40 mx-auto mb-3" />
+            <h4 className="font-heading font-bold text-foreground m-0">No Sessions Scheduled</h4>
+            <p className="text-xs text-on-surface-variant mt-1 mb-4">Add keynotes, workshops, breaks, or presentations to build your event agenda.</p>
+            <Button variant="primary" size="sm" icon={<PlusCircle size={14} />} onClick={() => setIsModalOpen(true)}>
+              Add First Session
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {schedules.map((item) => (
+              <div 
+                key={item.id} 
+                className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white border border-outline-variant/60 hover:border-primary/40 rounded-xl transition-all shadow-2xs gap-4 group"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-28 shrink-0 bg-primary/5 text-primary p-2.5 rounded-lg text-center border border-primary/10">
+                    <span className="block font-bold text-xs">{item.start_time}</span>
+                    <span className="block text-[10px] text-on-surface-variant font-medium mt-0.5">to {item.end_time}</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-sm text-foreground m-0">{item.title}</h4>
+                      {item.date && (
+                        <span className="text-[10px] bg-surface-container-low text-on-surface-variant font-bold px-2 py-0.5 rounded">
+                          {item.date}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-[10px] text-on-surface-variant/80 m-0">{item.speaker} • {item.start_time} - {item.end_time}</p>
-                    <p className="text-[10px] font-bold text-primary m-0 mt-1">{item.room}</p>
+                    <div className="flex flex-wrap items-center gap-4 mt-1.5 text-xs text-on-surface-variant font-medium">
+                      {item.room && (
+                        <span className="flex items-center gap-1 text-primary">
+                          <MapPin size={12} /> {item.room}
+                        </span>
+                      )}
+                      {item.speaker && (
+                        <span className="flex items-center gap-1">
+                          <Users size={12} /> Speaker: <strong className="text-foreground">{item.speaker}</strong>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div 
-                  className="h-32 border-r border-outline-variant/50 p-2 flex items-center justify-center bg-surface-container-low/20 hover:bg-primary-container/5 cursor-pointer transition-colors group"
-                  onClick={() => setIsModalOpen(true)}
-                >
-                  <Plus size={16} className="text-on-surface-variant/40 group-hover:text-primary transition-colors" />
-                </div>
-                <div 
-                  className="h-32 p-2 flex items-center justify-center bg-surface-container-low/20 hover:bg-primary-container/5 cursor-pointer transition-colors group"
-                  onClick={() => setIsModalOpen(true)}
-                >
-                  <Plus size={16} className="text-on-surface-variant/40 group-hover:text-primary transition-colors" />
+
+                <div className="flex items-center gap-2 self-end md:self-center">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="!text-destructive !border-destructive/30 hover:!bg-destructive/10" 
+                    icon={<Trash2 size={14} />}
+                    onClick={() => handleDeleteSchedule(item.id)}
+                  >
+                    Remove
+                  </Button>
                 </div>
               </div>
             ))}
-
-
-
           </div>
-        </div>
+        )}
       </div>
       
       {/* Add Session Modal */}
       <Modal
-        title={<span className="font-heading font-bold text-lg">Add New Session</span>}
+        title={<span className="font-heading font-bold text-lg">Add New Session Segment</span>}
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={null}
         destroyOnHidden
       >
-        <Form layout="vertical" form={form} onFinish={handleAddSchedule} className="mt-4">
-          <Form.Item name="title" label="Session/Segment Name" rules={[{ required: true, message: 'Please enter a title' }]}>
-            <Input placeholder="e.g. Opening Keynote" />
+        <Form layout="vertical" form={form} onFinish={handleAddSchedule} className="mt-4 space-y-1">
+          <Form.Item name="title" label="Session / Topic Title" rules={[{ required: true, message: 'Please enter a session title' }]}>
+            <Input placeholder="e.g. Opening Keynote: Artificial Intelligence in 2026" className="rounded-xl h-11" />
           </Form.Item>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Form.Item name="date" label="Date" rules={[{ required: true, message: 'Please select date' }]}>
-              <DatePicker className="w-full" />
+              <DatePicker className="w-full rounded-xl h-11" />
             </Form.Item>
             <Form.Item name="timeRange" label="Start & End Time" rules={[{ required: true, message: 'Please select time range' }]}>
-              <TimePicker.RangePicker format="hh:mm A" use12Hours className="w-full" />
+              <TimePicker.RangePicker format="hh:mm A" use12Hours className="w-full rounded-xl h-11" />
             </Form.Item>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item name="room" label="Room Number/Name" rules={[{ required: true, message: 'Please enter room' }]}>
-              <Input placeholder="e.g. Main Stage" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Form.Item name="room" label="Room / Stage Name" rules={[{ required: true, message: 'Please enter room name' }]}>
+              <Input placeholder="e.g. Main Auditorium Stage" className="rounded-xl h-11" />
             </Form.Item>
-            <Form.Item name="speaker" label="Speaker Name" rules={[{ required: true, message: 'Please enter speaker' }]}>
-              <Input placeholder="e.g. Sarah Jenkins" />
+            <Form.Item name="speaker" label="Speaker Name" rules={[{ required: true, message: 'Please enter speaker name' }]}>
+              <Input placeholder="e.g. Dr. Arfat Rahman" className="rounded-xl h-11" />
             </Form.Item>
           </div>
 
-          <div className="flex justify-end gap-3 mt-4">
+          <div className="flex justify-end gap-3 pt-4 border-t border-outline-variant/40 mt-6">
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button variant="primary" type="submit" loading={loading}>Save Session</Button>
           </div>
@@ -387,4 +383,3 @@ function OrganizerSchedule() {
     </div>
   );
 }
-

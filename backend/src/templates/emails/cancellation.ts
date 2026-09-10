@@ -15,7 +15,7 @@ export function getCancelEmailHtml(data: {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="x-apple-disable-message-reformatting">
-  <title>Registration Cancelled � ${data.event_name} � Somavesh</title>
+  <title>Registration Cancelled - ${data.event_name} - Somavesh</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     @media only screen and (max-width: 600px) {

@@ -25,7 +25,7 @@ export function getParticipantEmailHtml(data: {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="x-apple-disable-message-reformatting">
-  <title>You're confirmed � ${data.event_name} � Somavesh</title>
+  <title>You're confirmed - ${data.event_name} - Somavesh</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     @media only screen and (max-width: 600px) {
@@ -83,7 +83,7 @@ export function getParticipantEmailHtml(data: {
                 ${data.ticket_code}
               </div>
               <div style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:13px;color:rgba(13,14,19,0.58);margin-top:6px;font-weight:500;">
-                Ticket #${data.ticket_id} � ${data.ticket_tier}
+                Ticket #${data.ticket_id} • ${data.ticket_tier}
               </div>
             </td>
           </tr>
@@ -99,7 +99,7 @@ export function getParticipantEmailHtml(data: {
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
                   <td width="60" style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:rgba(13,14,19,0.38);font-weight:500;vertical-align:top;padding-bottom:10px;">When:</td>
-                  <td style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#0d0e13;font-weight:600;vertical-align:top;padding-bottom:10px;">${data.event_date} � ${data.event_time}</td>
+                  <td style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:#0d0e13;font-weight:600;vertical-align:top;padding-bottom:10px;">${data.event_date} - ${data.event_time}</td>
                 </tr>
                 <tr>
                   <td width="60" style="font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:14px;color:rgba(13,14,19,0.38);font-weight:500;vertical-align:top;padding-bottom:6px;">Where:</td>
@@ -117,7 +117,7 @@ export function getParticipantEmailHtml(data: {
       <td class="cta-pad" style="padding:20px 32px 32px 32px;background-color:#ffffff;">
         <a href="${data.calendar_url}" class="cta-btn" style="display:inline-block;background-color:#2BA361;color:#ffffff;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:15px;font-weight:600;text-decoration:none;padding:14px 40px;border-radius:6px;">Add to Calendar</a>
         <p style="margin:20px 0 0 0;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;font-size:13px;color:rgba(13,14,19,0.50);line-height:1.6;">
-          This QR code is unique to you � please don't forward this email. Bring a photo ID matching your registration name.
+          This QR code is unique to you - please don't forward this email. Bring a photo ID matching your registration name.
         </p>
       </td>
     </tr>

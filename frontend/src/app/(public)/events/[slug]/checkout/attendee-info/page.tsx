@@ -397,7 +397,7 @@ export default function AttendeeInfoPage({ params }: { params: Promise<{ slug: s
                 </Button>
               ) : (
                 <Button variant="primary" loading={submitting} onClick={handleNext} icon={<ArrowRight className="w-4 h-4" />}>
-                  {ticket && parseFloat(ticket.price) > 0 ? 'Proceed to Payment' : 'Complete Registration'}
+                  Complete Registration
                 </Button>
               )}
               <Button variant="outline" onClick={() => router.back()} icon={<ArrowLeft className="w-4 h-4" />}>

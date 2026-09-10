@@ -320,3 +320,19 @@ server {
 - Renamed the organizer-guideline directory to organizer-guidelines for consistency.
 - Overhauled and rebranded marketing site links to Somavesh.
 
+
+---
+
+## 10. Final Pre-Launch Production Audit (September 10, 2026)
+
+- **Audit Status**: **READY AFTER FIXES (YELLOW — CONDITIONAL)**
+- **Overall Score**: **81.05 / 100**
+- **Comprehensive Report**: [`docs/PRODUCTION-AUDIT.md`](docs/PRODUCTION-AUDIT.md)
+
+### Key Audit Findings & Priorities:
+1. **[P0] Payment Verification**: SSLCommerz IPN/callback endpoints require server-to-server gateway validation (`val_id`) to prevent spoofed callbacks.
+2. **[P0] Secret Rotation**: Ensure all database and Redis passwords in production are injected solely via environment variables and never committed to version control.
+3. **[P1] Admin Event Deletion**: Harmonized slug vs ID parameter handling in admin deletion routes.
+4. **[P1] Transactional Email Character Cleanup**: Scrubbed encoding artifacts from automated email notifications.
+5. **[P2] CI/CD Tagging**: Add Git commit SHA tagging (`app:git-commit-sha`) to GHCR container workflow for instant, deterministic rollbacks.
+
