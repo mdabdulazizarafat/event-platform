@@ -1,4 +1,4 @@
-﻿import { Resend } from 'resend';
+import { Resend } from 'resend';
 import { createChildLogger } from '../lib/logger';
 import { getParticipantEmailHtml, getCancelEmailHtml, getOtpVerificationHtml, getWelcomeEmailHtml } from '../templates/emails';
 const logger = createChildLogger('email.service');
@@ -36,7 +36,7 @@ export interface CancellationEmailPayload {
 }
 
 export class EmailService {
-  private static fromEmail = process.env.RESEND_FROM_EMAIL || 'Rong Plan <onboarding@resend.dev>';
+  private static fromEmail = process.env.RESEND_FROM_EMAIL || 'Somavesh <hello@mail.somavesh.com>';
 
   /**
    * Sends transactional ticket confirmation email via Resend
@@ -56,11 +56,11 @@ export class EmailService {
       calendar_url: 'https://calendar.google.com/',
       organizer_name: 'Somavesh',
       organizer_address: 'Dhaka, Bangladesh',
-      unsubscribe_url: 'https://Somavesh.com/unsubscribe',
+      unsubscribe_url: 'https://somavesh.com/unsubscribe',
       facebook_url: 'https://facebook.com/Somavesh',
       instagram_url: 'https://instagram.com/Somavesh',
       linkedin_url: 'https://linkedin.com/Somavesh',
-      support_email: process.env.SUPPORT_EMAIL || process.env.RESEND_FROM_EMAIL || 'support@rongplan.com'
+      support_email: process.env.SUPPORT_EMAIL || 'hello@mail.somavesh.com'
     });
 
     const client = getResendClient();
@@ -95,11 +95,11 @@ export class EmailService {
       event_name: payload.eventTitle,
       organizer_name: 'Somavesh',
       organizer_address: 'Dhaka, Bangladesh',
-      unsubscribe_url: 'https://Somavesh.com/unsubscribe',
+      unsubscribe_url: 'https://somavesh.com/unsubscribe',
       facebook_url: 'https://facebook.com/Somavesh',
       instagram_url: 'https://instagram.com/Somavesh',
       linkedin_url: 'https://linkedin.com/Somavesh',
-      support_email: process.env.SUPPORT_EMAIL || process.env.RESEND_FROM_EMAIL || 'support@rongplan.com'
+      support_email: process.env.SUPPORT_EMAIL || 'hello@mail.somavesh.com'
     });
 
     const client = getResendClient();
@@ -134,7 +134,7 @@ export class EmailService {
     const htmlContent = getOtpVerificationHtml({
       otp_code: code,
       purpose_text: purposeText,
-      support_email: process.env.SUPPORT_EMAIL || process.env.RESEND_FROM_EMAIL || 'support@rongplan.com'
+      support_email: process.env.SUPPORT_EMAIL || 'hello@mail.somavesh.com'
     });
 
     const client = getResendClient();
@@ -170,7 +170,7 @@ export class EmailService {
     const htmlContent = getWelcomeEmailHtml({
       email,
       username,
-      login_url: 'https://Somavesh.com/login'
+      login_url: 'https://somavesh.com/login'
     });
 
     const client = getResendClient();

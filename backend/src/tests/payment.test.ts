@@ -35,7 +35,7 @@ export async function runPaymentTests() {
         eventId,
         eventSlug,
         eventTitle: 'QA Paid Event',
-        ticketTypeId: paidTicketId,
+        ticketTypeIds: [paidTicketId],
         userId: buyerUsername,
         email: `${buyerUsername}@test.rong-plan.com`,
         customerName: 'Paid Attendee',

@@ -14,7 +14,7 @@ export async function runAuthTests() {
       const user = await AuthService.register(testUsername, 'Auth Test User', testEmail, testPassword);
       expect(user.username).toBe(testUsername);
       expect(user.email).toBe(testEmail);
-      expect(user.role).toBe('PARTICIPANT');
+      expect(user.role).toBe('USER');
     });
 
     await it('should login and return a valid RS256 JWT token', async () => {

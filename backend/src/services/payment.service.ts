@@ -264,7 +264,7 @@ export class PaymentService {
           data: {
             status: 'COMPLETED',
             valId: payload.valId || null,
-            paymentMethod: payload.paymentMethod || 'SSLCOMMERZ',
+            paymentMethod: payload.paymentMethod || 'MANUAL_BKASH',
             gatewayResponse: payload.rawResponse || null,
             paidAt: new Date(),
           },

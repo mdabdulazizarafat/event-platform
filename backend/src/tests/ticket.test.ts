@@ -35,7 +35,7 @@ export async function runTicketTests() {
         eventId,
         attendee.username,
         attendee.email,
-        freeTicketId,
+        [freeTicketId],
         {
           fullName: 'QA Test Attendee',
           organization: 'St. Gregorys College',
