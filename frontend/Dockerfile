@@ -12,6 +12,9 @@ RUN npm install
 # Copy the frontend application files
 COPY frontend ./frontend
 
+# Ensure public directory exists (prevents build failure if empty/ignored)
+RUN mkdir -p /app/frontend/public
+
 # Build the Next.js production bundle
 WORKDIR /app/frontend
 ENV NODE_ENV=production
