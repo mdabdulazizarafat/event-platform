@@ -1,4 +1,4 @@
-﻿version: '3.8'
+version: '3.8'
 
 services:
   # Isolated PostgreSQL Database
@@ -42,7 +42,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    image: ghcr.io/mdabdulazizarafat/Somavesh-backend:main
+    image: ghcr.io/mdabdulazizarafat/somavesh-backend:main
     container_name: Somavesh-backend
     restart: always
     depends_on:
@@ -82,7 +82,7 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-    image: ghcr.io/mdabdulazizarafat/Somavesh-frontend:main
+    image: ghcr.io/mdabdulazizarafat/somavesh-frontend:main
     container_name: Somavesh-frontend
     restart: always
     ports:
@@ -91,7 +91,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://Somavesh.com}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://somavesh.com}
     networks:
       - Somavesh-network
 
