@@ -22,6 +22,7 @@ export default function Footer() {
             <div>
               <h4 className="font-semibold text-foreground mb-4 text-sm">Company</h4>
               <ul className="space-y-3 text-sm font-medium">
+                <li><Link prefetch={false} href="/" className="!text-black/70 hover:!text-black transition-colors">Home</Link></li>
                 <li><Link prefetch={false} href="/events" className="!text-black/70 hover:!text-black transition-colors">Events</Link></li>
                 <li><Link prefetch={false} href="/about" className="!text-black/70 hover:!text-black transition-colors">About</Link></li>
                 <li><Link prefetch={false} href="/contact" className="!text-black/70 hover:!text-black transition-colors">Contact</Link></li>

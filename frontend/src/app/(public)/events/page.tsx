@@ -138,6 +138,9 @@ export default function EventsDiscoveryPage() {
       if (isEventLive) eventComputedStatus = 'Live';
       else if (isPast) eventComputedStatus = 'Past';
 
+      // Hide ended/past events from the discovery catalog completely
+      if (eventComputedStatus === 'Past' || event.status === 'ENDED' || event.status === 'PAST') return false;
+
       const matchesStatus = selectedStatus === 'All' || eventComputedStatus === selectedStatus;
 
       return matchesSearch && matchesCategory && matchesLocation && matchesStatus;

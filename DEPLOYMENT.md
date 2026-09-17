@@ -51,10 +51,8 @@ Ensure the VPS has the following installed:
 
 ### Step A: Configure Cloudflare DNS
 1. Log in to your Cloudflare Dashboard.
-2. Go to **DNS settings** for `rongplan.com`.
-3. Add a new **A Record**:
-   - **Name**: `Somavesh` (resolving to `Somavesh.rongplan.com`)
-   - **IPv4 Address**: `187.127.102.17`
+2. Add a new **A Record**:
+   - **Name**: `Somavesh` (resolving to `Somavesh.com`)
    - **Proxy status**: Proxied (Orange cloud enabled)
 
 ---

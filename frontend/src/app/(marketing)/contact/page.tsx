@@ -37,15 +37,8 @@ export default function ContactPage() {
             <div className="sm:w-1/3 mb-2 sm:mb-0 flex items-center gap-2">
               <span className="font-bold text-foreground font-sans">Email</span>
             </div>
-            <div className="sm:w-2/3 text-on-surface-variant font-sans flex flex-col gap-2">
-              <div>
-                <span className="font-semibold mr-2">Contact:</span>
-                <a href="mailto:hello@somavesh.com" className="!text-slate-700 hover:!text-primary transition-colors">hello@somavesh.com</a>
-              </div>
-              <div>
-                <span className="font-semibold mr-2">Support:</span>
-                <a href="mailto:support@somavesh.com" className="!text-slate-700 hover:!text-primary transition-colors">support@somavesh.com</a>
-              </div>
+            <div className="sm:w-2/3 text-on-surface-variant font-sans">
+              <a href="mailto:hello@somavesh.com" className="!text-slate-700 hover:!text-primary transition-colors">hello@somavesh.com</a>
             </div>
           </div>
 
