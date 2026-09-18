@@ -216,7 +216,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar - 280px fixed width */}
       <aside className={`w-[280px] glass-panel border-r border-outline-variant flex flex-col fixed top-0 bottom-0 left-0 z-50 transition-transform duration-300 transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} bg-background`}>
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4 custom-scrollbar">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-4 pb-4 pt-[76px] custom-scrollbar">
           {currentNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
