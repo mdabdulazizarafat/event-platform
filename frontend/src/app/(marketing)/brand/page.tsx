@@ -11,7 +11,7 @@ export default function BrandPage() {
   return (
     <div className="min-h-screen bg-background pb-16 font-sans">
 
-            {/* Hero Section */}
+      {/* Hero Section */}
       <section className="relative overflow-hidden w-full min-h-fit flex flex-col items-center justify-start bg-[#fafafa] -mt-16 pt-24 pb-4 md:pt-36 md:pb-8">
         {/* Background layers */}
         <div className="absolute inset-0 bg-hero-gradient dark:bg-hero-gradient-dark pointer-events-none z-0" />
@@ -50,7 +50,7 @@ export default function BrandPage() {
             {/* Standard */}
             <div className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white p-6 md:p-8 flex flex-col shadow-[0_4px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] transition-shadow duration-300">
               <div className="flex-grow flex items-center justify-center p-4 bg-white rounded-[16px] mb-6">
-                <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Somavesh Standard" className="w-[85%] object-contain" />
+                <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Somavesh Standard" className="w-[80%] object-contain" />
               </div>
               <div className="flex items-center justify-between mt-auto">
                 <span className="font-heading text-xl font-extrabold text-[#1d1d1f]">On Light</span>
@@ -61,7 +61,7 @@ export default function BrandPage() {
             {/* Primary Bg */}
             <div className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white p-6 md:p-8 flex flex-col shadow-[0_4px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] transition-shadow duration-300">
               <div className="flex-grow flex items-center justify-center p-4 bg-[#2BA361] rounded-[16px] mb-6">
-                <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Somavesh on Primary" className="w-[85%] object-contain brightness-0 invert" />
+                <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Somavesh on Primary" className="w-[80%] object-contain" />
               </div>
               <div className="flex items-center justify-between mt-auto">
                 <span className="font-heading text-xl font-extrabold text-[#1d1d1f]">On Primary</span>
@@ -72,7 +72,7 @@ export default function BrandPage() {
             {/* Dark Bg */}
             <div className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white p-6 md:p-8 flex flex-col shadow-[0_4px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] transition-shadow duration-300">
               <div className="flex-grow flex items-center justify-center p-4 bg-[#0d0e13] rounded-[16px] mb-6">
-                <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Somavesh on Dark" className="w-[85%] object-contain brightness-0 invert" />
+                <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Somavesh on Dark" className="w-[80%] object-contain" />
               </div>
               <div className="flex items-center justify-between mt-auto">
                 <span className="font-heading text-xl font-extrabold text-[#1d1d1f]">On Dark</span>
@@ -95,33 +95,33 @@ export default function BrandPage() {
             {/* Standard */}
             <div className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white p-6 md:p-8 flex flex-col shadow-[0_4px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] transition-shadow duration-300">
               <div className="flex-grow flex items-center justify-center p-4 bg-white rounded-[16px] mb-6">
-                <img src="https://image.somavesh.com/SomaveshFavicon.png" alt="Icon Standard" className="w-[50%] object-contain" />
+                <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Icon Standard" className="w-[80%] object-contain" />
               </div>
               <div className="flex items-center justify-between mt-auto">
                 <span className="font-heading text-xl font-extrabold text-[#1d1d1f]">On Light</span>
-                <DownloadButton url="https://image.somavesh.com/SomaveshFavicon.svg" filename="SomaveshFavicon.svg" className="text-sm text-primary font-bold hover:underline cursor-pointer">Download</DownloadButton>
+                <DownloadButton url="https://image.somavesh.com/SomaveshLogo.png" filename="SomaveshLogo.png" className="text-sm text-primary font-bold hover:underline cursor-pointer">Download</DownloadButton>
               </div>
             </div>
 
             {/* Primary Bg */}
             <div className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white p-6 md:p-8 flex flex-col shadow-[0_4px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] transition-shadow duration-300">
               <div className="flex-grow flex items-center justify-center p-4 bg-[#2BA361] rounded-[16px] mb-6">
-                <img src="https://image.somavesh.com/SomaveshFavicon.png" alt="Icon on Primary" className="w-[50%] object-contain brightness-0 invert" />
+                <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Icon on Primary" className="w-[80%] object-contain" />
               </div>
               <div className="flex items-center justify-between mt-auto">
                 <span className="font-heading text-xl font-extrabold text-[#1d1d1f]">On Primary</span>
-                <DownloadButton url="https://image.somavesh.com/SomaveshFavicon.svg" filename="SomaveshFavicon.svg" className="text-sm text-primary font-bold hover:underline cursor-pointer">Download</DownloadButton>
+                <DownloadButton url="https://image.somavesh.com/SomaveshLogo.png" filename="SomaveshLogo.png" className="text-sm text-primary font-bold hover:underline cursor-pointer">Download</DownloadButton>
               </div>
             </div>
 
             {/* Dark Bg */}
             <div className="shrink-0 w-[85vw] sm:w-[288px] md:w-[336px] lg:w-[368px] aspect-square rounded-[24px] overflow-hidden bg-white p-6 md:p-8 flex flex-col shadow-[0_4px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_0_20px_4px_rgba(22,163,74,0.2)] transition-shadow duration-300">
               <div className="flex-grow flex items-center justify-center p-4 bg-[#0d0e13] rounded-[16px] mb-6">
-                <img src="https://image.somavesh.com/SomaveshFavicon.png" alt="Icon on Dark" className="w-[50%] object-contain brightness-0 invert" />
+                <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Icon on Dark" className="w-[80%] object-contain" />
               </div>
               <div className="flex items-center justify-between mt-auto">
                 <span className="font-heading text-xl font-extrabold text-[#1d1d1f]">On Dark</span>
-                <DownloadButton url="https://image.somavesh.com/SomaveshFavicon.svg" filename="SomaveshFavicon.svg" className="text-sm text-primary font-bold hover:underline cursor-pointer">Download</DownloadButton>
+                <DownloadButton url="https://image.somavesh.com/SomaveshLogo.svg" filename="SomaveshLogo.svg" className="text-sm text-primary font-bold hover:underline cursor-pointer">Download</DownloadButton>
               </div>
             </div>
           </ScrollRow>
