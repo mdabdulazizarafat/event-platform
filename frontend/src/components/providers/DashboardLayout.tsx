@@ -214,9 +214,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       />
 
       {/* Sidebar - 280px fixed width */}
-      <aside className={`w-[280px] glass-panel border-r border-outline-variant flex flex-col fixed top-[72px] bottom-0 left-0 z-50 transition-transform duration-300 transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} bg-background`}>
-        {/* Brand Area (Logo Removed) */}
-
+      <aside className={`w-[280px] glass-panel border-r border-outline-variant flex flex-col fixed top-0 bottom-0 left-0 z-50 transition-transform duration-300 transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} bg-background`}>
         {/* Navigation */}
         <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4 custom-scrollbar">
           {currentNavItems.map((item) => {
@@ -263,26 +261,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <LogOut size={18} />
             <span>Sign Out</span>
           </button>
-
-          {/* User Profile */}
-          {/* <div className="mt-4 pt-4 border-t border-outline-variant flex items-center gap-3 px-2">
-            <Avatar size={40} className="bg-primary flex-shrink-0 flex items-center justify-center font-bold text-white">
-              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-            </Avatar>
-            <div className="flex flex-col overflow-hidden">
-              <Text className="font-bold text-sm text-foreground m-0 truncate leading-tight">
-                {user?.name || 'User'}
-              </Text>
-              <Text className="text-xs text-on-surface-variant m-0 truncate">
-                {getRoleLabel()}
-              </Text>
-            </div>
-          </div> */}
         </div>
       </aside>
 
       {/* Main Container */}
-      <div className="flex-1 lg:ml-[280px] flex flex-col w-full pt-[72px]">
+      <div className="flex-1 lg:ml-[280px] flex flex-col w-full">
         {/* Main Content Area */}
         <main className="flex-1 p-4 lg:p-8">
           {children}
