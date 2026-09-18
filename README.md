@@ -1,4 +1,4 @@
-# Somavesh Event Platform — Master Technical Documentation & Scalability Specification
+# Somavesh Event Platform ï¿½ Master Technical Documentation & Scalability Specification
 
 > **Target Audience**: New Developers, Senior Engineers, Technical Leads, Product Auditors, DevOps & Solution Architects.  
 > **Platform Version**: 1.0.0 (Production Ready)  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary & Platform Overview
 
-**Somavesh** (`Somavesh.rongplan.com`) is a high-performance, enterprise-grade Event Management, Ticketing, and Attendance Verification Platform tailored for large-scale conferences, tech expos, hackathons, and multi-track events. 
+**Somavesh** (`Somavesh.com`) is a high-performance, enterprise-grade Event Management, Ticketing, and Attendance Verification Platform tailored for large-scale conferences, tech expos, hackathons, and multi-track events. 
 
 The platform supports end-to-end event lifecycles:
 - **Public Discovery & Ticket Purchase**: Custom ticket tiers, team/group registrations, bKash & SSLCommerz payment gateway integrations.
@@ -29,16 +29,16 @@ The platform supports end-to-end event lifecycles:
 ```
                                     [ Cloudflare Edge ]
                            (Anycast CDN, DDoS Shield, WAF, SSL)
-                                             ¦
+                                             ï¿½
                                              ? (Port 443 / HTTPS)
                                      [ Host Nginx Proxy ]
                            (Gzip/Brotli, Upstream Load Balancing)
-                                             ¦
+                                             ï¿½
                        +-------------------------------------------+
                        ? (Port 3000)                               ? (Port 3001)
             [ Somavesh-frontend ]                         [ Somavesh-backend ]
           (Next.js App Router Node)                   (Express Node.js Cluster)
-                       ¦                                           ¦
+                       ï¿½                                           ï¿½
                        +---------------------+                     +----------------------+
                        ?                     ?                     ?                      ?
                [ Next SSR Cache ]     [ Browser Static ]     [ Redis Cache / Queue ]  [ Postgres DB ]
@@ -89,21 +89,21 @@ The platform supports end-to-end event lifecycles:
 event-platform/
 +-- .agents/                 # Custom Agent Skills & Rules
 +-- backend/                 # Express REST API Server
-¦   +-- src/
-¦   +-- controllers/     # HTTP Request Handlers (Event, Auth, Ticket, Payment)
-¦   +-- db/              # PostgreSQL- **Connection Limit Math**: Dynamically capped at `10` connections per worker process (yielding $\le 50$ total active PostgreSQL connections across a 4-core worker cluster).
-¦   +-- lib/             # Pino Logger & Helper Utilities
-¦   +-- middleware/      # Auth (RS256 JWT), RBAC, Security Headers, Request Logger
-¦   +-- routes/          # API v1 Endpoint Routing Rules
-¦   +-- services/        # Core Business Logic & Database Queries
-¦   +-- templates/       # HTML Email Templates & Certificate Layouts
-¦   +-- workers/         # BullMQ Background Job Processors & Status Scheduler
+ï¿½   +-- src/
+ï¿½   +-- controllers/     # HTTP Request Handlers (Event, Auth, Ticket, Payment)
+ï¿½   +-- db/              # PostgreSQL- **Connection Limit Math**: Dynamically capped at `10` connections per worker process (yielding $\le 50$ total active PostgreSQL connections across a 4-core worker cluster).
+ï¿½   +-- lib/             # Pino Logger & Helper Utilities
+ï¿½   +-- middleware/      # Auth (RS256 JWT), RBAC, Security Headers, Request Logger
+ï¿½   +-- routes/          # API v1 Endpoint Routing Rules
+ï¿½   +-- services/        # Core Business Logic & Database Queries
+ï¿½   +-- templates/       # HTML Email Templates & Certificate Layouts
+ï¿½   +-- workers/         # BullMQ Background Job Processors & Status Scheduler
 +-- frontend/                # Next.js 16 Web Application
-¦   +-- src/
-¦   ¦   +-- app/             # App Router Pages & Layouts
-¦   ¦   +-- components/      # UI Components (Navbar, Cards, Modals, Forms)
-¦   ¦   +-- lib/             # API Client & Auth Cookie Management
-¦   ¦   +-- styles/          # Global CSS & Tailwind Configurations
+ï¿½   +-- src/
+ï¿½   ï¿½   +-- app/             # App Router Pages & Layouts
+ï¿½   ï¿½   +-- components/      # UI Components (Navbar, Cards, Modals, Forms)
+ï¿½   ï¿½   +-- lib/             # API Client & Auth Cookie Management
+ï¿½   ï¿½   +-- styles/          # Global CSS & Tailwind Configurations
 +-- database/                # SQL Initialization Schemas & Seed Data
 +-- docker-compose.yml       # Production Container Orchestration Blueprint
 +-- nginx.Somavesh.conf        # Production Host Nginx Reverse Proxy Configuration

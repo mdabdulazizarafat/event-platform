@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -311,8 +311,8 @@ export class AuthController {
         const age = today.getFullYear() - dob.getFullYear();
         const monthDiff = today.getMonth() - dob.getMonth();
         const effectiveAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate()) ? age - 1 : age;
-        if (effectiveAge < 8) {
-          return res.status(400).json({ error: 'Date of birth must indicate an age of at least 8 years.' });
+        if (effectiveAge < 3) {
+          return res.status(400).json({ error: 'Date of birth must indicate an age of at least 3 years.' });
         }
       }
 

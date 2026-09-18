@@ -214,11 +214,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       />
 
       {/* Sidebar - 280px fixed width */}
-      <aside className={`w-[280px] glass-panel border-r border-outline-variant flex flex-col fixed top-16 bottom-0 left-0 z-50 p-4 transition-transform duration-300 transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        {/* Brand area removed as per design */}
+      <aside className={`w-[280px] glass-panel border-r border-outline-variant flex flex-col fixed top-0 bottom-0 left-0 z-50 transition-transform duration-300 transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} bg-background`}>
+        {/* Brand Area */}
+        <div className="flex items-center gap-2.5 px-6 py-5 border-b border-outline-variant">
+          <Link href="/" className="flex items-center gap-2" onClick={() => setSidebarOpen(false)}>
+            <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Somavesh Logo" className="h-8 w-auto" />
+          </Link>
+        </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto pr-2 custom-scrollbar">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4 custom-scrollbar">
           {currentNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -228,19 +233,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all duration-200 active:scale-95 ${isActive
-                  ? 'bg-gradient-to-r from-primary/10 to-transparent text-primary border-l-2 border-primary shadow-[inset_2px_0_10px_rgba(123,85,250,0.05)]'
-                  : 'text-on-surface-variant hover:bg-surface-container-high hover:text-foreground'
+                  ? 'bg-gradient-to-r from-primary/10 to-transparent text-[#2BA361] border-l-2 border-primary shadow-[inset_2px_0_10px_rgba(43,163,97,0.05)]'
+                  : 'text-[#1d1d1f] hover:bg-surface-container-high hover:text-black'
                   }`}
               >
-                <Icon size={18} />
-                <span>{item.label}</span>
+                <Icon size={18} className={isActive ? 'text-[#2BA361]' : 'text-[#1d1d1f]'} />
+                <span className={isActive ? 'text-[#2BA361]' : 'text-[#1d1d1f]'}>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="mt-auto space-y-1 pt-4 border-t border-outline-variant">
+        <div className="mt-auto space-y-1 p-4 border-t border-outline-variant">
           {canCreateEvent && (
             <button
               onClick={() => { setSidebarOpen(false); router.push('/dashboard/events/create'); }}

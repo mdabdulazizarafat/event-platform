@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Typography, Card, Form, Input, Switch, Avatar, Select, Tag, Modal, Spin, Badge, App } from 'antd';
@@ -379,8 +379,8 @@ export default function ProfilePage() {
       const age = today.getFullYear() - dob.getFullYear();
       const monthDiff = today.getMonth() - dob.getMonth();
       const effectiveAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate()) ? age - 1 : age;
-      if (effectiveAge < 8) {
-        message.error("Date of birth must indicate an age of at least 8 years.");
+      if (effectiveAge < 3) {
+        message.error("Date of birth must indicate an age of at least 3 years.");
         return;
       }
     }
@@ -581,7 +581,7 @@ export default function ProfilePage() {
                 <div>
                   <label className="block text-xs font-bold text-text-muted mb-1">Date of Birth</label>
                   {isEditingProfile ? (
-                    <input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} className="w-full bg-surface-container-low border border-outline-variant/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors text-foreground" />
+                    <input type="date" max={new Date(new Date().setFullYear(new Date().getFullYear() - 3)).toISOString().split('T')[0]} value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} className="w-full bg-surface-container-low border border-outline-variant/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors text-foreground" />
                   ) : (
                     <p className="text-sm font-semibold text-foreground m-0">{dateOfBirth || '-'}</p>
                   )}
@@ -695,7 +695,7 @@ export default function ProfilePage() {
           </section>
 
           {/* Organizer Application Section in separate card */}
-          {!isPlatformAdmin && !isOrganizer && isProfileComplete && (
+          {!isPlatformAdmin && !isOrganizer && (
             <section className="bento-card p-6 md:p-8 bg-white dark:bg-dark-surface border border-outline-variant/30">
               <div className="mb-6 border-b border-outline-variant/30 pb-4">
                 <h4 className="font-heading text-lg font-bold text-primary flex items-center gap-2 m-0">
@@ -703,7 +703,7 @@ export default function ProfilePage() {
                 </h4>
               </div>
               <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant/30">
-                {user?.organizerStatus ? (
+                {user?.organizerStatus && user.organizerStatus !== 'NONE' ? (
                   <div>
                     <p className="text-sm font-bold text-foreground mb-2">Application Status: <Tag color={
                       user.organizerStatus === 'APPROVED' ? 'green' :
@@ -725,8 +725,23 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <div>
-                    <p className="text-sm text-on-surface-variant mb-4">You can apply to become an organizer to organize events on Rong Plan.</p>
-                    <Button variant="primary" onClick={handleApplyOrganizer} loading={applying}>Apply as Organizer</Button>
+                    <p className="text-sm text-on-surface-variant mb-4 font-medium">
+                      You can apply to become an organizer to host and manage events on Somavesh.
+                    </p>
+                    {isProfileComplete ? (
+                      <Button variant="primary" onClick={handleApplyOrganizer} loading={applying}>
+                        Apply for Organizer
+                      </Button>
+                    ) : (
+                      <div className="space-y-3">
+                        <Button variant="primary" disabled>
+                          Apply for Organizer
+                        </Button>
+                        <p className="text-xs text-red-500 font-semibold m-0">
+                          Please complete your profile information first before applying.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -129,6 +129,13 @@ export class AdminService {
     }
 
     const updateData: any = {};
+    if (data.username !== undefined && data.username !== username) {
+      const existing = await prisma.user.findUnique({ where: { username: data.username } });
+      if (existing) {
+        throw new Error(`Username "${data.username}" is already taken.`);
+      }
+      updateData.username = data.username;
+    }
     if (data.name !== undefined) updateData.name = data.name;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.mobile !== undefined) updateData.mobile = data.mobile;
@@ -155,6 +162,9 @@ export class AdminService {
     });
 
     await clearUserSessionCache(username);
+    if (updateData.username) {
+      await clearUserSessionCache(updateData.username);
+    }
     await this.logAction(adminUsername, 'UPDATE_USER', 'USER', username, updateData);
     return updated;
   }

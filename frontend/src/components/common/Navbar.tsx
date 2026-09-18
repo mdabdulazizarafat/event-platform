@@ -102,7 +102,7 @@ export default function Navbar() {
   return (
     <header
       id="navbar"
-      className={`fixed top-0 left-0 right-0 z-[1000] transition-[padding,background-color,backdrop-filter] duration-300 ${isCompact ? 'navbar-glass py-3' : 'bg-transparent py-5'
+      className={`fixed top-0 right-0 z-[1000] transition-[padding,background-color,backdrop-filter] duration-300 ${isDashboard ? 'left-0 lg:left-[280px]' : 'left-0'} ${isCompact ? 'navbar-glass py-3' : 'bg-transparent py-5'
         }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between relative z-[101]">
