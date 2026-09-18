@@ -214,13 +214,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       />
 
       {/* Sidebar - 280px fixed width */}
-      <aside className={`w-[280px] glass-panel border-r border-outline-variant flex flex-col fixed top-0 bottom-0 left-0 z-50 transition-transform duration-300 transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} bg-background`}>
-        {/* Brand Area */}
-        <div className="flex items-center gap-2.5 px-6 py-5 border-b border-outline-variant">
-          <Link href="/" className="flex items-center gap-2" onClick={() => setSidebarOpen(false)}>
-            <img src="https://image.somavesh.com/SomaveshLogo.png" alt="Somavesh Logo" className="h-8 w-auto" />
-          </Link>
-        </div>
+      <aside className={`w-[280px] glass-panel border-r border-outline-variant flex flex-col fixed top-[72px] bottom-0 left-0 z-50 transition-transform duration-300 transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} bg-background`}>
+        {/* Brand Area (Logo Removed) */}
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4 custom-scrollbar">
@@ -287,7 +282,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Main Container */}
-      <div className="flex-1 lg:ml-[280px] flex flex-col w-full">
+      <div className="flex-1 lg:ml-[280px] flex flex-col w-full pt-[72px]">
         {/* Main Content Area */}
         <main className="flex-1 p-4 lg:p-8">
           {children}

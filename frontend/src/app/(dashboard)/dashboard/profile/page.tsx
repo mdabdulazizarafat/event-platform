@@ -623,7 +623,7 @@ export default function ProfilePage() {
             <div>
               <div className="mb-6 border-b border-outline-variant/30 pb-4">
                 <h4 className="font-heading text-lg font-bold text-primary flex items-center gap-2 m-0">
-                  <span>Academic Information</span>
+                  <span>Organization Information</span>
                 </h4>
               </div>
 
